@@ -12,5 +12,7 @@ export const color = {
     "light-fuschia": "#F3A8FF",
     "fuschia": "#C800DE",
     "light-indigo": "#7C86FF",
-    "indigo": "#432DD7"
+    "indigo": "#432DD7",
+    "black": "#000000",
+    "white": "#FFFFFF",
 }
