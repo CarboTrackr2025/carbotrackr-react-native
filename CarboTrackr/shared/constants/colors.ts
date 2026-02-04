@@ -18,11 +18,12 @@ export const color = {
 }
 
 export const gradient = {
-    greenGradient: [color["light-green"], color["green"]],
-    redGradient: [color["light-red"], color["red"]],
-    yellowGradient: [color["light-yellow"], color["yellow"]],
-    blueGradient: [color["light-blue"], color["blue"]],
-    orangeGradient: [color["light-orange"], color["orange"]],
-    fuschiaGradient: [color["light-fuschia"], color["fuschia"]],
-    indigoGradient: [color["light-indigo"], color["indigo"]],
+    green: [color["light-green"], color["green"]],
+    red: [color["light-red"], color["red"]],
+    yellow: [color["light-yellow"], color["yellow"]],
+    blue: [color["light-blue"], color["blue"]],
+    orange: [color["light-orange"], color["orange"]],
+    fuschia: [color["light-fuschia"], color["fuschia"]],
+    indigo: [color["light-indigo"], color["indigo"]],
 }
+
