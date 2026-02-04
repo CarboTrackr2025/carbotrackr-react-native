@@ -16,3 +16,13 @@ export const color = {
     "black": "#000000",
     "white": "#FFFFFF",
 }
+
+export const gradient = {
+    greenGradient: [color["light-green"], color["green"]],
+    redGradient: [color["light-red"], color["red"]],
+    yellowGradient: [color["light-yellow"], color["yellow"]],
+    blueGradient: [color["light-blue"], color["blue"]],
+    orangeGradient: [color["light-orange"], color["orange"]],
+    fuschiaGradient: [color["light-fuschia"], color["fuschia"]],
+    indigoGradient: [color["light-indigo"], color["indigo"]],
+}
