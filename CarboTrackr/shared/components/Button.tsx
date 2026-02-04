@@ -49,6 +49,9 @@ export function Button({title, onPress, gradient}: Props) {
     );
 }
 
+const BORDER_W = 2.5
+const RADIUS = 12
+
 const styles = StyleSheet.create({
     wrapper:
     {
@@ -64,14 +67,14 @@ const styles = StyleSheet.create({
     border: {
         width: "100%",
         height: 54,
-        borderRadius: 10,
-        padding: 2,
+        borderRadius: RADIUS,
+        padding: BORDER_W,
         justifyContent: "center",
         overflow: "hidden",
     },
     inner: {
         flex: 1,
-        borderRadius: 8,
+        borderRadius: RADIUS - BORDER_W,
         justifyContent: "center",
         paddingHorizontal: 12,
         overflow: "hidden",

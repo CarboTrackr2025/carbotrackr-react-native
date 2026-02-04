@@ -105,48 +105,52 @@ export default function AddBloodPressureForm({submitting = false, onSubmit, time
     )
 }
 
+const BORDER_W = 2.5
+const RADIUS = 12
+
 const styles = StyleSheet.create({
-    container: {
-        padding: 12,
-        columnGap: 26,
-    },
-    label: {
-        marginTop: 8,
-        marginBottom: 4,
-        fontSize: 14,
-        fontWeight: "600",
-        color: color.black,
-    },
-    inputBorder: {
-        width: "100%",
-        height: 54,
-        borderRadius: 10,
-        padding: 2,
-        justifyContent: "center",
-        overflow: "hidden",
-    },
-    inputInner: {
-        flex: 1,
-        borderRadius: 8,
-        justifyContent: "center",
-        paddingHorizontal: 10,
-        backgroundColor: "#FFFFFF",
-    },
-    textInput: {
-        flex: 1,
-        paddingVertical: 0,
-        color: "#111827",
-        fontSize: 14,
-    },
-    displayText: {
-        color: "#111827",
-        fontSize: 14,
-        opacity: 0.8,
-    },
-    error: {
-        color: "red",
-        marginTop: 8,
-        marginBottom: 8,
-        fontSize: 12,
-    },
+  container: {
+    padding: 12,
+    columnGap: 26,
+  },
+  label: {
+    marginTop: 8,
+    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: "600",
+    color: color.black,
+  },
+  inputBorder: {
+    width: "100%",
+    height: 54,
+    borderRadius: RADIUS,
+    padding: BORDER_W,
+    justifyContent: "center",
+    overflow: "hidden", // keep gradient edge consistent
+  },
+  inputInner: {
+    flex: 1,
+    borderRadius: RADIUS - BORDER_W,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden", // prevent inner from visually thinning the bottom edge
+  },
+  textInput: {
+    flex: 1,
+    paddingVertical: 0,
+    color: "#111827",
+    fontSize: 14,
+  },
+  displayText: {
+    color: "#111827",
+    fontSize: 14,
+    opacity: 0.8,
+  },
+  error: {
+    color: "red",
+    marginTop: 8,
+    marginBottom: 8,
+    fontSize: 12,
+  },
 })
