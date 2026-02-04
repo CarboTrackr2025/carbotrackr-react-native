@@ -3,7 +3,7 @@ import {StyleSheet, View} from "react-native";
 import {Tabs} from "expo-router";
 import {Ionicons} from "@expo/vector-icons";
 import {LinearGradient} from "expo-linear-gradient";
-import {color} from "../shared/constants/colors";
+import {color, gradient} from "../shared/constants/colors";
 
 export default function Layout() {
     type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -32,9 +32,9 @@ export default function Layout() {
 
         return (
             <LinearGradient
-                colors={[color["light-green"], color.green]}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
+                colors={gradient.green as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
                 style={styles.iconWrap}
             >
                 {icon}
