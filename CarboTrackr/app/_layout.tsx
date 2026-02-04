@@ -80,6 +80,19 @@ export default function Layout() {
                 }}
             />
 
+            <Tabs.Screen
+                name="health"
+                options={{
+                    tabBarIcon: ({focused, color: iconColor, size}) => (
+                        <TabIcon
+                            focused={focused}
+                            name="fitness"
+                            iconColor={iconColor}
+                            size={size}
+                        />
+                    ),
+                }}
+            />
 
 
 
