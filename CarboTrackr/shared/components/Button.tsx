@@ -7,6 +7,7 @@ type Props = {
     title: string;
     onPress: () => void;
     gradient: [string, string];
+    disabled?: boolean;
 };
 
 export function Button({title, onPress, gradient}: Props) {
@@ -49,8 +50,17 @@ export function Button({title, onPress, gradient}: Props) {
 }
 
 const styles = StyleSheet.create({
-    wrapper: {width: "100%"},
-    pressable: {alignSelf: "stretch", paddingHorizontal: "5%"},
+    wrapper:
+    {
+        width: "100%",
+        alignSelf: "stretch",
+        marginTop: 80,
+    },
+    pressable: {
+        width: "100%",
+        alignSelf: "stretch",
+        paddingHorizontal: 0,
+    },
     border: {
         width: "100%",
         height: 54,

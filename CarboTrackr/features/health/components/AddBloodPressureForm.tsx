@@ -1,8 +1,9 @@
 import React, {useMemo, useState} from "react"
-import {Button, StyleSheet, Text, TextInput, View} from "react-native"
+import { StyleSheet, Text, TextInput, View} from "react-native"
 import {LinearGradient} from "expo-linear-gradient"
 import {color, gradient} from "../../../shared/constants/colors"
 import {formatPhilippinesTime} from "../health.utils"
+import {Button} from "../../../shared/components/Button"
 
 type BloodPressureInput = {
     systolic_mmHg: number
@@ -99,13 +100,16 @@ export default function AddBloodPressureForm({submitting = false, onSubmit, time
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <Button title={submitting ? "Saving..." : "Save"} onPress={handleSubmit} disabled={!canSubmit}/>
+            <Button title={submitting ? "Saving..." : "Save"} onPress={handleSubmit} disabled={!canSubmit} gradient={gradient.green as [string, string]}/>
         </View>
     )
 }
 
 const styles = StyleSheet.create({
-    container: {padding: 12},
+    container: {
+        padding: 12,
+        columnGap: 26,
+    },
     label: {
         marginTop: 8,
         marginBottom: 4,
