@@ -75,6 +75,6 @@ const styles = StyleSheet.create({
     text: {
         textAlign: "center",
         fontSize: 14,
-        fontWeight: "300",
+        fontWeight: "600",
     },
 });
