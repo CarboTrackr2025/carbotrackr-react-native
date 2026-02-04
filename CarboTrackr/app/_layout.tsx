@@ -1,12 +1,9 @@
-// CarboTrackr/app/_layout.tsx
 import React from "react";
 import {StyleSheet, View} from "react-native";
 import {Tabs} from "expo-router";
 import {Ionicons} from "@expo/vector-icons";
 import {LinearGradient} from "expo-linear-gradient";
 import {color} from "../shared/constants/colors";
-
-
 
 export default function Layout() {
     type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -70,69 +67,12 @@ export default function Layout() {
             />
 
             <Tabs.Screen
-                name="(main)/report/index"
+                name="report"
                 options={{
                     tabBarIcon: ({focused, color: iconColor, size}) => (
                         <TabIcon
                             focused={focused}
                             name="bar-chart"
-                            iconColor={iconColor}
-                            size={size}
-                        />
-                    ),
-                }}
-            />
-
-
-            <Tabs.Screen
-                name="(main)/food-logs/index"
-                options={{
-                    tabBarIcon: ({focused, color: iconColor, size}) => (
-                        <TabIcon
-                            focused={focused}
-                            name="nutrition"
-                            iconColor={iconColor}
-                            size={size}
-                        />
-                    ),
-                }}
-            />
-
-            <Tabs.Screen
-                name="(main)/scanner/index"
-                options={{
-                    tabBarIcon: ({focused, color: iconColor, size}) => (
-                        <TabIcon
-                            focused={focused}
-                            name="camera"
-                            iconColor={iconColor}
-                            size={size}
-                        />
-                    ),
-                }}
-            />
-
-            <Tabs.Screen
-                name="(main)/health/index"
-                options={{
-                    tabBarIcon: ({focused, color: iconColor, size}) => (
-                        <TabIcon
-                            focused={focused}
-                            name="fitness"
-                            iconColor={iconColor}
-                            size={size}
-                        />
-                    ),
-                }}
-            />
-
-            <Tabs.Screen
-                name="(main)/settings/index"
-                options={{
-                    tabBarIcon: ({focused, color: iconColor, size}) => (
-                        <TabIcon
-                            focused={focused}
-                            name="settings"
                             iconColor={iconColor}
                             size={size}
                         />
