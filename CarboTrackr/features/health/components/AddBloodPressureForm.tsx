@@ -74,8 +74,6 @@ export default function AddBloodPressureForm({submitting = false, onSubmit, time
         const s = Number(systolic)
         const d = Number(diastolic)
         await onSubmit({systolic_mmHg: s, diastolic_mmHg: d})
-        setSystolic("")
-        setDiastolic("")
     }
 
     const recordedText = timestamp ? formatPhilippinesTime(timestamp) : "—"
