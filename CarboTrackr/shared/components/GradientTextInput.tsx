@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     textInput: {
         flex: 1,
         paddingVertical: 0,
-        color: color.white,
+        color: color.black,
         fontSize: 14,
     },
 })
