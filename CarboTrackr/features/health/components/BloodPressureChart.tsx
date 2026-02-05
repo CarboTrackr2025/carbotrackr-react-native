@@ -1,8 +1,6 @@
-// CarboTrackr/features/health/components/BloodPressureChart.tsx
-
-import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { color } from '../../../shared/constants/colors';
+    import React, {useMemo} from 'react';
+import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {color} from '../../../shared/constants/colors';
 
 /* =======================
    Types
@@ -28,60 +26,27 @@ type BPStatus = 'LOW' | 'NORMAL' | 'ELEVATED' | 'HYPERTENSION' | 'CRISIS';
 const formatLabelMMMdd = (iso: string) => {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
-    return d
-        .toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
-        .replace(' ', '-');
+    return d.toLocaleDateString('en-US', {month: 'short', day: '2-digit'}).replace(' ', '-');
 };
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
-/* =======================
-   Status logic
-======================= */
-
-const evaluateBloodPressure = (
-    systolic: number,
-    diastolic: number
-): BPStatus => {
+const evaluateBloodPressure = (systolic: number, diastolic: number): BPStatus => {
     if (systolic < 90 || diastolic < 60) return 'LOW';
     if (systolic < 120 && diastolic < 80) return 'NORMAL';
     if (systolic >= 120 && systolic < 130 && diastolic < 80) return 'ELEVATED';
-    if ((systolic >= 130 && systolic < 180) || (diastolic >= 80 && diastolic < 120))
-        return 'HYPERTENSION';
+    if ((systolic >= 130 && systolic < 180) || (diastolic >= 80 && diastolic < 120)) return 'HYPERTENSION';
     if (systolic >= 180 || diastolic >= 120) return 'CRISIS';
     return 'NORMAL';
 };
 
-/* =======================
-   Color mapping
-   solid = systolic
-   light = diastolic
-======================= */
-
-const BP_COLORS: Record<
-    BPStatus,
-    { solid: string; light: string }
-> = {
-    LOW: {
-        solid: color.blue,
-        light: color['light-blue'],
-    },
-    NORMAL: {
-        solid: color.green,
-        light: color['light-green'],
-    },
-    ELEVATED: {
-        solid: color.yellow,
-        light: color['light-yellow'],
-    },
-    HYPERTENSION: {
-        solid: color.red,
-        light: color['light-red'],
-    },
-    CRISIS: {
-        solid: color.red,
-        light: color['light-red'],
-    },
+// ✅ Systolic = solid, Diastolic = light
+const BP_COLORS: Record<BPStatus, { solid: string; light: string }> = {
+    LOW: {solid: color.blue, light: color['light-blue']},
+    NORMAL: {solid: color.green, light: color['light-green']},
+    ELEVATED: {solid: color.yellow, light: color['light-yellow']},
+    HYPERTENSION: {solid: color.red, light: color['light-red']},
+    CRISIS: {solid: color.red, light: color['light-red']},
 };
 
 /* =======================
@@ -91,7 +56,6 @@ const BP_COLORS: Record<
 const PLOT_HEIGHT = 140;
 const LABEL_HEIGHT = 24;
 const CHART_HEIGHT = PLOT_HEIGHT + LABEL_HEIGHT;
-
 const Y_MIN = 20;
 const Y_MAX = 200;
 
@@ -99,21 +63,20 @@ const Y_MAX = 200;
    Component
 ======================= */
 
-export default function BloodPressureChart({ measurements = [] }: Props) {
+export default function BloodPressureChart({measurements}: Props) {
+    // ✅ NO dummy fallback (so date range “empty” looks empty)
+    const source = measurements ?? [];
+
     const sorted = useMemo(() => {
-        return [...measurements]
+        return [...source]
             .filter(
                 (m) =>
                     Number.isFinite(m.systolic_mmHg) &&
                     Number.isFinite(m.diastolic_mmHg) &&
                     !Number.isNaN(new Date(m.created_at).getTime())
             )
-            .sort(
-                (a, b) =>
-                    new Date(a.created_at).getTime() -
-                    new Date(b.created_at).getTime()
-            );
-    }, [measurements]);
+            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    }, [source]);
 
     const toHeight = (v: number) => {
         const t = clamp01((v - Y_MIN) / (Y_MAX - Y_MIN));
@@ -125,46 +88,28 @@ export default function BloodPressureChart({ measurements = [] }: Props) {
             <Text style={styles.title}>Blood Pressure</Text>
 
             <View style={styles.card}>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.scrollContent}
-                >
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.scrollContent}>
                     <View style={styles.chart}>
                         <View style={styles.plotRow}>
                             {sorted.map((m) => {
-                                const status = evaluateBloodPressure(
-                                    m.systolic_mmHg,
-                                    m.diastolic_mmHg
-                                );
-
-                                const { solid, light } = BP_COLORS[status];
+                                const status = evaluateBloodPressure(m.systolic_mmHg, m.diastolic_mmHg);
+                                const {solid, light} = BP_COLORS[status];
 
                                 return (
                                     <View key={m.id} style={styles.group}>
                                         <View style={styles.plotArea}>
                                             <View style={styles.barPair}>
                                                 {/* Systolic = solid */}
-                                                <View
-                                                    style={[
-                                                        styles.bar,
-                                                        {
-                                                            height: toHeight(m.systolic_mmHg),
-                                                            backgroundColor: solid,
-                                                        },
-                                                    ]}
-                                                />
-
+                                                <View style={[styles.bar, {
+                                                    height: toHeight(m.systolic_mmHg),
+                                                    backgroundColor: solid
+                                                }]}/>
                                                 {/* Diastolic = light */}
-                                                <View
-                                                    style={[
-                                                        styles.bar,
-                                                        {
-                                                            height: toHeight(m.diastolic_mmHg),
-                                                            backgroundColor: light,
-                                                        },
-                                                    ]}
-                                                />
+                                                <View style={[styles.bar, {
+                                                    height: toHeight(m.diastolic_mmHg),
+                                                    backgroundColor: light
+                                                }]}/>
                                             </View>
                                         </View>
 
@@ -182,18 +127,16 @@ export default function BloodPressureChart({ measurements = [] }: Props) {
 
                 {/* Legend */}
                 <View style={styles.legend}>
-                    <LegendItem color={color.red} label="Hypertension / Crisis" />
-                    <LegendItem color={color.yellow} label="Elevated" />
-                    <LegendItem color={color.green} label="Normal" />
-                    <LegendItem color={color.blue} label="Low" />
+                    <LegendItem color={color.red} label="Hypertension / Crisis"/>
+                    <LegendItem color={color.yellow} label="Elevated"/>
+                    <LegendItem color={color.green} label="Normal"/>
+                    <LegendItem color={color.blue} label="Low"/>
 
-                    {/* reading legend */}
-                    <View style={{ width: '100%', marginTop: 6, flexDirection: 'row', gap: 26 }}>
-                        <Text style={styles.legendText}>Darker = Systolic</Text>
-                        <Text style={styles.legendText}>Lighter = Diastolic</Text>
+                    {/* Compact note row */}
+                    <View style={styles.noteRow}>
+                        <Text style={styles.noteText}>Darker = Systolic</Text>
+                        <Text style={styles.noteText}>Lighter = Diastolic</Text>
                     </View>
-
-
                 </View>
             </View>
         </View>
@@ -204,15 +147,9 @@ export default function BloodPressureChart({ measurements = [] }: Props) {
    Legend helper
 ======================= */
 
-const LegendItem = ({
-                        color: bg,
-                        label,
-                    }: {
-    color: string;
-    label: string;
-}) => (
+const LegendItem = ({color: bg, label}: { color: string; label: string }) => (
     <View style={styles.legendItem}>
-        <View style={[styles.legendSwatch, { backgroundColor: bg }]} />
+        <View style={[styles.legendSwatch, {backgroundColor: bg}]}/>
         <Text style={styles.legendText}>{label}</Text>
     </View>
 );
@@ -222,89 +159,30 @@ const LegendItem = ({
 ======================= */
 
 const styles = StyleSheet.create({
-    container: { padding: 2, height: CHART_HEIGHT + 100 },
+    container: {padding: 2, height: CHART_HEIGHT + 110},
+    title: {fontSize: 16, fontWeight: '600', marginBottom: 10, color: '#111827'},
+    card: {backgroundColor: color.white, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E5E7EB'},
+    scrollContent: {paddingRight: 6, paddingBottom: 4},
+    chart: {height: CHART_HEIGHT, justifyContent: 'flex-end'},
+    plotRow: {flexDirection: 'row', alignItems: 'flex-end', gap: 14},
+    group: {width: 56, alignItems: 'center'},
+    plotArea: {height: PLOT_HEIGHT, justifyContent: 'flex-end'},
+    barPair: {flexDirection: 'row', gap: 6, alignItems: 'flex-end'},
+    bar: {width: 10, borderRadius: 6},
+    labelArea: {height: LABEL_HEIGHT, justifyContent: 'center'},
+    xLabel: {fontSize: 10, color: '#6B7280', textAlign: 'center'},
 
-    title: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 10,
-        color: '#111827',
-    },
+    legend: {marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 12},
+    legendItem: {flexDirection: 'row', alignItems: 'center', gap: 6},
+    legendSwatch: {width: 10, height: 10, borderRadius: 3},
+    legendText: {fontSize: 12, color: color.black},
 
-    card: {
-        backgroundColor: color.white,
-        borderRadius: 12,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-    },
-
-    scrollContent: { paddingRight: 6, paddingBottom: 4 },
-
-    chart: {
-        height: CHART_HEIGHT,
-        justifyContent: 'flex-end',
-    },
-
-    plotRow: {
+    noteRow: {
+        width: '100%',
+        marginTop: 6,
         flexDirection: 'row',
-        alignItems: 'flex-end',
-        gap: 14,
-    },
-
-    group: {
-        width: 56,
+        justifyContent: 'space-between',
         alignItems: 'center',
     },
-
-    plotArea: {
-        height: PLOT_HEIGHT,
-        justifyContent: 'flex-end',
-    },
-
-    barPair: {
-        flexDirection: 'row',
-        gap: 6,
-        alignItems: 'flex-end',
-    },
-
-    bar: {
-        width: 10,
-        borderRadius: 6,
-    },
-
-    labelArea: {
-        height: LABEL_HEIGHT,
-        justifyContent: 'center',
-    },
-
-    xLabel: {
-        fontSize: 10,
-        color: '#6B7280',
-        textAlign: 'center',
-    },
-
-    legend: {
-        marginTop: 10,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-    },
-
-    legendItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-
-    legendSwatch: {
-        width: 10,
-        height: 10,
-        borderRadius: 3,
-    },
-
-    legendText: {
-        fontSize: 12,
-        color: color.black,
-    },
+    noteText: {fontSize: 12, color: '#6B7280'},
 });

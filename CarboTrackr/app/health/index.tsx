@@ -1,4 +1,3 @@
-// app/(main)/health/blood-pressure/index.tsx
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -14,6 +13,7 @@ import axios from 'axios';
 import BloodPressureChart from '../../features/health/components/BloodPressureChart';
 import { API_BASE_URL } from '../../shared/api';
 import { color } from '../../shared/constants/colors';
+import DateRangePicker from '../../shared/components/DateRangePicker';
 
 type BpMeasurement = {
     id: string;
@@ -24,11 +24,6 @@ type BpMeasurement = {
 
 const PROFILE_ID = 'e17fabf0-c9f2-4230-a091-12fcf18a3411';
 
-// ✅ Date range for now (replace later with a picker)
-const START_DATE = '2026-02-02';
-const END_DATE = '2026-02-28';
-
-// If backend returns array directly or wrapped
 type GetBloodPressureResponse =
     | BpMeasurement[]
     | {
@@ -67,37 +62,46 @@ const normalizeMeasurement = (m: any): BpMeasurement | null => {
     };
 };
 
+// ✅ LOCAL date formatter (avoids UTC shift from toISOString)
+const toYMDLocal = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
+
 export default function BloodPressureIndexScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [measurements, setMeasurements] = useState<BpMeasurement[]>([]);
 
+    const [startDate, setStartDate] = useState(new Date('2026-02-01'));
+    const [endDate, setEndDate] = useState(new Date());
+
     const fetchMeasurements = useCallback(async () => {
         try {
-            // ✅ Your exact Node route:
-            // /health/:profileId/blood-pressure/report?start_date=...&end_date=...
             const url = `${API_BASE_URL}/health/${PROFILE_ID}/blood-pressure/report`;
 
-            console.log('GET BP URL =>', url, 'params =>', {
-                start_date: START_DATE,
-                end_date: END_DATE,
-            });
+            const params = {
+                start_date: toYMDLocal(startDate),
+                end_date: toYMDLocal(endDate),
+            };
 
-            const res = await axios.get<GetBloodPressureResponse>(url, {
-                params: {
-                    start_date: START_DATE,
-                    end_date: END_DATE,
-                },
-            });
+            console.log('GET BP URL =>', url, 'params =>', params);
+
+            // ✅ clear stale chart while loading new range
+            setMeasurements([]);
+
+            const res = await axios.get<GetBloodPressureResponse>(url, { params });
 
             const raw = extractMeasurements(res.data);
-
             const cleaned = raw
                 .map(normalizeMeasurement)
                 .filter((x): x is BpMeasurement => x !== null)
                 .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
             setMeasurements(cleaned);
+            console.log(`Fetched ${cleaned.length} BP measurements`);
         } catch (err: any) {
             console.log('BP GET failed', {
                 message: err?.message,
@@ -108,7 +112,7 @@ export default function BloodPressureIndexScreen() {
             });
             Alert.alert('Could not load blood pressure history', 'Please try again.');
         }
-    }, []);
+    }, [startDate, endDate]);
 
     useEffect(() => {
         (async () => {
@@ -133,9 +137,18 @@ export default function BloodPressureIndexScreen() {
             <View style={styles.headerRow}>
                 <Text style={styles.headerTitle}>Blood Pressure</Text>
                 <Text style={styles.subTitle}>
-                    {START_DATE} → {END_DATE}
+                    {toYMDLocal(startDate)} → {toYMDLocal(endDate)}
                 </Text>
             </View>
+
+            <DateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onChange={(s, e) => {
+                    setStartDate(s);
+                    setEndDate(e);
+                }}
+            />
 
             {loading ? (
                 <View style={styles.loadingBox}>
