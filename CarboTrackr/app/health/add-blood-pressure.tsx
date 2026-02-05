@@ -28,34 +28,59 @@ type CreateBloodPressureResponse = {
 const MOCK_PROFILE_ID = "3d6a6522-91be-4477-8973-9537e2cf5a86";
 
 const evaluateBloodPressure = (systolic: number, diastolic: number): string => {
+    // Hypertensive crisis (seek urgent care)
+    if (systolic >= 180 || diastolic >= 120) {
+        return (
+            "Alert: Your blood pressure is very high (hypertensive crisis).\n\n" +
+            "Seek urgent medical care now, especially if you have chest pain, shortness of breath, " +
+            "severe headache, weakness, vision changes, or difficulty speaking."
+        );
+    }
+
+    // Hypertension Stage 2
+    if (systolic >= 140 || diastolic >= 90) {
+        return (
+            "Alert: Your blood pressure is high (hypertension stage 2).\n\n" +
+            "Follow your treatment plan and contact your healthcare provider for guidance."
+        );
+    }
+
+    // Hypertension Stage 1
+    if ((systolic >= 130 && systolic <= 139) || (diastolic >= 80 && diastolic <= 89)) {
+        return (
+            "Alert: Your blood pressure is high (hypertension stage 1).\n\n" +
+            "Monitor your readings and discuss management options with your healthcare provider."
+        );
+    }
+
+    // Elevated
+    if (systolic >= 120 && systolic <= 129 && diastolic < 80) {
+        return (
+            "Alert: Your blood pressure is elevated.\n\n" +
+            "Consider lifestyle measures and continue monitoring. Consult your healthcare provider if concerned."
+        );
+    }
+
+    // Normal
+    if (systolic < 120 && diastolic < 80) {
+        return "Your blood pressure is in the normal range.";
+    }
+
+    // Hypotension
     if (systolic < 90 || diastolic < 60) {
         return (
             "Alert: Your blood pressure is low.\n\n" +
-            "Please rest, stay hydrated, and consult your doctor if you experience " +
-            "dizziness, fainting, or other concerning symptoms."
+            "Please rest, stay hydrated, and consult your doctor if you experience dizziness, fainting, " +
+            "or other concerning symptoms."
         );
     }
 
-    if (systolic <= 120 && diastolic <= 80) {
-        return "Great job—you currently have a normal blood pressure level.";
-    }
-
-    if (systolic >= 120 && systolic < 130 && diastolic < 80) {
-        return (
-            "Alert: Your blood pressure is elevated.\n\n" +
-            "- Please take your prescribed maintenance medication, and consult " +
-            "your doctor if you experience common symptoms such as headaches, dizziness, " +
-            "or blurred vision, or any unusual or worsening side effects.\n"
-        );
-    }
-
+    // Fallback (for uncommon combinations)
     return (
-        "Your blood pressure does not fall within the normal or elevated ranges. " +
-        "Please consult your healthcare provider for a comprehensive evaluation and " +
-        "personalized advice."
+        "Your blood pressure reading is outside the typical categories. " +
+        "Consider rechecking and consult your healthcare provider for personalized advice."
     );
 };
-
 export default function AddBloodPressureScreen() {
     const [submitting, setSubmitting] = useState(false);
     const [recordedTimestamp, setRecordedTimestamp] = useState<string | null>(null);
