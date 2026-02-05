@@ -25,7 +25,7 @@ type CreateBloodPressureResponse = {
     };
 };
 
-const MOCK_PROFILE_ID = "81c82e26-36ce-41d9-9135-f701061c6caa";
+const MOCK_PROFILE_ID = "3d6a6522-91be-4477-8973-9537e2cf5a86";
 
 const evaluateBloodPressure = (systolic: number, diastolic: number): string => {
     if (systolic < 90 || diastolic < 60) {
