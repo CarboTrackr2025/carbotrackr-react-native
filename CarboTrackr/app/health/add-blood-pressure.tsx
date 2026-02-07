@@ -6,7 +6,7 @@ import {
     BloodPressureInput,
     CreateBloodPressurePayload,
     createBloodPressure,
-} from "./api/post-blood-pressure";
+} from "../../features/health/api/post-blood-pressure";
 
 const MOCK_PROFILE_ID = "e17fabf0-c9f2-4230-a091-12fcf18a3411";
 

@@ -18,7 +18,7 @@ import { color, gradient } from "../../shared/constants/colors";
 import {
     getBloodPressureReport,
     type BpMeasurement,
-} from "./api/get-blood-pressures";
+} from "../../features/health/api/get-blood-pressures";
 
 const PROFILE_ID = "e17fabf0-c9f2-4230-a091-12fcf18a3411";
 
