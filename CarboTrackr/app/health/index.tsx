@@ -8,6 +8,7 @@ import {
     Text,
     View,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 
 import BloodPressureChart from "../../features/health/components/BloodPressureChart";
 import DateRangePicker from "../../shared/components/DateRangePicker";
@@ -30,6 +31,10 @@ const toYMDLocal = (d: Date) => {
     return `${y}-${m}-${day}`;
 };
 
+// ✅ Ensure API range includes the whole day
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+
 export default function BloodPressureIndexScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -45,8 +50,8 @@ export default function BloodPressureIndexScreen() {
 
             const { measurements: cleaned } = await getBloodPressureReport({
                 profileId: PROFILE_ID,
-                startDate,
-                endDate,
+                startDate: startOfDay(startDate),
+                endDate: endOfDay(endDate),
             });
 
             setMeasurements(cleaned);
@@ -62,6 +67,7 @@ export default function BloodPressureIndexScreen() {
         }
     }, [startDate, endDate]);
 
+    // ✅ Initial load (mount)
     useEffect(() => {
         (async () => {
             setLoading(true);
@@ -69,6 +75,13 @@ export default function BloodPressureIndexScreen() {
             setLoading(false);
         })();
     }, [fetchMeasurements]);
+
+    // ✅ Refetch every time you return to this screen (after adding an entry)
+    useFocusEffect(
+        useCallback(() => {
+            fetchMeasurements();
+        }, [fetchMeasurements])
+    );
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
