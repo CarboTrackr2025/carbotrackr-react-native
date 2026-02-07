@@ -11,6 +11,12 @@ type Props = {
 
 type Which = 'start' | 'end';
 
+const startOfDay = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+
+const endOfDay = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+
 export default function DateRangePicker({ startDate, endDate, onChange }: Props) {
     const [openWhich, setOpenWhich] = useState<Which | null>(null);
 

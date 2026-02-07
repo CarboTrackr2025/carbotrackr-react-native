@@ -75,7 +75,7 @@ export default function BloodPressureIndexScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [measurements, setMeasurements] = useState<BpMeasurement[]>([]);
 
-    const [startDate, setStartDate] = useState(new Date('2026-02-01'));
+    const [startDate, setStartDate] = useState(new Date());
     const [endDate, setEndDate] = useState(new Date());
 
     const fetchMeasurements = useCallback(async () => {
@@ -83,8 +83,8 @@ export default function BloodPressureIndexScreen() {
             const url = `${API_BASE_URL}/health/${PROFILE_ID}/blood-pressure/report`;
 
             const params = {
-                start_date: toYMDLocal(startDate),
-                end_date: toYMDLocal(endDate),
+                start_date: startDate.toISOString(),
+                end_date: endDate.toISOString(),
             };
 
             console.log('GET BP URL =>', url, 'params =>', params);
@@ -101,9 +101,10 @@ export default function BloodPressureIndexScreen() {
                 .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
             setMeasurements(cleaned);
+
             console.log(`Fetched ${cleaned.length} BP measurements`);
         } catch (err: any) {
-            console.log('BP GET failed', {
+            console.log('Failed to fetch BP measurements', {
                 message: err?.message,
                 status: err?.response?.status,
                 url: err?.config?.url,
