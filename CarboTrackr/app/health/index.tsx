@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -7,68 +7,26 @@ import {
     StyleSheet,
     Text,
     View,
-} from 'react-native';
-import axios from 'axios';
+} from "react-native";
 
-import BloodPressureChart from '../../features/health/components/BloodPressureChart';
-import { API_BASE_URL } from '../../shared/api';
-import {color, gradient} from '../../shared/constants/colors';
-import DateRangePicker from '../../shared/components/DateRangePicker';
-import {Button} from "../../shared/components/Button";
-import {router} from "expo-router";
+import BloodPressureChart from "../../features/health/components/BloodPressureChart";
+import DateRangePicker from "../../shared/components/DateRangePicker";
+import { Button } from "../../shared/components/Button";
+import { router } from "expo-router";
+import { color, gradient } from "../../shared/constants/colors";
 
-type BpMeasurement = {
-    id: string;
-    systolic_mmHg: number;
-    diastolic_mmHg: number;
-    created_at: string;
-};
+import {
+    getBloodPressureReport,
+    type BpMeasurement,
+} from "./api/get-blood-pressures";
 
-const PROFILE_ID = 'e17fabf0-c9f2-4230-a091-12fcf18a3411';
-
-type GetBloodPressureResponse =
-    | BpMeasurement[]
-    | {
-    data?: BpMeasurement[];
-    measurements?: BpMeasurement[];
-    items?: BpMeasurement[];
-};
-
-const extractMeasurements = (payload: GetBloodPressureResponse): any[] => {
-    if (Array.isArray(payload)) return payload;
-    return (payload?.data ?? payload?.measurements ?? payload?.items ?? []) as any[];
-};
-
-const normalizeMeasurement = (m: any): BpMeasurement | null => {
-    const created =
-        m?.created_at ??
-        m?.recorded_at ??
-        m?.timestamp ??
-        m?.date ??
-        null;
-
-    const systolic = Number(m?.systolic_mmHg ?? m?.systolic ?? m?.systolic_value);
-    const diastolic = Number(m?.diastolic_mmHg ?? m?.diastolic ?? m?.diastolic_value);
-
-    const createdAt = typeof created === 'string' ? created : null;
-    if (!Number.isFinite(systolic) || !Number.isFinite(diastolic) || !createdAt) return null;
-
-    const t = new Date(createdAt).getTime();
-    if (Number.isNaN(t)) return null;
-
-    return {
-        id: String(m?.id ?? m?._id ?? `${t}-${systolic}-${diastolic}`),
-        systolic_mmHg: systolic,
-        diastolic_mmHg: diastolic,
-        created_at: createdAt,
-    };
-};
+const PROFILE_ID = "e17fabf0-c9f2-4230-a091-12fcf18a3411";
 
 // ✅ LOCAL date formatter (avoids UTC shift from toISOString)
 const toYMDLocal = (d: Date) => {
     const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
 };
 
@@ -82,38 +40,25 @@ export default function BloodPressureIndexScreen() {
 
     const fetchMeasurements = useCallback(async () => {
         try {
-            const url = `${API_BASE_URL}/health/${PROFILE_ID}/blood-pressure/report`;
-
-            const params = {
-                start_date: startDate.toISOString(),
-                end_date: endDate.toISOString(),
-            };
-
-            console.log('GET BP URL =>', url, 'params =>', params);
-
             // ✅ clear stale chart while loading new range
             setMeasurements([]);
 
-            const res = await axios.get<GetBloodPressureResponse>(url, { params });
-
-            const raw = extractMeasurements(res.data);
-            const cleaned = raw
-                .map(normalizeMeasurement)
-                .filter((x): x is BpMeasurement => x !== null)
-                .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            const { measurements: cleaned } = await getBloodPressureReport({
+                profileId: PROFILE_ID,
+                startDate,
+                endDate,
+            });
 
             setMeasurements(cleaned);
-
-            console.log(`Fetched ${cleaned.length} BP measurements`);
         } catch (err: any) {
-            console.log('Failed to fetch BP measurements', {
+            console.log("Failed to fetch BP measurements", {
                 message: err?.message,
                 status: err?.response?.status,
                 url: err?.config?.url,
                 params: err?.config?.params,
                 data: err?.response?.data,
             });
-            Alert.alert('Could not load blood pressure history', 'Please try again.');
+            Alert.alert("Could not load blood pressure history", "Please try again.");
         }
     }, [startDate, endDate]);
 
@@ -181,32 +126,32 @@ export default function BloodPressureIndexScreen() {
 }
 
 const styles = StyleSheet.create({
-    screen: { flex: 1, backgroundColor: '#fff' },
+    screen: { flex: 1, backgroundColor: "#fff" },
     content: { padding: 12, paddingBottom: 24 },
 
     headerRow: { marginBottom: 10 },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
-    subTitle: { marginTop: 2, fontSize: 12, color: '#6B7280' },
+    headerTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
+    subTitle: { marginTop: 2, fontSize: 12, color: "#6B7280" },
 
     loadingBox: {
         height: 180,
         borderWidth: 1,
-        borderColor: '#E5E7EB',
+        borderColor: "#E5E7EB",
         borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
+        alignItems: "center",
+        justifyContent: "center",
         gap: 10,
     },
-    loadingText: { color: '#6B7280', fontSize: 12 },
+    loadingText: { color: "#6B7280", fontSize: 12 },
 
     emptyBox: {
         marginTop: 10,
         padding: 12,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#E5E7EB',
+        borderColor: "#E5E7EB",
         backgroundColor: color.white,
     },
-    emptyTitle: { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 4 },
-    emptySub: { fontSize: 12, color: '#6B7280' },
+    emptyTitle: { fontSize: 14, fontWeight: "700", color: "#111827", marginBottom: 4 },
+    emptySub: { fontSize: 12, color: "#6B7280" },
 });
