@@ -12,8 +12,10 @@ import axios from 'axios';
 
 import BloodPressureChart from '../../features/health/components/BloodPressureChart';
 import { API_BASE_URL } from '../../shared/api';
-import { color } from '../../shared/constants/colors';
+import {color, gradient} from '../../shared/constants/colors';
 import DateRangePicker from '../../shared/components/DateRangePicker';
+import {Button} from "../../shared/components/Button";
+import {router} from "expo-router";
 
 type BpMeasurement = {
     id: string;
@@ -168,6 +170,12 @@ export default function BloodPressureIndexScreen() {
                     )}
                 </>
             )}
+
+            <Button
+                title="Log Blood Pressure"
+                onPress={() => router.push("/health/add-blood-pressure")}
+                gradient={gradient.green as [string, string]}
+            />
         </ScrollView>
     );
 }
