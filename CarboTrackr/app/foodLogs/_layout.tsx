@@ -4,7 +4,6 @@ export default function Layout() {
     return (
         <Stack>
             <Stack.Screen name="index" options={{headerShown: false}} />
-            <Stack.Screen name="search-food" options={{headerShown: true, title: "Search Food"}} />
         </Stack>
     )
 }
