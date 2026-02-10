@@ -8,7 +8,7 @@ import {
 } from "react-native";
 
 import { FoodCard, type FoodCardItem } from "../../features/foodLogs/components/FoodCard";
-import { searchFoods } from "../../features/foodLogs/foodLogs.api"
+import { searchFoods} from "../../features/foodLogs/api/search-food";
 
 export default function Index() {
     const [query] = useState("spaghetti"); // for now hardcoded
