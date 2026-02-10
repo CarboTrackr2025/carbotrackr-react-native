@@ -36,7 +36,7 @@ export async function searchFoods(food_name: string) {
 
     // Map API -> FoodCardItem[]
     const items: FoodCardItem[] = res.data.results.map((r) => ({
-        id: r.serving.serving_id, // ✅ unique key for FlatList
+        id: r.food_id, // ✅ unique key for FlatList
         brand_name: r.brand_name,
         food_name: r.food_name,
         serving_description: r.serving.serving_description,
