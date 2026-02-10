@@ -7,11 +7,13 @@ import {
     View,
 } from "react-native";
 
+import { router } from "expo-router";
+
 import { FoodCard, type FoodCardItem } from "../../features/foodLogs/components/FoodCard";
-import { searchFoods} from "../../features/foodLogs/api/search-food";
+import { searchFoods } from "../../features/foodLogs/api/search-food";
 
 export default function Index() {
-    const [query] = useState("spaghetti"); // for now hardcoded
+    const [query] = useState("spaghetti");
     const [items, setItems] = useState<FoodCardItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -63,7 +65,13 @@ export default function Index() {
                     renderItem={({ item }) => (
                         <FoodCard
                             {...item}
-                            onAdd={(food) => console.log("ADD FOOD:", food)}
+                            onAdd={() => {
+                                // 🔥 Navigate to food detail screen
+                                router.push({
+                                    pathname: "./foodLogs/[food_id]",
+                                    params: { food_id: item.id },
+                                });
+                            }}
                         />
                     )}
                     showsVerticalScrollIndicator={false}
