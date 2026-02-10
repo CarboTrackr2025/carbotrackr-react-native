@@ -94,6 +94,21 @@ export default function Layout() {
                 }}
             />
 
+            <Tabs.Screen
+                name="foodLogs"
+                options={{
+                    tabBarIcon: ({focused, color: iconColor, size}) => (
+                        <TabIcon
+                            focused={focused}
+                            name="nutrition"
+                            iconColor={iconColor}
+                            size={size}
+                        />
+                    ),
+                }}
+            />
+
+
 
 
         </Tabs>
