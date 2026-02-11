@@ -2,11 +2,16 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 
-import { getFoodById, type FoodNutritionForUI } from "../../features/foodLogs/api/get-food-by-id";
-// ^ adjust the import path to where you put getFoodById()
+import {
+    getFoodDetailsByServingId,
+    type FoodNutritionForUI,
+} from "../../features/foodLogs/api/get-food-by-id"; // ✅ update path if you renamed the file
 
-export default function FoodByIdScreen() {
-    const { food_id } = useLocalSearchParams<{ food_id?: string }>();
+export default function FoodByServingScreen() {
+    const { food_id, serving_id } = useLocalSearchParams<{
+        food_id?: string;
+        serving_id?: string;
+    }>();
 
     const [data, setData] = useState<FoodNutritionForUI | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -20,11 +25,10 @@ export default function FoodByIdScreen() {
                 setLoading(true);
                 setError(null);
 
-                if (!food_id) {
-                    throw new Error("Missing food_id param");
-                }
+                if (!food_id) throw new Error("Missing food_id param");
+                if (!serving_id) throw new Error("Missing serving_id param");
 
-                const res = await getFoodById(String(food_id));
+                const res = await getFoodDetailsByServingId(String(food_id), String(serving_id));
 
                 if (!mounted) return;
                 setData(res);
@@ -42,7 +46,7 @@ export default function FoodByIdScreen() {
         return () => {
             mounted = false;
         };
-    }, [food_id]);
+    }, [food_id, serving_id]);
 
     if (loading) {
         return (
@@ -59,7 +63,7 @@ export default function FoodByIdScreen() {
                 <Text style={{ fontWeight: "700", marginBottom: 8 }}>Error</Text>
                 <Text>{error}</Text>
                 <Text style={{ marginTop: 12, opacity: 0.7 }}>
-                    food_id param: {String(food_id)}
+                    food_id: {String(food_id)} | serving_id: {String(serving_id)}
                 </Text>
             </View>
         );
@@ -95,8 +99,7 @@ export default function FoodByIdScreen() {
             <View style={{ marginTop: 16 }}>
                 <Text style={{ fontWeight: "700" }}>Carbs</Text>
                 <Text>
-                    {round(data.carbs.grams)} g | {round(data.carbs.kcal)} kcal |{" "}
-                    {round(data.carbs.pct)}%
+                    {round(data.carbs.grams)} g | {round(data.carbs.kcal)} kcal | {round(data.carbs.pct)}%
                 </Text>
 
                 <Text style={{ marginTop: 12, fontWeight: "700" }}>Protein</Text>
@@ -107,15 +110,15 @@ export default function FoodByIdScreen() {
 
                 <Text style={{ marginTop: 12, fontWeight: "700" }}>Fat</Text>
                 <Text>
-                    {round(data.fat.grams)} g | {round(data.fat.kcal)} kcal |{" "}
-                    {round(data.fat.pct)}%
+                    {round(data.fat.grams)} g | {round(data.fat.kcal)} kcal | {round(data.fat.pct)}%
                 </Text>
             </View>
 
-            {/* Debug totals */}
+            {/* Debug */}
             <View style={{ marginTop: 20, paddingTop: 12, borderTopWidth: 1 }}>
                 <Text style={{ fontWeight: "700" }}>Debug</Text>
                 <Text>food_id: {data.food_id}</Text>
+                <Text>serving_id: {data.serving.serving_id}</Text>
                 <Text>macros_total_kcal: {round(data.macros_total_kcal)}</Text>
             </View>
         </ScrollView>
