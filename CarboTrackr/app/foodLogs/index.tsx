@@ -13,7 +13,7 @@ import { FoodCard, type FoodCardItem } from "../../features/foodLogs/components/
 import { searchFoods } from "../../features/foodLogs/api/search-food";
 
 export default function Index() {
-    const [query] = useState("spaghetti");
+    const [query] = useState("chicken breast");
     const [items, setItems] = useState<FoodCardItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -69,8 +69,9 @@ export default function Index() {
                                 // 🔥 Navigate to food detail screen
                                 router.push({
                                     pathname: "./foodLogs/[food_id]",
-                                    params: { food_id: item.id },
+                                    params: { food_id: item.food_id, serving_id: item.serving_id ?? "" },
                                 });
+
                             }}
                         />
                     )}
