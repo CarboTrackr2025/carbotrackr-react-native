@@ -3,7 +3,7 @@ import {StyleSheet, Text, View} from "react-native"
 import {color, gradient} from "../../../shared/constants/colors"
 import {formatPhilippinesTime} from "../health.utils"
 import {Button} from "../../../shared/components/Button"
-import {GradientInput} from "../../../shared/components/GradientTextInput"
+import {GradientTextInput} from "../../../shared/components/GradientTextInput"
 import {GradientTextDisplay} from "../../../shared/components/GradientTextDisplay";
 
 
@@ -42,7 +42,7 @@ export default function AddBloodPressureForm({submitting = false, onSubmit, time
         <View style={styles.container}>
             <View style={styles.entryContainer}>
                 <Text style={styles.label}> Systolic</Text>
-                <GradientInput
+                <GradientTextInput
                     value={systolic}
                     onChangeText={(t) => setSystolic(t.replace(/[^\d]/g, ""))}
                     placeholder="120"
@@ -51,7 +51,7 @@ export default function AddBloodPressureForm({submitting = false, onSubmit, time
             </View>
 
     <Text style={styles.label}>Diastolic</Text>
-    <GradientInput
+    <GradientTextInput
         value={diastolic}
         onChangeText={(t) => setDiastolic(t.replace(/[^\d]/g, ""))}
         placeholder="80"
