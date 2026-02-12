@@ -109,7 +109,18 @@ export default function FoodByServingScreen() {
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <View style={styles.ringWrap}>
-                <CalorieRing nutrition={data} servings={servings} size={160} />
+                <CalorieRing
+                    nutrition={{
+                        calories_kcal: data.calories_kcal,
+                        carbs: data.carbs,
+                        protein: data.protein,
+                        fat: data.fat,
+                        metric_serving_amount: data.serving.metric_serving_amount,
+                        metric_serving_unit: data.serving.metric_serving_unit,
+                    }}
+                    servings={servings}
+                    size={160}
+                />
             </View>
 
             <Text style={styles.label}>Food</Text>

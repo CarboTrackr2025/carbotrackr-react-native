@@ -9,13 +9,16 @@ type Props = {
         carbs: { grams: number; kcal: number };
         protein: { grams: number; kcal: number };
         fat: { grams: number; kcal: number };
+
+        metric_serving_amount: number; // ✅ flat
+        metric_serving_unit: string;   // ✅ flat
     };
     servings?: number;
     size?: number;
-
-    /** legend placement */
     legendSide?: "right" | "bottom";
 };
+
+
 
 const toNum = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const clampPos = (n: number) => (Number.isFinite(n) && n > 0 ? n : 0);
@@ -37,7 +40,9 @@ export const CalorieRing: React.FC<Props> = ({
     const fatG = clampPos(toNum(nutrition.fat.grams) * s);
 
     const calories = clampPos(toNum(nutrition.calories_kcal) * s);
-    const totalGrams = carbsG + proteinG + fatG;
+
+    const totalServingAmount = clampPos(toNum(nutrition.metric_serving_amount) * s);
+    const servingUnit = String(nutrition.metric_serving_unit ?? "").trim();
 
     // Percentages based on kcal (more correct)
     const macroTotalK = carbsK + proteinK + fatK;
@@ -94,9 +99,19 @@ export const CalorieRing: React.FC<Props> = ({
                     innerCircleColor={color.white}
                     centerLabelComponent={() => (
                         <View style={styles.center}>
-                            <Text style={dynamic.calories}>{Math.round(calories)}</Text>
+                            <Text
+                                style={dynamic.calories}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                            >
+                                {Math.round(calories)}
+                            </Text>
                             <Text style={dynamic.label}>Calories</Text>
-                            <Text style={dynamic.sub}>({Math.round(totalGrams)} grams)</Text>
+
+                            {/* ✅ label depends on metric unit */}
+                            <Text style={dynamic.sub} numberOfLines={1}>
+                                ({Math.round(totalServingAmount * 100) / 100} {servingUnit || ""})
+                            </Text>
                         </View>
                     )}
                 />
@@ -107,10 +122,8 @@ export const CalorieRing: React.FC<Props> = ({
                 {legendItems.map((item) => (
                     <View key={item.key} style={styles.legendRow}>
                         <View style={[styles.dot, { backgroundColor: item.dot }]} />
-                        <Text style={styles.legendText}>
-                            {item.label},{" "}
-                            {Math.round(item.pct)}
-                            %, {Math.round(item.grams * 10) / 10} grams
+                        <Text style={styles.legendText} numberOfLines={2}>
+                            {item.label}, {Math.round(item.pct)}%, {Math.round(item.grams * 10) / 10} g
                         </Text>
                     </View>
                 ))}
