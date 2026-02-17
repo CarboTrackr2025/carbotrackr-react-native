@@ -1,55 +1,81 @@
 import axios from "axios";
-import type { FoodCardItem } from "../components/FoodCard"
-import { API_BASE_URL} from "../../../shared/api";
+import { API_BASE_URL } from "../../../shared/api";
 
-export type FatSecretServing = {
-    serving_id: string;
-    serving_description: string;
-    calories: number;
-    carbs: number;
-    protein: number;
-    fat: number;
-};
+/* ---------- API Response Shape ---------- */
 
-export type FatSecretFoodResult = {
-    food_id: string;
-    food_name: string;
-    brand_name: string | null;
-    food_type: "Generic" | "Brand" | string;
-    food_url: string;
-    serving: FatSecretServing;
-};
-
-export type SearchFoodsResponse = {
+type SearchFoodByQueryResponse = {
     query: string;
-    total_results: number;
-    page_number: number;
-    max_results: number;
-    results: FatSecretFoodResult[];
+    food: {
+        food_id: string | null;
+        food_name: string | null;
+        servings: {
+            serving_id: string | null;
+            serving_description: string | null;
+            metric_serving_amount: number | null;
+            metric_serving_unit: string | null;
+            calories: number | null;
+        }[];
+    } | null;
 };
 
-export async function searchFoods(food_name: string) {
-    const res = await axios.get<SearchFoodsResponse>(
-        `${API_BASE_URL}/food-logs/search/`,
-        { params: { food_name } }
+/* ---------- UI Type ---------- */
+
+export type FoodCardItem = {
+    id: string;
+    food_name: string;
+    serving_description: string;
+    metric: string;     // "28.35 g"
+    calories: string;   // "255 cal"
+    food_id: string;
+    serving_id: string | null;
+};
+
+/* ---------- Helpers ---------- */
+
+const formatCalories = (n: number | null | undefined) =>
+    `${Math.round(Number(n ?? 0))} kcal`;
+
+const formatMetric = (
+    amt: number | null | undefined,
+    unit: string | null | undefined
+) => {
+    if (amt == null || !unit) return "";
+    const fixed = Number.isInteger(amt) ? String(amt) : amt.toFixed(2);
+    return `${fixed} ${unit}`;
+};
+
+/* ---------- API Call ---------- */
+
+export async function searchFoods(q: string) {
+    const res = await axios.get<SearchFoodByQueryResponse>(
+        `${API_BASE_URL}/food-logs/search`,
+        { params: { q } }
     );
 
-    // Map API -> FoodCardItem[]
-    const items: FoodCardItem[] = res.data.results.map((r) => ({
-        id: r.food_id, // ✅ unique key for FlatList
-        brand_name: r.brand_name,
-        food_name: r.food_name,
-        serving_description: r.serving.serving_description,
-        calories: Number(r.serving.calories ?? 0),
+    const food = res.data.food;
+
+    if (!food || !food.food_id) {
+        return {
+            meta: { query: res.data.query },
+            items: [] as FoodCardItem[],
+        };
+    }
+
+    const foodId = food.food_id; // ✅ now TypeScript knows this is string
+    const foodName = food.food_name ?? "";
+
+    const items: FoodCardItem[] = (food.servings ?? []).map((s) => ({
+        id: `${foodId}:${s.serving_id ?? "null"}`,
+        food_name: foodName,
+        serving_description: s.serving_description ?? "",
+        metric: formatMetric(s.metric_serving_amount, s.metric_serving_unit),
+        calories: formatCalories(s.calories),
+        food_id: foodId,          // ✅ string
+        serving_id: s.serving_id, // ✅ still string | null (matches your type)
     }));
 
     return {
-        meta: {
-            query: res.data.query,
-            total_results: res.data.total_results,
-            page_number: res.data.page_number,
-            max_results: res.data.max_results,
-        },
+        meta: { query: res.data.query },
         items,
     };
 }

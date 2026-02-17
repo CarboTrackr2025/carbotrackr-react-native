@@ -4,10 +4,14 @@ import { Ionicons } from "@expo/vector-icons";
 
 export type FoodCardItem = {
     id: string;
-    brand_name?: string | null;
-    food_name: string;
+
+    food_id: string;
+    serving_id: string | null;
+
+    food_name: string;              // already includes brand if available
     serving_description: string;
-    calories: number;
+    metric: string;                 // "28.35 g"
+    calories: string;               // "255 cal"
 };
 
 export type FoodCardProps = FoodCardItem & {
@@ -16,44 +20,40 @@ export type FoodCardProps = FoodCardItem & {
 
 export function FoodCard({
                              id,
-                             brand_name,
+                             food_id,
+                             serving_id,
                              food_name,
                              serving_description,
+                             metric,
                              calories,
                              onAdd,
                          }: FoodCardProps) {
     return (
         <View style={styles.card}>
             <View style={styles.textWrap}>
-                {/* Food name */}
-                <Text
-                    style={styles.foodName}
-                    numberOfLines={2}
-                    ellipsizeMode="tail"
-                >
+                {/* Food name (already includes brand) */}
+                <Text style={styles.foodName} numberOfLines={2} ellipsizeMode="tail">
                     {food_name}
                 </Text>
 
-                {/* Brand (if exists) */}
-                {brand_name ? (
-                    <Text
-                        style={styles.brand}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {brand_name}
-                    </Text>
-                ) : null}
-
-                {/* Calories + serving */}
-                <Text style={styles.subtitle}>
-                    {calories} cal, {serving_description}
+                {/* Serving info */}
+                <Text style={styles.subtitle} numberOfLines={2} ellipsizeMode="tail">
+                    {calories}, {serving_description}
+                    {metric ? ` • ${metric}` : ""}
                 </Text>
             </View>
 
             <Pressable
                 onPress={() =>
-                    onAdd?.({ id, brand_name, food_name, serving_description, calories })
+                    onAdd?.({
+                        id,
+                        food_id,
+                        serving_id,
+                        food_name,
+                        serving_description,
+                        metric,
+                        calories,
+                    })
                 }
                 hitSlop={12}
                 style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.6 }]}
@@ -87,16 +87,9 @@ const styles = StyleSheet.create({
     },
 
     foodName: {
-        fontSize: 16,        // smaller than before
+        fontSize: 16,
         fontWeight: "600",
         color: "#111827",
-        flexShrink: 1,       // prevents layout break
-    },
-
-    brand: {
-        fontSize: 13,
-        color: "#6B7280",
-        marginTop: 2,
         flexShrink: 1,
     },
 

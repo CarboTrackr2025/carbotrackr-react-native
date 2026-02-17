@@ -21,7 +21,7 @@ type Props = Omit<TextInputProps, "style"> & {
     iconColor?: string
 }
 
-export function GradientInput({
+export function GradientTextInput({
                                   colors = gradient.green as [string, string],
                                   containerStyle,
                                   iconName = "pencil",
