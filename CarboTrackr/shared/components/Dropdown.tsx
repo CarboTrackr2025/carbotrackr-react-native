@@ -117,7 +117,6 @@ const RADIUS = 12;
 const styles = StyleSheet.create({
     container: {
         width: "100%",
-        marginVertical: 10,
     },
     label: {
         fontSize: 14,
