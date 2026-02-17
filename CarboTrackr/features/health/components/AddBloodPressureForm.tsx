@@ -1,7 +1,7 @@
 import React, {useMemo, useState} from "react"
 import {StyleSheet, Text, View} from "react-native"
 import {color, gradient} from "../../../shared/constants/colors"
-import {formatPhilippinesTime} from "../health.utils"
+import {formatPhilippinesTime} from "../../../shared/utils/formatters"
 import {Button} from "../../../shared/components/Button"
 import {GradientTextInput} from "../../../shared/components/GradientTextInput"
 import {GradientTextDisplay} from "../../../shared/components/GradientTextDisplay";
