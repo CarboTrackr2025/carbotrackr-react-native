@@ -3,19 +3,21 @@ import { View, ActivityIndicator, StyleSheet } from "react-native"
 import { Redirect } from "expo-router"
 import { isLoggedIn } from "../features/auth/auth.utils"
 import { color } from "../shared/constants/colors"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 export default function Index() {
     const [checking, setChecking] = useState(true)
     const [loggedIn, setLoggedIn] = useState(false)
 
     useEffect(() => {
-        isLoggedIn().then((result) => {
-            setLoggedIn(result)
-            setChecking(false)
+        AsyncStorage.clear().then(() => {
+            isLoggedIn().then((result) => {
+                setLoggedIn(result)
+                setChecking(false)
+            })
         })
     }, [])
 
-    // Show a spinner while we check storage
     if (checking) {
         return (
             <View style={styles.center}>
@@ -24,9 +26,8 @@ export default function Index() {
         )
     }
 
-    // Route based on auth state
     if (loggedIn) {
-        return <Redirect href="/dashboard" />
+        return <Redirect href="/(tabs)" />
     }
 
     return <Redirect href="/auth/login" />
