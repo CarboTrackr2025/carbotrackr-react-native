@@ -3,7 +3,7 @@ import { Alert, Image, ScrollView, Text, TouchableOpacity, View, ActivityIndicat
 import * as ImagePicker from "expo-image-picker"
 
 // ✅ import your API wrapper
-import { postLabelMacrosOnly } from "../../features/scanner/api/post-nutritional-label-photo"
+import { postLabelMacrosOnly } from "../../../features/scanner/api/post-nutritional-label-photo"
 
 export default function IndexScreen() {
     const [imageUri, setImageUri] = useState<string | null>(null)

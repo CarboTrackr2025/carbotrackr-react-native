@@ -7,18 +7,18 @@ import {
     StyleSheet,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import {color, gradient} from "../../shared/constants/colors";
+import {color, gradient} from "../../../shared/constants/colors";
 import {
     getFoodDetailsByServingId,
     type FoodNutritionForUI,
-} from "../../features/foodLogs/api/get-food-by-id";
-import { GradientTextDisplay } from "../../shared/components/GradientTextDisplay";
-import { GradientTextInput } from "../../shared/components/GradientTextInput";
-import { CalorieRing } from "../../shared/components/CalorieRing";
-import { Dropdown} from "../../shared/components/Dropdown";
-import {Button} from "../../shared/components/Button";
-import { formatPhilippinesTime } from "../../shared/utils/formatters";
-import { createFoodLog } from "../../features/foodLogs/api/post-food"
+} from "../../../features/foodLogs/api/get-food-by-id";
+import { GradientTextDisplay } from "../../../shared/components/GradientTextDisplay";
+import { GradientTextInput } from "../../../shared/components/GradientTextInput";
+import { CalorieRing } from "../../../shared/components/CalorieRing";
+import { Dropdown} from "../../../shared/components/Dropdown";
+import {Button} from "../../../shared/components/Button";
+import { formatPhilippinesTime } from "../../../shared/utils/formatters";
+import { createFoodLog } from "../../../features/foodLogs/api/post-food"
 
 
 const MOCK_PROFILE_ID = "e37c51bc-e57c-4d20-a2ec-ce600c500d81";
