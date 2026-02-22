@@ -72,24 +72,28 @@ export default function LoginForm({
                     <Text style={styles.forgotText}>Forgot your password?</Text>
                 </TouchableOpacity>
             </View>
-            <GradientTextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                secureTextEntry={!showPassword}
-                iconName={showPassword ? "eye-outline" : "eye-off-outline"}
-                iconSize={20}
-                iconColor={color.black}
-                onPress={undefined}
-            />
-            {/* Eye toggle sits on top of the input's built-in icon */}
-            <TouchableOpacity
-                style={styles.eyeToggle}
-                onPress={() => setShowPassword((prev) => !prev)}
-            >
-                {/* Tap area covers the icon rendered inside GradientTextInput */}
-            </TouchableOpacity>
+            <View style={styles.passwordInputWrapper}>
 
+                <GradientTextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="••••••••"
+                    secureTextEntry={!showPassword}
+                    iconName="lock-closed-outline"
+                    iconSize={1}
+                    iconColor="transparent"
+                />
+                <TouchableOpacity
+                    style={styles.eyeOverlay}
+                    onPress={() => setShowPassword((prev) => !prev)}
+                >
+                    <Ionicons
+                        name={showPassword ? "eye-outline" : "eye-off-outline"}
+                        size={20}
+                        color={color.black}
+                    />
+                </TouchableOpacity>
+            </View>
             {/* ── LOGIN BUTTON ── */}
             <Button
                 title={submitting ? "Logging in..." : "Login"}
@@ -189,14 +193,16 @@ const styles = StyleSheet.create({
         fontWeight: "500",
     },
 
-    // Eye toggle overlay
-    eyeToggle: {
-        position: "absolute",
-        right: 34,
-        height: 54,
-        width: 40,
+    passwordInputWrapper: {
+        position: "relative",
         justifyContent: "center",
-        alignItems: "center",
+    },
+    eyeOverlay: {
+        position: "absolute",
+        right: 12,
+        height: 54,
+        justifyContent: "center",
+        zIndex: 10,
     },
 
     // Divider
