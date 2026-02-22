@@ -18,7 +18,7 @@ export default function LoginScreen() {
         setSubmitting(false)
 
         if (result.success) {
-            router.replace("/")
+            router.replace("/(tabs)")
         } else {
             setError(result.message)
         }
