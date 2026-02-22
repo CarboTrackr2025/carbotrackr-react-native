@@ -123,7 +123,12 @@ export default function Layout() {
                 }}
             />
 
-
+            <Tabs.Screen
+                name="auth/login"
+                options={{
+                    href: null,
+                }}
+            />
         </Tabs>
     );
 }
