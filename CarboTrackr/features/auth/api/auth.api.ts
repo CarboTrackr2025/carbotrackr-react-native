@@ -1,4 +1,6 @@
-import { saveToken } from "../auth.utils"
+import { saveToken, saveClerkSession } from "../auth.utils"
+import { api } from "../../../shared/api"
+import type { SignInResource } from "@clerk/types"
 
 type LoginPayload = {
     email: string
@@ -6,31 +8,128 @@ type LoginPayload = {
 }
 
 type LoginResult =
-    | { success: true }
+    | { success: true; userId: string }
     | { success: false; message: string }
 
-export async function login(payload: LoginPayload): Promise<LoginResult> {
+/**
+ * Login with Clerk SDK (email + password)
+ * After Clerk signs in, we extract the session token and optionally sync with backend
+ */
+/**
+ * Login with Clerk SDK (email + password)
+ * After Clerk signs in, we activate the session and store it
+ */
+export async function loginWithClerk(
+    signIn: SignInResource,
+    setActive: any,
+    payload: LoginPayload
+): Promise<LoginResult> {
+    try {
+        console.log("🔐 [Clerk Login] Starting sign-in for:", payload.email)
 
-    // ── MOCK (remove this block when backend is ready) ──────────────
-    const MOCK_EMAIL = "test@carbotrackr.com"
-    const MOCK_PASSWORD = "password123"
+        // Create Clerk sign-in with email and password
+        const signInAttempt = await signIn.create({
+            identifier: payload.email,
+            password: payload.password,
+        })
 
-    if (payload.email === MOCK_EMAIL && payload.password === MOCK_PASSWORD) {
-        await saveToken("mock-token-abc123")
-        return { success: true }
-    } else {
-        return { success: false, message: "Invalid email or password." }
+        console.log("🔐 [Clerk Login] Sign-in attempt status:", signInAttempt.status)
+        console.log("🔍 [Clerk Login] Response keys:", Object.keys(signInAttempt))
+
+        // If sign-in is complete, we have a session
+        if (signInAttempt.status === "complete") {
+            console.log("✅ [Clerk Login] Sign-in complete!")
+
+            // The session is in the signInAttempt object itself
+            // We need to call setActive to activate it
+            const sessionId = signInAttempt.createdSessionId
+            const userId = (signInAttempt as any).userId ?? (signInAttempt as any).user?.id
+
+            console.log("🔍 [Clerk Login] createdSessionId:", sessionId)
+            console.log("🔍 [Clerk Login] userId:", userId)
+
+            if (sessionId) {
+                // Activate the session with Clerk
+                console.log("🔄 [Clerk Login] Activating session...")
+                await setActive({ session: sessionId })
+                console.log("✅ [Clerk Login] Session activated!")
+
+                // Save session info locally for reference
+                if (userId) {
+                    await saveClerkSession({
+                        sessionId: sessionId,
+                        userId: userId,
+                    })
+                    console.log("💾 [Clerk Login] Session saved to AsyncStorage")
+                }
+
+                console.log("🎉 [Clerk Login] Login successful! Redirecting to home...")
+                return { success: true, userId: userId || sessionId }
+            }
+
+            // Fallback: try to get session from different locations
+            console.log("🔍 [Clerk Login] Searching for session in response object...")
+            console.log("🔍 [Clerk Login] Full response:", JSON.stringify(signInAttempt, null, 2))
+
+            return { success: false, message: "Sign-in succeeded but no session could be activated." }
+        }
+
+        // If sign-in requires additional steps (2FA, etc.)
+        console.warn("⚠️ [Clerk Login] Additional verification required. Status:", signInAttempt.status)
+        return {
+            success: false,
+            message: "Sign-in requires additional verification.",
+        }
+    } catch (error: any) {
+        console.error("❌ [Clerk Login] Error during sign-in:", error)
+        console.error("   Error details:", JSON.stringify(error?.errors || error, null, 2))
+        const message =
+            error?.errors?.[0]?.longMessage ??
+            error?.errors?.[0]?.message ??
+            error?.message ??
+            "Login failed. Please check your credentials."
+        return { success: false, message }
     }
-    // ── END MOCK ─────────────────────────────────────────────────────
+}
 
-    // ── REAL (uncomment this when backend is ready) ──────────────────
-    // try {
-    //     const response = await api.post("/auth/login", payload)
-    //     await saveToken(response.data.token)
-    //     return { success: true }
-    // } catch (error: any) {
-    //     const message = error?.response?.data?.message ?? "Login failed."
-    //     return { success: false, message }
-    // }
-    // ── END REAL ─────────────────────────────────────────────────────
+/**
+ * OAuth sign-in with Clerk (Google, Facebook, etc.)
+ * Returns the OAuth flow result
+ */
+export type OAuthProvider = "oauth_google" | "oauth_facebook"
+
+export type OAuthResult =
+    | { success: true; userId: string }
+    | { success: false; message: string }
+
+export async function loginWithOAuth(
+    signIn: SignInResource,
+    provider: OAuthProvider
+): Promise<OAuthResult> {
+    try {
+        console.log(`🔐 [OAuth] Starting ${provider} authentication`)
+
+        // Start OAuth flow (Clerk will handle redirects)
+        const signInAttempt = await signIn.authenticateWithRedirect({
+            strategy: provider,
+            redirectUrl: "/auth/oauth-callback", // Adjust if needed
+            redirectUrlComplete: "/(tabs)",
+        })
+
+        console.log(`✅ [OAuth] ${provider} flow initiated successfully`)
+
+        // Note: OAuth is async and completes via callback.
+        // This function initiates the flow; the actual session
+        // will be handled in the OAuth callback or by Clerk's useAuth hook
+        return { success: true, userId: "" }
+    } catch (error: any) {
+        console.error(`❌ [OAuth] ${provider} error:`, error)
+        console.error("   Error details:", JSON.stringify(error?.errors || error, null, 2))
+        const message =
+            error?.errors?.[0]?.longMessage ??
+            error?.errors?.[0]?.message ??
+            error?.message ??
+            "OAuth sign-in failed."
+        return { success: false, message }
+    }
 }
