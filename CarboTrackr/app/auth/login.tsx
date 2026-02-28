@@ -31,7 +31,7 @@ export default function LoginScreen() {
                 error={error}
                 onLogin={handleLogin}
                 onForgotPassword={() => router.push("/auth/forgot-password")}
-                onSignUp={() => router.push("/auth/signup")}
+                onSignUp={() => router.replace("/auth/signup")}
                 onFacebook={() => {}}
                 onGoogle={() => {}}
                 onFAQ={() => router.push("/faqs")}
