@@ -10,16 +10,16 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
-import BloodPressureChart from "../../features/health/components/BloodPressureChart";
-import DateRangePicker from "../../shared/components/DateRangePicker";
-import { Button } from "../../shared/components/Button";
+import BloodPressureChart from "../../../features/health/components/BloodPressureChart";
+import DateRangePicker from "../../../shared/components/DateRangePicker";
+import { Button } from "../../../shared/components/Button";
 import { router } from "expo-router";
-import { color, gradient } from "../../shared/constants/colors";
+import { color, gradient } from "../../../shared/constants/colors";
 
 import {
     getBloodPressureReport,
     type BpMeasurement,
-} from "../../features/health/api/get-blood-pressures";
+} from "../../../features/health/api/get-blood-pressures";
 
 const PROFILE_ID = "e17fabf0-c9f2-4230-a091-12fcf18a3411";
 
