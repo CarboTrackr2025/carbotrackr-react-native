@@ -36,6 +36,9 @@ export default function SignupForm({
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [validationError, setValidationError] = useState<string | null>(null)
 
+    const isValidEmail = (email: string) =>
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
     const canSubmit =
         email.trim().length > 0 &&
         password.length > 0 &&
@@ -43,6 +46,14 @@ export default function SignupForm({
         !submitting
 
     const handleSignUp = () => {
+        if (!isValidEmail(email)) {
+        setValidationError("Please enter a valid email address.")
+        return
+        }
+        if (password.length < 8) {
+            setValidationError("Password must be at least 8 characters.")
+            return
+        }
         if (password !== confirmPassword) {
             setValidationError("Passwords do not match.")
             return
