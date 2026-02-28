@@ -109,6 +109,19 @@ export default function Layout() {
             />
 
 
+            <Tabs.Screen
+                name="scanner"
+                options={{
+                    tabBarIcon: ({focused, color: iconColor, size}) => (
+                        <TabIcon
+                            focused={focused}
+                            name="camera"
+                            iconColor={iconColor}
+                            size={size}
+                        />
+                    ),
+                }}
+            />
 
 
         </Tabs>

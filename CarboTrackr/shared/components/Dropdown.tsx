@@ -14,14 +14,14 @@ import { color } from "../constants/colors";
 
 type Option = {
     label: string;
-    value: string | number;
+    value: string | number | null;
 };
 
 type Props = {
     label?: string;
     options?: Option[];
     selectedValue?: string | number | null;
-    onSelect?: (value: string | number) => void;
+    onSelect?: (value: string | number | null) => void;
     gradient?: [string, string];
     placeholder?: string;
 };
@@ -42,7 +42,7 @@ export function Dropdown({
 
     const selectedItem = options.find((opt) => opt.value === selectedValue);
 
-    const handleSelect = (value: string | number) => {
+    const handleSelect = (value: string | number | null) => {
         onSelect(value);
         setVisible(false);
     };
@@ -111,13 +111,12 @@ export function Dropdown({
     );
 }
 
-const BORDER_W = 2;
+const BORDER_W = 2.5;
 const RADIUS = 12;
 
 const styles = StyleSheet.create({
     container: {
         width: "100%",
-        marginVertical: 10,
     },
     label: {
         fontSize: 14,
