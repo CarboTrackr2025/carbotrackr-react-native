@@ -72,20 +72,23 @@ export default function ForgotPasswordForm({
             />
 
             {/* ── ERRORS ── */}
-            {validationError ? (
-                <Text style={styles.errorText}>{validationError}</Text>
-            ) : error ? (
-                <Text style={styles.errorText}>{error}</Text>
-            ) : null}
+            <View style={styles.errorContainer}>
+                {validationError ? (
+                    <Text style={styles.errorText}>{validationError}</Text>
+                ) : error ? (
+                    <Text style={styles.errorText}>{error}</Text>
+                ) : null}
+            </View>
 
             {/* ── SEND BUTTON ── */}
-            <Button
-                title={submitting ? "Sending..." : "Send"}
-                onPress={handleSend}
-                gradient={gradient.green as [string, string]}
-                disabled={!canSubmit}
-            />
-
+            <View style={styles.buttonWrapper}>
+                <Button
+                    title={submitting ? "Sending..." : "Send"}
+                    onPress={handleSend}
+                    gradient={gradient.green as [string, string]}
+                    disabled={!canSubmit}
+                />
+            </View>
         </View>
     )
 }
@@ -122,6 +125,11 @@ const styles = StyleSheet.create({
         marginTop: 8,
         textAlign: "center",
     },
+    errorContainer: {
+        minHeight: 20,
+        marginTop: 8,
+        marginBottom: 4,
+    },
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -136,5 +144,8 @@ const styles = StyleSheet.create({
     },
     faqButton: {
         padding: 4,
+    },
+    buttonWrapper: {
+        marginTop: -60,
     },
 })

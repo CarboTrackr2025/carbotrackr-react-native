@@ -8,7 +8,7 @@ import {
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { color, gradient } from "../../../shared/constants/colors"
-import { Button } from "../../../shared/components/Button"
+// import { Button } from "../../../shared/components/Button"
 
 type Props = {
     submitting?: boolean
@@ -175,14 +175,14 @@ export default function OTPForm({
             )}
 
             {/* ── VERIFY BUTTON ── */}
-            <View style={styles.buttonWrapper}>
+            {/* <View style={styles.buttonWrapper}>
                 <Button
                     title={submitting ? "Verifying..." : "Verify"}
                     onPress={handleVerify}
                     gradient={gradient.green as [string, string]}
                     disabled={otp.join("").length < 5 || submitting}
                 />
-            </View>
+            </View> */}
 
         </View>
     )
@@ -270,10 +270,10 @@ const styles = StyleSheet.create({
         color: color.green,
         fontWeight: "600",
     },
-    buttonWrapper: {
-        position: "absolute",
-        bottom: 32,
-        left: 24,
-        right: 24,
-    },
+    // buttonWrapper: {
+    //     position: "absolute",
+    //     bottom: 32,
+    //     left: 24,
+    //     right: 24,
+    // },
 })

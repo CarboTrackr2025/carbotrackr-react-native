@@ -124,21 +124,21 @@ export default function ChangePasswordForm({
             </View>
 
             {/* ── ERRORS ── */}
-            {validationError ? (
-                <Text style={styles.errorText}>{validationError}</Text>
-            ) : error ? (
-                <Text style={styles.errorText}>{error}</Text>
-            ) : null}
+            <View style={styles.errorContainer}>
+                {validationError ? (
+                    <Text style={styles.errorText}>{validationError}</Text>
+                ) : error ? (
+                    <Text style={styles.errorText}>{error}</Text>
+                ) : null}
+            </View>
 
             {/* ── BUTTON ── */}
-            <View style={styles.buttonWrapper}>
-                <Button
-                    title={submitting ? "Changing..." : "Change my Password"}
-                    onPress={handleChangePassword}
-                    gradient={gradient.green as [string, string]}
-                    disabled={!canSubmit}
-                />
-            </View>
+            <Button
+                title={submitting ? "Changing..." : "Change my Password"}
+                onPress={handleChangePassword}
+                gradient={gradient.green as [string, string]}
+                disabled={!canSubmit}
+            />
 
         </View>
     )
@@ -195,10 +195,15 @@ const styles = StyleSheet.create({
         marginTop: 8,
         textAlign: "center",
     },
-    buttonWrapper: {
-        position: "absolute",
-        bottom: 32,
-        left: 24,
-        right: 24,
+    errorContainer: {
+        minHeight: 20,
+        marginTop: 8,
+        marginBottom: 4,
     },
+    // buttonWrapper: {
+    //     position: "absolute",
+    //     bottom: 32,
+    //     left: 24,
+    //     right: 24,
+    // },
 })
