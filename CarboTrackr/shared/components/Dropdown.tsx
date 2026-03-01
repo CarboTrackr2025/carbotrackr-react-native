@@ -83,7 +83,6 @@ export function Dropdown({
                     <View style={styles.modalContent}>
                         <FlatList
                             data={[
-                                { label: "None", value: null },
                                 ...options,
                             ]}
                             keyExtractor={(item, index) => item.value?.toString() || index.toString()}
