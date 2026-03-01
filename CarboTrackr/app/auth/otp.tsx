@@ -35,7 +35,7 @@ export default function OTPScreen() {
         // ── END REAL ─────────────────────────────────────────────────
 
         setSubmitting(false)
-        router.push("/auth/change-password")
+        router.replace("/auth/change-password")
     }
 
     const handleResend = async () => {
