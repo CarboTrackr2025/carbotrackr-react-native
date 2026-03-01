@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     {
         width: "100%",
         alignSelf: "stretch",
-        marginTop: 80,
+        marginTop: 40,
     },
     pressable: {
         width: "100%",
