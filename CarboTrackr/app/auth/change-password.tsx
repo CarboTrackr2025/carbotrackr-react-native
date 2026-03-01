@@ -36,6 +36,7 @@ export default function ChangePasswordScreen() {
                     message="Password changed successfully!"
                     visible={showToast}
                     type="success"
+                    duration={600}
                     onHide={() => {
                         setShowToast(false)
                         router.replace("/auth/login")
