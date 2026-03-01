@@ -21,6 +21,7 @@ export default function RootLayout() {
                 options={{ gestureEnabled: false }}
             />
             <Stack.Screen name="auth/otp" />
+            <Stack.Screen name="auth/change-password" />
         </Stack>
     )
 }
