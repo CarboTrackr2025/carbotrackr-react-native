@@ -72,7 +72,16 @@ export default function OTPForm({
         if (value && index < 4) {
             inputRefs.current[index + 1]?.focus()
         }
-    }
+
+         // Auto verify when last box is filled
+        if (value && index === 4) {
+            const otpValue = newOtp.join("")
+            if (otpValue.length === 5) {
+                setValidationError(null)
+                onVerify(otpValue)
+            }
+        }
+        }
 
     const handleKeyPress = (key: string, index: number) => {
         // Auto go back to previous input on backspace
