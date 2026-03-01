@@ -25,7 +25,7 @@ export default function ForgotPasswordScreen() {
         // ── END MOCK ─────────────────────────────────────────────────────
 
         setSubmitting(false)
-        router.replace("/auth/login")
+        router.push("/auth/otp")
     }
 
     return (
