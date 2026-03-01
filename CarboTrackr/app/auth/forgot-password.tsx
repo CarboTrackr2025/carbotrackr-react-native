@@ -14,8 +14,15 @@ export default function ForgotPasswordScreen() {
         setSubmitting(true)
         setError(null)
 
-        // TODO: replace with real API call when backend is ready
-        // e.g. await api.post("/auth/forgot-password", { email })
+        // ── MOCK (remove when backend is ready) ──────────────────────────
+            const MOCK_EMAIL = "test@carbotrackr.com"
+
+            if (email !== MOCK_EMAIL) {
+                setSubmitting(false)
+                setError("No account found with that email address.")
+                return
+            }
+        // ── END MOCK ─────────────────────────────────────────────────────
 
         setSubmitting(false)
         router.replace("/auth/login")
