@@ -18,11 +18,24 @@ type AccountSettingsData = {
     weight_kg: number | null
 }
 
-type Props = {
-    initialValues: AccountSettingsData
+type SaveAccountSettingsInput = {
+    gender: "MALE" | "FEMALE" | null
+    date_of_birth: string | null
+    height_cm: number | null
+    weight_kg: number | null
 }
 
-export default function AccountSettingsForm({initialValues}: Props) {
+type Props = {
+    initialValues: AccountSettingsData
+    onSave: (values: SaveAccountSettingsInput) => Promise<void>
+    saving: boolean
+}
+
+export default function AccountSettingsForm({
+                                                initialValues,
+                                                onSave,
+                                                saving,
+                                            }: Props) {
     const [gender, setGender] = useState<string | number | null>(initialValues.gender)
     const [dateOfBirth, setDateOfBirth] = useState<Date | null>(
         initialValues.date_of_birth ? new Date(initialValues.date_of_birth) : null
@@ -52,6 +65,22 @@ export default function AccountSettingsForm({initialValues}: Props) {
         }).format(dateOfBirth)
     }, [dateOfBirth])
 
+    const canSave = useMemo(() => {
+        const parsedHeight = Number(height)
+        const parsedWeight = Number(weight)
+
+        return (
+            (gender === "MALE" || gender === "FEMALE") &&
+            !!dateOfBirth &&
+            !Number.isNaN(dateOfBirth.getTime()) &&
+            Number.isFinite(parsedHeight) &&
+            parsedHeight > 0 &&
+            Number.isFinite(parsedWeight) &&
+            parsedWeight > 0 &&
+            !saving
+        )
+    }, [gender, dateOfBirth, height, weight, saving])
+
     const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
         if (Platform.OS === "android") {
             setShowDobPicker(false)
@@ -60,6 +89,17 @@ export default function AccountSettingsForm({initialValues}: Props) {
         if (event.type === "set" && selectedDate && !Number.isNaN(selectedDate.getTime())) {
             setDateOfBirth(selectedDate)
         }
+    }
+
+    const handleSave = async () => {
+        if (!canSave || !dateOfBirth) return
+
+        await onSave({
+            gender: gender === "MALE" || gender === "FEMALE" ? gender : null,
+            date_of_birth: dateOfBirth.toISOString(),
+            height_cm: Number(height),
+            weight_kg: Number(weight),
+        })
     }
 
     return (
@@ -123,8 +163,9 @@ export default function AccountSettingsForm({initialValues}: Props) {
 
             <View style={styles.buttonGroup}>
                 <Button
-                    title="Save Changes"
-                    onPress={() => router.push("/auth/login")}
+                    title={saving ? "Saving..." : "Save Changes"}
+                    onPress={handleSave}
+                    disabled={!canSave}
                     gradient={gradient.green as [string, string]}
                 />
                 <Button
