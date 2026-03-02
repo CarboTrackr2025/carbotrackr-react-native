@@ -1,6 +1,6 @@
 import { saveClerkSession } from "../auth.utils"
 import { api } from "../../../shared/api"
-import type { SignInResource, SignUpResource } from "@clerk/types"
+import type { SignInResource, SignUpResource, UserResource } from "@clerk/types"
 
 type LoginPayload = {
     email: string
@@ -262,6 +262,43 @@ export async function loginWithOAuth(
             error?.errors?.[0]?.message ??
             error?.message ??
             "OAuth sign-in failed."
+        return { success: false, message }
+    }
+}
+
+// ── Change Password ──────────────────────────────────────────────────────────
+
+type ChangePasswordResult =
+    | { success: true }
+    | { success: false; message: string }
+
+/**
+ * Change the current user's password using the Clerk SDK.
+ * Clerk requires the current password to update to a new one.
+ */
+export async function changePasswordWithClerk(
+    user: UserResource,
+    newPassword: string,
+    currentPassword: string
+): Promise<ChangePasswordResult> {
+    try {
+        console.log("🔑 [Clerk ChangePassword] Updating password...")
+
+        await user.updatePassword({
+            currentPassword,
+            newPassword,
+        })
+
+        console.log("✅ [Clerk ChangePassword] Password updated successfully!")
+        return { success: true }
+    } catch (error: any) {
+        console.error("❌ [Clerk ChangePassword] Error:", error)
+        console.error("   Error details:", JSON.stringify(error?.errors || error, null, 2))
+        const message =
+            error?.errors?.[0]?.longMessage ??
+            error?.errors?.[0]?.message ??
+            error?.message ??
+            "Failed to change password. Please try again."
         return { success: false, message }
     }
 }

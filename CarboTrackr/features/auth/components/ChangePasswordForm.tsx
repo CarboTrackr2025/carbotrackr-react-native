@@ -13,7 +13,7 @@ import { Button } from "../../../shared/components/Button"
 type Props = {
     submitting?: boolean
     error?: string | null
-    onChangePassword: (newPassword: string) => void | Promise<void>
+    onChangePassword: (currentPassword: string, newPassword: string) => void | Promise<void>
     onFAQ: () => void
 }
 
@@ -33,16 +33,23 @@ export default function ChangePasswordForm({
 }: Props) {
     const [newPassword, setNewPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
+    const [currentPassword, setCurrentPassword] = useState("")
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false)
     const [showNewPassword, setShowNewPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [validationError, setValidationError] = useState<string | null>(null)
 
     const canSubmit =
+        currentPassword.length > 0 &&
         newPassword.length > 0 &&
         confirmPassword.length > 0 &&
         !submitting
 
     const handleChangePassword = () => {
+        if (currentPassword.length < 1) {
+            setValidationError("Please enter your current password.")
+            return
+        }
         if (newPassword.length < 8) {
             setValidationError("Password must be at least 8 characters.")
             return
@@ -58,7 +65,7 @@ export default function ChangePasswordForm({
             return
         }
         setValidationError(null)
-        onChangePassword(newPassword)
+        onChangePassword(currentPassword, newPassword)
     }
 
     return (
@@ -74,6 +81,30 @@ export default function ChangePasswordForm({
 
             {/* ── HEADLINE ── */}
             <Text style={styles.heading}>Change Password</Text>
+
+            {/* ── CURRENT PASSWORD ── */}
+            <Text style={styles.label}>Current Password</Text>
+            <View style={styles.passwordInputWrapper}>
+                <GradientTextInput
+                    value={currentPassword}
+                    onChangeText={setCurrentPassword}
+                    placeholder="••••••••"
+                    secureTextEntry={!showCurrentPassword}
+                    iconName="lock-closed-outline"
+                    iconSize={1}
+                    iconColor="transparent"
+                />
+                <TouchableOpacity
+                    style={styles.eyeOverlay}
+                    onPress={() => setShowCurrentPassword((prev) => !prev)}
+                >
+                    <Ionicons
+                        name={showCurrentPassword ? "eye-outline" : "eye-off-outline"}
+                        size={20}
+                        color={color.black}
+                    />
+                </TouchableOpacity>
+            </View>
 
             {/* ── NEW PASSWORD ── */}
             <Text style={styles.label}>New Password</Text>

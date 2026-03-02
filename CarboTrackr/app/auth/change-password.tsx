@@ -2,25 +2,37 @@ import React, { useState } from "react"
 import { StyleSheet, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useRouter } from "expo-router"
+import { useUser } from "@clerk/clerk-expo"
 import ChangePasswordForm from "../../features/auth/components/ChangePasswordForm"
 import { Toast } from "../../shared/components/Toast"
 import { color } from "../../shared/constants/colors"
+import { changePasswordWithClerk } from "../../features/auth/api/auth.api"
 
 export default function ChangePasswordScreen() {
     const router = useRouter()
+    const { user } = useUser()
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [showToast, setShowToast] = useState(false)
 
-    const handleChangePassword = async (newPassword: string) => {
+    const handleChangePassword = async (currentPassword: string, newPassword: string) => {
+        if (!user) {
+            setError("No authenticated user found. Please log in again.")
+            return
+        }
+
         setSubmitting(true)
         setError(null)
 
-        // TODO: replace with real API call when backend is ready
-        // e.g. await api.post("/auth/change-password", { newPassword })
+        const result = await changePasswordWithClerk(user, newPassword, currentPassword)
 
         setSubmitting(false)
-        setShowToast(true)
+
+        if (result.success) {
+            setShowToast(true)
+        } else {
+            setError(result.message)
+        }
     }
 
     return (
