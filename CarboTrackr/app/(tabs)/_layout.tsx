@@ -122,7 +122,24 @@ export default function Layout() {
                     ),
                 }}
             />
+
+            <Tabs.Screen
+                name="settings"
+                options={{
+                    tabBarIcon: ({focused, color: iconColor, size}) => (
+                        <TabIcon
+                            focused={focused}
+                            name="settings"
+                            iconColor={iconColor}
+                            size={size}
+                        />
+                    ),
+                }}
+            />
+
         </Tabs>
+
+
     );
 }
 
