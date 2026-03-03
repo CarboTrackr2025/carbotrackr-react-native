@@ -1,24 +1,15 @@
-import { useEffect, useState } from "react"
 import { View, ActivityIndicator, StyleSheet } from "react-native"
 import { Redirect } from "expo-router"
-import { isLoggedIn } from "../features/auth/auth.utils"
+import { useAuth } from "@clerk/clerk-expo"
 import { color } from "../shared/constants/colors"
-import AsyncStorage from "@react-native-async-storage/async-storage"
 
 export default function Index() {
-    const [checking, setChecking] = useState(true)
-    const [loggedIn, setLoggedIn] = useState(false)
+    const { isSignedIn, isLoaded } = useAuth()
 
-    useEffect(() => {
-        AsyncStorage.clear().then(() => {
-            isLoggedIn().then((result) => {
-                setLoggedIn(result)
-                setChecking(false)
-            })
-        })
-    }, [])
+    console.log("🚀 [App Start] Auth state:", { isLoaded, isSignedIn })
 
-    if (checking) {
+    if (!isLoaded) {
+        console.log("⏳ [App Start] Waiting for Clerk to load...")
         return (
             <View style={styles.center}>
                 <ActivityIndicator size="large" color={color.green} />
@@ -26,10 +17,12 @@ export default function Index() {
         )
     }
 
-    if (loggedIn) {
+    if (isSignedIn) {
+        console.log("✅ [App Start] User is signed in, redirecting to home")
         return <Redirect href="/(tabs)" />
     }
 
+    console.log("❌ [App Start] User not signed in, redirecting to login")
     return <Redirect href="/auth/login" />
 }
 
