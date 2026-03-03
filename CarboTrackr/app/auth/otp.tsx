@@ -2,22 +2,25 @@ import React, { useState } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useSignIn } from "@clerk/clerk-expo";
+import { useSignIn, useSignUp } from "@clerk/clerk-expo";
 import OTPForm from "../../features/auth/components/OTPForm";
 import {
   verifyPasswordResetOTP,
   requestPasswordReset,
+  verifySignUpEmail,
 } from "../../features/auth/api/auth.api";
 import { color } from "../../shared/constants/colors";
 
 export default function OTPScreen() {
   const router = useRouter();
   const { signIn } = useSignIn();
+  const { signUp, setActive } = useSignUp();
   const { flow, email } = useLocalSearchParams<{
     flow?: string;
     email?: string;
   }>();
   const isResetFlow = flow === "reset";
+  const isSignupFlow = flow === "signup";
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +52,33 @@ export default function OTPScreen() {
       return;
     }
 
-    // Non-reset flows (e.g. sign-up verification) — extend here as needed
+    if (isSignupFlow) {
+      if (!signUp || !setActive) {
+        setError("Clerk is not initialized.");
+        return;
+      }
+
+      setSubmitting(true);
+      setError(null);
+
+      const result = await verifySignUpEmail(
+        signUp,
+        setActive,
+        otp,
+        email ?? "",
+      );
+      setSubmitting(false);
+
+      if (result.success) {
+        console.log("✅ [OTP] Email verified, navigating to home.");
+        router.replace("/(tabs)");
+      } else if ("message" in result) {
+        console.error("❌ [OTP] Email verification failed:", result.message);
+        setError(result.message);
+      }
+      return;
+    }
+
     console.log("ℹ️ [OTP] No flow specified, no action taken.");
   };
 
@@ -57,6 +86,9 @@ export default function OTPScreen() {
     if (isResetFlow && signIn && email) {
       console.log("🔄 [OTP] Resending password reset OTP to:", email);
       await requestPasswordReset(signIn, email);
+    } else if (isSignupFlow && signUp) {
+      console.log("🔄 [OTP] Resending sign-up verification OTP.");
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
     } else {
       console.log(
         "ℹ️ [OTP] Resend requested but no reset flow or email available.",

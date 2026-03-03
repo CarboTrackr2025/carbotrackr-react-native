@@ -22,6 +22,7 @@ type SignUpPayload = {
 
 type SignUpResult =
   | { success: true; userId: string; email: string }
+  | { success: false; needsVerification: true; email: string }
   | { success: false; message: string };
 
 /**
@@ -50,10 +51,22 @@ export async function signUpWithClerk(
       return await _activateAndPersist(signUpAttempt, setActive, payload.email);
     }
 
+    // Email verification is required — trigger the OTP email and signal the screen
+    if (signUpAttempt.status === "missing_requirements") {
+      console.log(
+        "📧 [Clerk SignUp] Email verification required, sending OTP...",
+      );
+      await signUpAttempt.prepareEmailAddressVerification({
+        strategy: "email_code",
+      });
+      console.log("✅ [Clerk SignUp] Verification email sent");
+      return { success: false, needsVerification: true, email: payload.email };
+    }
+
     console.warn("⚠️ [Clerk SignUp] Unexpected status:", signUpAttempt.status);
     return {
       success: false,
-      message: `Sign-up could not be completed (status: ${signUpAttempt.status}). Make sure email verification is disabled in the Clerk dashboard.`,
+      message: `Sign-up could not be completed (status: ${signUpAttempt.status}).`,
     };
   } catch (error: any) {
     console.error("❌ [Clerk SignUp] Error during sign-up:", error);
