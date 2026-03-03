@@ -67,7 +67,7 @@ export default function SignupScreen() {
     try {
       const startOAuthFlow =
         provider === "oauth_google" ? startGoogleOAuth : startFacebookOAuth;
-      const redirectUrl = Linking.createURL("/oauth-native-callback");
+      const redirectUrl = Linking.createURL("/auth/oauth-native-callback");
       const { createdSessionId, setActive: oAuthSetActive } =
         await startOAuthFlow({ redirectUrl });
 

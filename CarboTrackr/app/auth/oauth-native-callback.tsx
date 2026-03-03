@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useOAuth, useAuth } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { color } from "../shared/constants/colors";
+import { color } from "../../shared/constants/colors";
 
 // Required: completes the OAuth session when the browser redirects back
 WebBrowser.maybeCompleteAuthSession();
