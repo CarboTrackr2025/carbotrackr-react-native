@@ -8,6 +8,7 @@ import * as Linking from "expo-linking";
 import SignupForm from "../../features/auth/components/SignupForm";
 import { signUpWithClerk } from "../../features/auth/api/auth.api";
 import { color } from "../../shared/constants/colors";
+import { api } from "../../shared/api";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -68,12 +69,50 @@ export default function SignupScreen() {
       const startOAuthFlow =
         provider === "oauth_google" ? startGoogleOAuth : startFacebookOAuth;
       const redirectUrl = Linking.createURL("/auth/oauth-native-callback");
-      const { createdSessionId, setActive: oAuthSetActive } =
-        await startOAuthFlow({ redirectUrl });
+      const {
+        createdSessionId,
+        setActive: oAuthSetActive,
+        signUp: oAuthSignUp,
+      } = await startOAuthFlow({ redirectUrl });
 
       if (createdSessionId && oAuthSetActive) {
         await oAuthSetActive({ session: createdSessionId });
-        console.log("✅ [Signup Screen] OAuth sign-up successful");
+        console.log(
+          "✅ [Signup Screen] OAuth sign-up successful, persisting to backend...",
+        );
+
+        const userId = oAuthSignUp?.createdUserId ?? null;
+        const email = oAuthSignUp?.emailAddress ?? null;
+
+        if (userId && email) {
+          console.log("🌐 [Signup Screen] Persisting OAuth user:", {
+            userId,
+            email,
+          });
+          try {
+            await api.post("/auth/account", { userId, email });
+            console.log(
+              "✅ [Signup Screen] Backend account created/confirmed.",
+            );
+          } catch (backendErr: any) {
+            if (backendErr?.response?.status === 409) {
+              console.warn(
+                "⚠️ [Signup Screen] Backend account already exists (409). Continuing.",
+              );
+            } else {
+              console.error(
+                "❌ [Signup Screen] Failed to persist backend account:",
+                backendErr?.message,
+              );
+            }
+          }
+        } else {
+          console.warn(
+            "⚠️ [Signup Screen] signUp resource missing userId or email — skipping backend persist.",
+            { userId, email },
+          );
+        }
+
         router.replace("/(tabs)");
       } else {
         console.log("✅ [Signup Screen] OAuth flow initiated");

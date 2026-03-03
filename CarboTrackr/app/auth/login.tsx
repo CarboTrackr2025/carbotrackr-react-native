@@ -8,6 +8,7 @@ import * as Linking from "expo-linking";
 import LoginForm from "../../features/auth/components/LoginForm";
 import { loginWithClerk } from "../../features/auth/api/auth.api";
 import { color } from "../../shared/constants/colors";
+import { api } from "../../shared/api";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -60,12 +61,48 @@ export default function LoginScreen() {
       const startOAuthFlow =
         provider === "oauth_google" ? startGoogleOAuth : startFacebookOAuth;
       const redirectUrl = Linking.createURL("/auth/oauth-native-callback");
-      const { createdSessionId, setActive: oAuthSetActive } =
-        await startOAuthFlow({ redirectUrl });
+      const {
+        createdSessionId,
+        setActive: oAuthSetActive,
+        signUp: oAuthSignUp,
+      } = await startOAuthFlow({ redirectUrl });
 
       if (createdSessionId && oAuthSetActive) {
         await oAuthSetActive({ session: createdSessionId });
-        console.log("✅ [Login Screen] OAuth login successful");
+        console.log(
+          "✅ [Login Screen] OAuth login successful, persisting to backend...",
+        );
+
+        // Only persist if this was a new sign-up (createdUserId is set on the signUp resource)
+        const userId = oAuthSignUp?.createdUserId ?? null;
+        const email = oAuthSignUp?.emailAddress ?? null;
+
+        if (userId && email) {
+          console.log("🌐 [Login Screen] Persisting new OAuth user:", {
+            userId,
+            email,
+          });
+          try {
+            await api.post("/auth/account", { userId, email });
+            console.log("✅ [Login Screen] Backend account created/confirmed.");
+          } catch (backendErr: any) {
+            if (backendErr?.response?.status === 409) {
+              console.warn(
+                "⚠️ [Login Screen] Backend account already exists (409). Continuing.",
+              );
+            } else {
+              console.error(
+                "❌ [Login Screen] Failed to persist backend account:",
+                backendErr?.message,
+              );
+            }
+          }
+        } else {
+          console.log(
+            "ℹ️ [Login Screen] Existing OAuth user — no backend persist needed.",
+          );
+        }
+
         router.replace("/(tabs)");
       } else {
         console.log("✅ [Login Screen] OAuth flow initiated");
