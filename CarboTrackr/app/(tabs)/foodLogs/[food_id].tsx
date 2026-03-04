@@ -19,9 +19,7 @@ import { Dropdown} from "../../../shared/components/Dropdown";
 import {Button} from "../../../shared/components/Button";
 import { formatPhilippinesTime } from "../../../shared/utils/formatters";
 import { createFoodLog } from "../../../features/foodLogs/api/post-food"
-
-
-const MOCK_PROFILE_ID = "e37c51bc-e57c-4d20-a2ec-ce600c500d81";
+import { getClerkUserId } from "../../../features/auth/auth.utils";
 
 export default function FoodByServingScreen() {
     const { food_id, serving_id } = useLocalSearchParams<{
@@ -61,10 +59,13 @@ export default function FoodByServingScreen() {
 
             setSaving(true);
 
-            const profile_id = MOCK_PROFILE_ID
+            const accountIdFromClerk = await getClerkUserId();
+            if (!accountIdFromClerk) {
+                throw new Error("User ID from Clerk Auth API not found");
+            }
 
             const ts = await createFoodLog({
-                profile_id,
+                account_id: accountIdFromClerk,
                 food_id: String(food_id),
                 serving_id: String(serving_id),
                 meal_type: String(mealType) as any, // or type it properly to MealType

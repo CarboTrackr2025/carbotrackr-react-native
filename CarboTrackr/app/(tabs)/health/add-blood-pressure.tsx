@@ -7,8 +7,7 @@ import {
     CreateBloodPressurePayload,
     createBloodPressure,
 } from "../../../features/health/api/post-blood-pressure";
-
-const MOCK_PROFILE_ID = "e17fabf0-c9f2-4230-a091-12fcf18a3411";
+import { getClerkUserId } from "../../../features/auth/auth.utils";
 
 const evaluateBloodPressure = (systolic: number, diastolic: number): string => {
     if (systolic >= 180 || diastolic >= 120) {
@@ -60,9 +59,13 @@ export default function AddBloodPressureScreen() {
         try {
             setSubmitting(true);
 
+            const accountIdFromClerk = await getClerkUserId();
+            if (!accountIdFromClerk) {
+                throw new Error("User ID from Clerk Auth API not found");
+            }
             const payload: CreateBloodPressurePayload = {
                 ...values,
-                profile_id: MOCK_PROFILE_ID,
+                account_id: accountIdFromClerk
             };
 
             const { timestamp } = await createBloodPressure(payload);

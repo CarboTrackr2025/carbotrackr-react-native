@@ -4,7 +4,7 @@ import { API_BASE_URL } from "../../../shared/api"
 export type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK"
 
 export type CreateFoodLogRequest = {
-    profile_id: string
+    account_id: string
     food_id: string
     serving_id: string
     meal_type: MealType
@@ -19,7 +19,7 @@ export async function createFoodLog(input: CreateFoodLogRequest) {
     const res = await axios.post(
         `${API_BASE_URL}/food-logs/create`,
         {
-            profile_id: input.profile_id,
+            account_id: input.account_id,
             food_id: input.food_id,
             serving_id: input.serving_id,
             meal_type: input.meal_type,
