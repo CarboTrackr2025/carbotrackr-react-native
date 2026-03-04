@@ -170,7 +170,7 @@ export default function AccountSettingsForm({
                 />
                 <Button
                     title="Change Password"
-                    onPress={() => router.push("/auth/login")}
+                    onPress={() => router.push("/auth/change-password")}
                     gradient={gradient.green as [string, string]}
                 />
                 <Button
