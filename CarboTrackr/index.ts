@@ -1,9 +1,3 @@
-import { registerRootComponent } from 'expo';
-
-import Index from './app/(tabs)';
-
-// registerRootComponent calls AppRegistry.registerComponent('main', () => Index);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(Index);
-
+// Expo Router entry point
+// This file should remain minimal - Expo Router handles everything via package.json "main": "expo-router/entry"
+import "expo-router/entry";

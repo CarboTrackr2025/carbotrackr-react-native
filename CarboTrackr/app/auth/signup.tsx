@@ -2,19 +2,19 @@ import React, { useState } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useSignIn, useOAuth } from "@clerk/clerk-expo";
+import { useSignUp, useOAuth } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
-import LoginForm from "../../features/auth/components/LoginForm";
-import { loginWithClerk } from "../../features/auth/api/auth.api";
+import SignupForm from "../../features/auth/components/SignupForm";
+import { signUpWithClerk } from "../../features/auth/api/auth.api";
 import { color } from "../../shared/constants/colors";
 import { api } from "../../shared/api";
 
 WebBrowser.maybeCompleteAuthSession();
 
-export default function LoginScreen() {
+export default function SignupScreen() {
   const router = useRouter();
-  const { signIn, setActive } = useSignIn();
+  const { signUp, setActive, isLoaded } = useSignUp();
   const { startOAuthFlow: startGoogleOAuth } = useOAuth({
     strategy: "oauth_google",
   });
@@ -24,35 +24,43 @@ export default function LoginScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async (email: string, password: string) => {
-    console.log("📱 [Login Screen] Login button pressed");
-    console.log("   Email:", email);
+  const handleSignUp = async (email: string, password: string) => {
+    console.log("📱 [Signup Screen] Sign-up button pressed for:", email);
 
-    if (!signIn || !setActive) {
-      console.error(
-        "❌ [Login Screen] Clerk signIn or setActive not available",
-      );
-      setError("Clerk is not initialized.");
+    if (!isLoaded || !signUp || !setActive) {
+      console.error("❌ [Signup Screen] Clerk useSignUp not ready");
+      setError("Authentication service is not ready. Please try again.");
       return;
     }
 
     setSubmitting(true);
     setError(null);
 
-    const result = await loginWithClerk(signIn, setActive, { email, password });
+    const result = await signUpWithClerk(signUp, setActive, {
+      email,
+      password,
+    });
     setSubmitting(false);
 
     if (result.success) {
-      console.log("✅ [Login Screen] Login successful, navigating to home");
+      console.log("✅ [Signup Screen] Sign-up successful! Navigating to home.");
       router.replace("/(tabs)");
-    } else {
-      console.error("❌ [Login Screen] Login failed:", result.message);
+    } else if ("needsVerification" in result && result.needsVerification) {
+      console.log(
+        "📧 [Signup Screen] Email verification required, navigating to OTP.",
+      );
+      router.push({
+        pathname: "/auth/otp",
+        params: { flow: "signup", email: result.email },
+      });
+    } else if ("message" in result) {
+      console.error("❌ [Signup Screen] Sign-up failed:", result.message);
       setError(result.message);
     }
   };
 
   const handleOAuth = async (provider: "oauth_google" | "oauth_facebook") => {
-    console.log("📱 [Login Screen] OAuth button pressed:", provider);
+    console.log("📱 [Signup Screen] OAuth button pressed:", provider);
 
     setSubmitting(true);
     setError(null);
@@ -70,45 +78,47 @@ export default function LoginScreen() {
       if (createdSessionId && oAuthSetActive) {
         await oAuthSetActive({ session: createdSessionId });
         console.log(
-          "✅ [Login Screen] OAuth login successful, persisting to backend...",
+          "✅ [Signup Screen] OAuth sign-up successful, persisting to backend...",
         );
 
-        // Only persist if this was a new sign-up (createdUserId is set on the signUp resource)
         const userId = oAuthSignUp?.createdUserId ?? null;
         const email = oAuthSignUp?.emailAddress ?? null;
 
         if (userId && email) {
-          console.log("🌐 [Login Screen] Persisting new OAuth user:", {
+          console.log("🌐 [Signup Screen] Persisting OAuth user:", {
             userId,
             email,
           });
           try {
             await api.post("/auth/account", { userId, email });
-            console.log("✅ [Login Screen] Backend account created/confirmed.");
+            console.log(
+              "✅ [Signup Screen] Backend account created/confirmed.",
+            );
           } catch (backendErr: any) {
             if (backendErr?.response?.status === 409) {
               console.warn(
-                "⚠️ [Login Screen] Backend account already exists (409). Continuing.",
+                "⚠️ [Signup Screen] Backend account already exists (409). Continuing.",
               );
             } else {
               console.error(
-                "❌ [Login Screen] Failed to persist backend account:",
+                "❌ [Signup Screen] Failed to persist backend account:",
                 backendErr?.message,
               );
             }
           }
         } else {
-          console.log(
-            "ℹ️ [Login Screen] Existing OAuth user — no backend persist needed.",
+          console.warn(
+            "⚠️ [Signup Screen] signUp resource missing userId or email — skipping backend persist.",
+            { userId, email },
           );
         }
 
         router.replace("/(tabs)");
       } else {
-        console.log("✅ [Login Screen] OAuth flow initiated");
+        console.log("✅ [Signup Screen] OAuth flow initiated");
       }
     } catch (err: any) {
-      console.error("❌ [Login Screen] OAuth failed:", err);
+      console.error("❌ [Signup Screen] OAuth failed:", err);
       const message =
         err?.errors?.[0]?.longMessage ??
         err?.errors?.[0]?.message ??
@@ -122,12 +132,11 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <LoginForm
+      <SignupForm
         submitting={submitting}
         error={error}
-        onLogin={handleLogin}
-        onForgotPassword={() => router.push("/auth/forgot-password")}
-        onSignUp={() => router.push("/auth/signup")}
+        onSignUp={handleSignUp}
+        onLogin={() => router.replace("/auth/login")}
         onFacebook={() => handleOAuth("oauth_facebook")}
         onGoogle={() => handleOAuth("oauth_google")}
         onFAQ={() => router.push("/faqs")}
