@@ -10,18 +10,18 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
-import BloodPressureChart from "../../features/health/components/BloodPressureChart";
-import DateRangePicker from "../../shared/components/DateRangePicker";
-import { Button } from "../../shared/components/Button";
+import BloodPressureChart from "../../../features/health/components/BloodPressureChart";
+import DateRangePicker from "../../../shared/components/DateRangePicker";
+import { Button } from "../../../shared/components/Button";
 import { router } from "expo-router";
-import { color, gradient } from "../../shared/constants/colors";
+import { color, gradient } from "../../../shared/constants/colors";
 
 import {
     getBloodPressureReport,
     type BpMeasurement,
-} from "../../features/health/api/get-blood-pressures";
+} from "../../../features/health/api/get-blood-pressures";
 
-const PROFILE_ID = "e17fabf0-c9f2-4230-a091-12fcf18a3411";
+import { getClerkUserId } from "../../../features/auth/auth.utils";
 
 // ✅ LOCAL date formatter (avoids UTC shift from toISOString)
 const toYMDLocal = (d: Date) => {
@@ -48,8 +48,13 @@ export default function BloodPressureIndexScreen() {
             // ✅ clear stale chart while loading new range
             setMeasurements([]);
 
+            const accountIdFromClerk = await getClerkUserId();
+            if (!accountIdFromClerk) {
+                throw new Error("User ID from Clerk Auth API not found");
+            }
+
             const { measurements: cleaned } = await getBloodPressureReport({
-                profileId: PROFILE_ID,
+                accountId: accountIdFromClerk,
                 startDate: startOfDay(startDate),
                 endDate: endOfDay(endDate),
             });

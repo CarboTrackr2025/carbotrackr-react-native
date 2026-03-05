@@ -7,16 +7,19 @@ import {
     StyleSheet,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { color } from "../../shared/constants/colors";
-
+import {color, gradient} from "../../../shared/constants/colors";
 import {
     getFoodDetailsByServingId,
     type FoodNutritionForUI,
-} from "../../features/foodLogs/api/get-food-by-id";
-
-import { GradientTextDisplay } from "../../shared/components/GradientTextDisplay";
-import { GradientTextInput } from "../../shared/components/GradientTextInput";
-import { CalorieRing } from "../../shared/components/CalorieRing";
+} from "../../../features/foodLogs/api/get-food-by-id";
+import { GradientTextDisplay } from "../../../shared/components/GradientTextDisplay";
+import { GradientTextInput } from "../../../shared/components/GradientTextInput";
+import { CalorieRing } from "../../../shared/components/CalorieRing";
+import { Dropdown} from "../../../shared/components/Dropdown";
+import {Button} from "../../../shared/components/Button";
+import { formatPhilippinesTime } from "../../../shared/utils/formatters";
+import { createFoodLog } from "../../../features/foodLogs/api/post-food"
+import { getClerkUserId } from "../../../features/auth/auth.utils";
 
 export default function FoodByServingScreen() {
     const { food_id, serving_id } = useLocalSearchParams<{
@@ -25,11 +28,57 @@ export default function FoodByServingScreen() {
     }>();
 
     const [data, setData] = useState<FoodNutritionForUI | null>(null);
+    const [mealType, setMealType] = useState<string | number | null>(null);
+    const [timestamp, setTimestamp] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+
+    const recordedText = timestamp ? formatPhilippinesTime(timestamp) : "—"
+
+    const mealOptions = [
+        { label: "Breakfast", value: "BREAKFAST" },
+        { label: "Lunch", value: "LUNCH" },
+        { label: "Dinner", value: "DINNER" },
+        { label: "Snack", value: "SNACK" },
+    ]
+
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     const [servingsText, setServingsText] = useState("1");
     const servings = Number(servingsText) || 1;
+
+    const submitting = saving;
+    const canSubmit = !!mealType && servings > 0 && !saving;
+
+
+    const handleSubmit = async () => {
+        try {
+            if (!food_id) throw new Error("Missing food_id param");
+            if (!serving_id) throw new Error("Missing serving_id param");
+            if (!mealType) throw new Error("Please select a meal type");
+
+            setSaving(true);
+
+            const accountIdFromClerk = await getClerkUserId();
+            if (!accountIdFromClerk) {
+                throw new Error("User ID from Clerk Auth API not found");
+            }
+
+            const ts = await createFoodLog({
+                account_id: accountIdFromClerk,
+                food_id: String(food_id),
+                serving_id: String(serving_id),
+                meal_type: String(mealType) as any, // or type it properly to MealType
+                number_of_servings: servings,
+            });
+
+            setTimestamp(ts);
+        } catch (e: any) {
+            setError(e?.message ?? "Failed to save food log");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     useEffect(() => {
         let mounted = true;
@@ -106,6 +155,7 @@ export default function FoodByServingScreen() {
     const scaledProteinK = data.protein.kcal * servings;
     const scaledFatK = data.fat.kcal * servings;
 
+
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <View style={styles.ringWrap}>
@@ -126,11 +176,6 @@ export default function FoodByServingScreen() {
             <Text style={styles.label}>Food</Text>
             <GradientTextDisplay text={data.title} />
 
-            <Text style={styles.servingText}>
-                Serving: {data.serving.serving_description} ({data.serving.metric_serving_amount}
-                {data.serving.metric_serving_unit})
-            </Text>
-
             <Text style={styles.label}>Number of Servings</Text>
             <GradientTextInput
                 keyboardType="numeric"
@@ -138,36 +183,21 @@ export default function FoodByServingScreen() {
                 onChangeText={setServingsText}
             />
 
-            <Text style={styles.caloriesText}>
-                Calories: {round(scaledCalories)} kcal
-            </Text>
+            <Text style={styles.label}>Meal Type</Text>
+            <Dropdown
+                options={mealOptions}
+                selectedValue={mealType}
+                onSelect={setMealType}
+            />
 
-            <View style={styles.macrosWrap}>
-                <Text style={styles.macroTitle}>Carbs</Text>
-                <Text style={styles.macroLine}>
-                    {round(scaledCarbsG)} g | {round(scaledCarbsK)} kcal |{" "}
-                    {round(data.carbs.pct)}%
-                </Text>
+            <Text style={styles.label}>Recorded Date and Time</Text>
+            <GradientTextDisplay
+                text={recordedText}
+            />
 
-                <Text style={[styles.macroTitle, styles.macroTitleSpacing]}>Protein</Text>
-                <Text style={styles.macroLine}>
-                    {round(scaledProteinG)} g | {round(scaledProteinK)} kcal |{" "}
-                    {round(data.protein.pct)}%
-                </Text>
+            <Button title={submitting ? "Saving..." : "Save"} onPress={handleSubmit} disabled={!canSubmit}
+                    gradient={gradient.green as [string, string]}/>
 
-                <Text style={[styles.macroTitle, styles.macroTitleSpacing]}>Fat</Text>
-                <Text style={styles.macroLine}>
-                    {round(scaledFatG)} g | {round(scaledFatK)} kcal | {round(data.fat.pct)}%
-                </Text>
-            </View>
-
-            <View style={styles.debugWrap}>
-                <Text style={styles.debugTitle}>Debug</Text>
-                <Text>food_id: {data.food_id}</Text>
-                <Text>serving_id: {data.serving.serving_id}</Text>
-                <Text>macros_total_kcal: {round(data.macros_total_kcal)}</Text>
-                <Text>servings: {servings}</Text>
-            </View>
         </ScrollView>
     );
 }
@@ -176,6 +206,7 @@ const styles = StyleSheet.create({
     // layout
     container: {
         padding: 16,
+        backgroundColor: color.white,
     },
 
     center: {

@@ -7,7 +7,7 @@ export type BloodPressureInput = {
 };
 
 export type CreateBloodPressurePayload = BloodPressureInput & {
-    profile_id: string;
+    account_id: string;
 };
 
 export type CreateBloodPressureResponse = {

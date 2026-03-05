@@ -9,11 +9,16 @@ import { Ionicons } from "@expo/vector-icons"
 import { color, gradient } from "../../../shared/constants/colors"
 import { GradientTextInput } from "../../../shared/components/GradientTextInput"
 import { Button } from "../../../shared/components/Button"
+import { Header } from "../../../shared/components/Header"
 
 type Props = {
     submitting?: boolean
     error?: string | null
-    onChangePassword: (currentPassword: string, newPassword: string) => void | Promise<void>
+    onChangePassword: (
+        oldPassword: string,
+        newPassword: string
+    ) => void | Promise<void>
+    onForgotPassword: () => void
     onFAQ: () => void
 }
 
@@ -25,31 +30,28 @@ const isStrongPassword = (password: string): boolean => {
     return hasUppercase && hasLowercase && hasNumber && hasSymbol
 }
 
-export default function ChangePasswordForm({
+export default function UpdatePasswordForm({
     submitting = false,
     error,
     onChangePassword,
+    onForgotPassword,
     onFAQ,
 }: Props) {
+    const [oldPassword, setOldPassword] = useState("")
     const [newPassword, setNewPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
-    const [currentPassword, setCurrentPassword] = useState("")
-    const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+    const [showOldPassword, setShowOldPassword] = useState(false)
     const [showNewPassword, setShowNewPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [validationError, setValidationError] = useState<string | null>(null)
 
     const canSubmit =
-        currentPassword.length > 0 &&
+        oldPassword.length > 0 &&
         newPassword.length > 0 &&
         confirmPassword.length > 0 &&
         !submitting
 
     const handleChangePassword = () => {
-        if (currentPassword.length < 1) {
-            setValidationError("Please enter your current password.")
-            return
-        }
         if (newPassword.length < 8) {
             setValidationError("Password must be at least 8 characters.")
             return
@@ -64,42 +66,41 @@ export default function ChangePasswordForm({
             setValidationError("Passwords do not match.")
             return
         }
+        if (oldPassword === newPassword) {
+            setValidationError("New password must be different from old password.")
+            return
+        }
         setValidationError(null)
-        onChangePassword(currentPassword, newPassword)
+        onChangePassword(oldPassword, newPassword)
     }
 
     return (
         <View style={styles.container}>
 
             {/* ── HEADER ── */}
-            <View style={styles.header}>
-                <Text style={styles.headerBrand}>CarboTrackr</Text>
-                <TouchableOpacity onPress={onFAQ} style={styles.faqButton}>
-                    <Ionicons name="help-circle-outline" size={28} color={color.black} />
-                </TouchableOpacity>
-            </View>
+            <Header onFAQ={onFAQ} />
 
             {/* ── HEADLINE ── */}
             <Text style={styles.heading}>Change Password</Text>
 
-            {/* ── CURRENT PASSWORD ── */}
-            <Text style={styles.label}>Current Password</Text>
+            {/* ── OLD PASSWORD ── */}
+            <Text style={styles.label}>Old Password</Text>
             <View style={styles.passwordInputWrapper}>
                 <GradientTextInput
-                    value={currentPassword}
-                    onChangeText={setCurrentPassword}
+                    value={oldPassword}
+                    onChangeText={setOldPassword}
                     placeholder="••••••••"
-                    secureTextEntry={!showCurrentPassword}
+                    secureTextEntry={!showOldPassword}
                     iconName="lock-closed-outline"
                     iconSize={1}
                     iconColor="transparent"
                 />
                 <TouchableOpacity
                     style={styles.eyeOverlay}
-                    onPress={() => setShowCurrentPassword((prev) => !prev)}
+                    onPress={() => setShowOldPassword((prev) => !prev)}
                 >
                     <Ionicons
-                        name={showCurrentPassword ? "eye-outline" : "eye-off-outline"}
+                        name={showOldPassword ? "eye-outline" : "eye-off-outline"}
                         size={20}
                         color={color.black}
                     />
@@ -154,6 +155,14 @@ export default function ChangePasswordForm({
                 </TouchableOpacity>
             </View>
 
+            {/* ── FORGOT PASSWORD ── */}
+            <TouchableOpacity
+                onPress={onForgotPassword}
+                style={styles.forgotRow}
+            >
+                <Text style={styles.forgotText}>Forgot your password?</Text>
+            </TouchableOpacity>
+
             {/* ── ERRORS ── */}
             <View style={styles.errorContainer}>
                 {validationError ? (
@@ -181,26 +190,11 @@ const styles = StyleSheet.create({
         padding: 24,
         backgroundColor: color.white,
     },
-    header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 32,
-        marginTop: 16,
-    },
-    headerBrand: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: color.green,
-    },
-    faqButton: {
-        padding: 4,
-    },
     heading: {
         fontSize: 26,
         fontWeight: "700",
         color: color.black,
-        marginBottom: 28,
+        marginBottom: 8,
     },
     label: {
         marginTop: 12,
@@ -220,21 +214,24 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         zIndex: 10,
     },
-    errorText: {
-        color: color["red"],
-        fontSize: 12,
+    forgotRow: {
+        alignItems: "flex-end",
         marginTop: 8,
-        textAlign: "center",
+        marginBottom: 4,
+    },
+    forgotText: {
+        fontSize: 12,
+        color: color.green,
+        fontWeight: "500",
     },
     errorContainer: {
         minHeight: 20,
         marginTop: 8,
         marginBottom: 4,
     },
-    // buttonWrapper: {
-    //     position: "absolute",
-    //     bottom: 32,
-    //     left: 24,
-    //     right: 24,
-    // },
+    errorText: {
+        color: color["red"],
+        fontSize: 12,
+        textAlign: "center",
+    },
 })

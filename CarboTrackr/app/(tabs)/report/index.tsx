@@ -1,7 +1,7 @@
 import {  StyleSheet, Text, View } from "react-native";
 import { router} from "expo-router";
-import { Button } from "../../shared/components/Button";
-import {gradient} from "../../shared/constants/colors";
+import { Button } from "../../../shared/components/Button";
+import {gradient} from "../../../shared/constants/colors";
 
 export default function Index() {
     return (

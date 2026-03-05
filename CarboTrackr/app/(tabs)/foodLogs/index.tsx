@@ -9,8 +9,8 @@ import {
 
 import { router } from "expo-router";
 
-import { FoodCard, type FoodCardItem } from "../../features/foodLogs/components/FoodCard";
-import { searchFoods } from "../../features/foodLogs/api/search-food";
+import { FoodCard, type FoodCardItem } from "../../../features/foodLogs/components/FoodCard";
+import { searchFoods } from "../../../features/foodLogs/api/search-food";
 
 export default function Index() {
     const [query] = useState("chicken breast");
