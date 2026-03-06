@@ -42,13 +42,13 @@ const normalizeMeasurement = (m: any): BpMeasurement | null => {
 };
 
 export async function getBloodPressureReport(args: {
-    profileId: string;
+    accountId: string;
     startDate: Date;
     endDate: Date;
 }) {
-    const { profileId, startDate, endDate } = args;
+    const { accountId, startDate, endDate } = args;
 
-    const url = `${API_BASE_URL}/health/${profileId}/blood-pressure/report`;
+    const url = `${API_BASE_URL}/health/${accountId}/blood-pressure/report`;
     const params = {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),

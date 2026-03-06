@@ -4,7 +4,7 @@ import {StatusBar} from "expo-status-bar"
 import AccountSettingsForm from "../../../features/settings/components/AccountSettingsForm"
 import {getAccountSettings} from "../../../features/settings/api/get-account-settings"
 import {putAccountSettings} from "../../../features/settings/api/put-account-settings"
-const MOCK_PROFILE_ID = "a4c06ef4-6d62-4b7f-8d8c-9344f65bf577"
+import {getClerkUserId} from "../../../features/auth/auth.utils";
 
 type AccountSettingsState = {
     email: string
@@ -40,8 +40,13 @@ export default function AccountSettingsScreen() {
         try {
             setSaving(true)
 
+            const accountIdFromClerk = await getClerkUserId();
+            if (!accountIdFromClerk) {
+                throw new Error("User ID from Clerk Auth API not found");
+            }
+
             await putAccountSettings({
-                account_id: MOCK_PROFILE_ID,
+                account_id: accountIdFromClerk,
                 gender: values.gender,
                 date_of_birth: values.date_of_birth,
                 height_cm: values.height_cm,
@@ -66,7 +71,12 @@ export default function AccountSettingsScreen() {
             try {
                 setLoading(true)
 
-                const {data} = await getAccountSettings(MOCK_PROFILE_ID)
+                const accountIdFromClerk = await getClerkUserId();
+                if (!accountIdFromClerk) {
+                    throw new Error("User ID from Clerk Auth API not found");
+                }
+
+                const {data} = await getAccountSettings(accountIdFromClerk)
 
                 if (!mounted) return
                 setInitialValues(data)
