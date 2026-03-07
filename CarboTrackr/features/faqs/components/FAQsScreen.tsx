@@ -6,6 +6,7 @@ import FAQsCategoryList from "./FAQsCategoryList";
 import FAQsDetail from "./FAQsDetail";
 import { getFAQsByTopic, FAQ } from "../api/faqs.api";
 import { color } from "../../../shared/constants/colors";
+import { useRouter } from "expo-router";
 
 interface Category {
   id: string;
@@ -35,6 +36,7 @@ export default function FAQsScreen() {
   );
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
   const handleSelectCategory = async (category: Category) => {
@@ -87,6 +89,7 @@ export default function FAQsScreen() {
         <FAQsCategoryList
           categories={CATEGORIES}
           onSelectCategory={handleSelectCategory}
+          onContactPress={() => router.push("/contact")}
         />
       )}
 

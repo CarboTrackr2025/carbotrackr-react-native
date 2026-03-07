@@ -9,11 +9,6 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { color } from "../../../shared/constants/colors";
 
-interface Category {
-  id: string;
-  label: string;
-}
-
 interface FAQsCategoryListProps {
   categories: Array<{
     id: string;
@@ -21,11 +16,13 @@ interface FAQsCategoryListProps {
     displayName: string;
   }>;
   onSelectCategory: (category: any) => void;
+  onContactPress: () => void;
 }
 
 export default function FAQsCategoryList({
   categories,
   onSelectCategory,
+  onContactPress,
 }: FAQsCategoryListProps) {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -59,7 +56,10 @@ export default function FAQsCategoryList({
           <Text style={styles.contactLabel}>
             Can't find the answer to your question?
           </Text>
-          <TouchableOpacity style={styles.contactButton}>
+          <TouchableOpacity
+            style={styles.contactButton}
+            onPress={onContactPress}
+          >
             <Text style={styles.contactText}>Contact us</Text>
             <MaterialCommunityIcons
               name="chevron-right"
