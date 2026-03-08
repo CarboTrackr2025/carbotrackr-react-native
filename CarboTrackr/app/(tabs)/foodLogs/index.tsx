@@ -105,7 +105,30 @@ export default function FoodLogsIndexScreen() {
                     }}
                 />
 
+                <View style={styles.legendRow}>
+                    <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: color.orange }]} />
+                        <Text style={styles.legendText}>Breakfast</Text>
+                    </View>
+
+                    <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: color.fuschia }]} />
+                        <Text style={styles.legendText}>Lunch</Text>
+                    </View>
+
+                    <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: color.caramel }]} />
+                        <Text style={styles.legendText}>Snack</Text>
+                    </View>
+
+                    <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: color.indigo }]} />
+                        <Text style={styles.legendText}>Dinner</Text>
+                    </View>
+                </View>
+
                 {loading ? (
+
                     <View style={styles.loadingBox}>
                         <ActivityIndicator />
                         <Text style={styles.loadingText}>Loading food logs...</Text>
@@ -208,5 +231,27 @@ const styles = StyleSheet.create({
         left: 12,
         right: 12,
         bottom: 16,
+    },
+    legendRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 12,
+        marginBottom: 10,
+    },
+    legendItem: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    legendDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 999,
+        marginRight: 6,
+    },
+    legendText: {
+        fontSize: 12,
+        color: "#4B5563",
+        fontWeight: "600",
     },
 });
