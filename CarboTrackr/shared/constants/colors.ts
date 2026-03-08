@@ -16,6 +16,8 @@ export const color = {
     "indigo": "#432DD7",
     "black": "#000000",
     "white": "#FFFFFF",
+    "caramel": "#D8AE7E",
+    "light-caramel": "#FFE0B5",
 }
 
 export const gradient = {
@@ -26,5 +28,7 @@ export const gradient = {
     orange: [color["light-orange"], color["orange"]],
     fuschia: [color["light-fuschia"], color["fuschia"]],
     indigo: [color["light-indigo"], color["indigo"]],
+    caramel: [color["light-caramel"], color["caramel"]],
+
 }
 
