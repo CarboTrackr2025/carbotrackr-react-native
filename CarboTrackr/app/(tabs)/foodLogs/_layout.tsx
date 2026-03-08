@@ -15,6 +15,14 @@ export default function Layout() {
                     title: "Food Details",
                 }}
             />
+
+            <Stack.Screen
+                name="search-food"
+                options={{
+                    headerShown: true,
+                    title: "Search Food",
+                }}
+            />
         </Stack>
     );
 }
