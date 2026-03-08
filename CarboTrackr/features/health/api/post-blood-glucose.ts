@@ -2,7 +2,7 @@ import axios from "axios";
 import { API_BASE_URL } from "../../../shared/api";
 
 export type BloodGlucoseInput = {
-  level: number;
+  level: string;
 };
 
 export type CreateBloodGlucosePayload = BloodGlucoseInput & {
