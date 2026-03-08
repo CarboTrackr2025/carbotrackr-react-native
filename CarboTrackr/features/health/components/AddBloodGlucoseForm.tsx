@@ -7,7 +7,7 @@ import { GradientTextInput } from "../../../shared/components/GradientTextInput"
 import { GradientTextDisplay } from "../../../shared/components/GradientTextDisplay";
 
 type BloodGlucoseInput = {
-  level: number;
+  level: string;
 };
 
 type Props = {
@@ -31,8 +31,7 @@ export default function AddBloodGlucoseForm({
 
   const handleSubmit = async () => {
     setError(null);
-    const l = Number(level);
-    await onSubmit({ level: l });
+    await onSubmit({ level });
   };
 
   const recordedText = timestamp ? formatPhilippinesTime(timestamp) : "—";
