@@ -59,7 +59,9 @@ export default function LoginScreen() {
     setSubmitting(false);
 
     if (result.success) {
-      console.log("✅ [Login Screen] Login successful, waiting for user context...");
+      console.log(
+        "✅ [Login Screen] Login successful, waiting for user context...",
+      );
       pendingSessionId.current = result.sessionId;
       // Navigation will happen in the useEffect above once user.id is available
     } else {
@@ -97,9 +99,7 @@ export default function LoginScreen() {
           (oAuthSignIn as any)?.createdUserId ??
           null;
         const email =
-          oAuthSignUp?.emailAddress ??
-          (oAuthSignIn as any)?.identifier ??
-          null;
+          oAuthSignUp?.emailAddress ?? (oAuthSignIn as any)?.identifier ?? null;
 
         // Always save the session locally
         if (userId) {
