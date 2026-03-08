@@ -182,10 +182,6 @@ async function _activateAndPersist(
 
 /**
  * Login with Clerk SDK (email + password)
- * After Clerk signs in, we extract the session token and optionally sync with backend
- */
-/**
- * Login with Clerk SDK (email + password)
  * After Clerk signs in, we activate the session and store it
  */
 export async function loginWithClerk(
@@ -206,17 +202,18 @@ export async function loginWithClerk(
       "🔐 [Clerk Login] Sign-in attempt status:",
       signInAttempt.status,
     );
-    console.log("🔍 [Clerk Login] Response keys:", Object.keys(signInAttempt));
 
     // If sign-in is complete, we have a session
     if (signInAttempt.status === "complete") {
       console.log("✅ [Clerk Login] Sign-in complete!");
 
-      // The session is in the signInAttempt object itself
-      // We need to call setActive to activate it
       const sessionId = signInAttempt.createdSessionId;
+      // createdUserId is the correct field on SignInResource
       const userId =
-        (signInAttempt as any).userId ?? (signInAttempt as any).user?.id;
+        (signInAttempt as any).createdUserId ??
+        (signInAttempt as any).userId ??
+        (signInAttempt as any).user?.id ??
+        null;
 
       console.log("🔍 [Clerk Login] createdSessionId:", sessionId);
       console.log("🔍 [Clerk Login] userId:", userId);
@@ -227,29 +224,22 @@ export async function loginWithClerk(
         await setActive({ session: sessionId });
         console.log("✅ [Clerk Login] Session activated!");
 
-        // Save session info locally for reference
         if (userId) {
-          await saveClerkSession({
-            sessionId: sessionId,
-            userId: userId,
-          });
+          await saveClerkSession({ sessionId, userId });
           console.log("💾 [Clerk Login] Session saved to AsyncStorage");
+        } else {
+          // userId not on the attempt object — store sessionId only and warn
+          console.warn(
+            "⚠️ [Clerk Login] userId not found on signInAttempt — session stored without userId",
+          );
+          await saveClerkSession({ sessionId, userId: "" });
         }
 
         console.log(
           "🎉 [Clerk Login] Login successful! Redirecting to home...",
         );
-        return { success: true, userId: userId || sessionId };
+        return { success: true, userId: userId ?? sessionId };
       }
-
-      // Fallback: try to get session from different locations
-      console.log(
-        "🔍 [Clerk Login] Searching for session in response object...",
-      );
-      console.log(
-        "🔍 [Clerk Login] Full response:",
-        JSON.stringify(signInAttempt, null, 2),
-      );
 
       return {
         success: false,

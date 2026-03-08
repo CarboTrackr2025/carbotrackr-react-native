@@ -7,6 +7,7 @@ import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import SignupForm from "../../features/auth/components/SignupForm";
 import { signUpWithClerk } from "../../features/auth/api/auth.api";
+import { saveClerkSession } from "../../features/auth/auth.utils";
 import { color } from "../../shared/constants/colors";
 import { api } from "../../shared/api";
 
@@ -73,6 +74,7 @@ export default function SignupScreen() {
         createdSessionId,
         setActive: oAuthSetActive,
         signUp: oAuthSignUp,
+        signIn: oAuthSignIn,
       } = await startOAuthFlow({ redirectUrl });
 
       if (createdSessionId && oAuthSetActive) {
@@ -81,8 +83,21 @@ export default function SignupScreen() {
           "✅ [Signup Screen] OAuth sign-up successful, persisting to backend...",
         );
 
-        const userId = oAuthSignUp?.createdUserId ?? null;
-        const email = oAuthSignUp?.emailAddress ?? null;
+        // Resolve userId — new signups have it on signUp, returning users on signIn
+        const userId =
+          oAuthSignUp?.createdUserId ??
+          (oAuthSignIn as any)?.createdUserId ??
+          null;
+        const email =
+          oAuthSignUp?.emailAddress ??
+          (oAuthSignIn as any)?.identifier ??
+          null;
+
+        // Always save the session locally
+        if (userId) {
+          await saveClerkSession({ sessionId: createdSessionId, userId });
+          console.log("💾 [Signup Screen] Session saved to AsyncStorage");
+        }
 
         if (userId && email) {
           console.log("🌐 [Signup Screen] Persisting OAuth user:", {
