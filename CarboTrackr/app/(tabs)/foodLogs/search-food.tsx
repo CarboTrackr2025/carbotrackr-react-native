@@ -104,7 +104,7 @@ export default function SearchFoodScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F3F4F6",
+        backgroundColor: "#FFFFFF",
         paddingHorizontal: 16,
     },
     listContent: {
