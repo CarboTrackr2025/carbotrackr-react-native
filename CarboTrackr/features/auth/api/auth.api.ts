@@ -12,7 +12,7 @@ type LoginPayload = {
 };
 
 type LoginResult =
-  | { success: true; userId: string }
+  | { success: true; sessionId: string }
   | { success: false; message: string };
 
 type SignUpPayload = {
@@ -182,11 +182,11 @@ async function _activateAndPersist(
 
 /**
  * Login with Clerk SDK (email + password)
- * After Clerk signs in, we extract the session token and optionally sync with backend
- */
 /**
- * Login with Clerk SDK (email + password)
- * After Clerk signs in, we activate the session and store it
+ * Login with Clerk SDK (email + password).
+ * Activates the Clerk session and returns the sessionId.
+ * The caller is responsible for saving the session (with userId) once
+ * the Clerk user context has updated (i.e. via useUser() in the screen).
  */
 export async function loginWithClerk(
   signIn: SignInResource,
@@ -196,7 +196,6 @@ export async function loginWithClerk(
   try {
     console.log("🔐 [Clerk Login] Starting sign-in for:", payload.email);
 
-    // Create Clerk sign-in with email and password
     const signInAttempt = await signIn.create({
       identifier: payload.email,
       password: payload.password,
@@ -206,50 +205,20 @@ export async function loginWithClerk(
       "🔐 [Clerk Login] Sign-in attempt status:",
       signInAttempt.status,
     );
-    console.log("🔍 [Clerk Login] Response keys:", Object.keys(signInAttempt));
 
-    // If sign-in is complete, we have a session
     if (signInAttempt.status === "complete") {
       console.log("✅ [Clerk Login] Sign-in complete!");
 
-      // The session is in the signInAttempt object itself
-      // We need to call setActive to activate it
       const sessionId = signInAttempt.createdSessionId;
-      const userId =
-        (signInAttempt as any).userId ?? (signInAttempt as any).user?.id;
-
       console.log("🔍 [Clerk Login] createdSessionId:", sessionId);
-      console.log("🔍 [Clerk Login] userId:", userId);
 
       if (sessionId) {
-        // Activate the session with Clerk
         console.log("🔄 [Clerk Login] Activating session...");
         await setActive({ session: sessionId });
         console.log("✅ [Clerk Login] Session activated!");
-
-        // Save session info locally for reference
-        if (userId) {
-          await saveClerkSession({
-            sessionId: sessionId,
-            userId: userId,
-          });
-          console.log("💾 [Clerk Login] Session saved to AsyncStorage");
-        }
-
-        console.log(
-          "🎉 [Clerk Login] Login successful! Redirecting to home...",
-        );
-        return { success: true, userId: userId || sessionId };
+        // userId will be available in the screen via useUser() after this resolves
+        return { success: true, sessionId };
       }
-
-      // Fallback: try to get session from different locations
-      console.log(
-        "🔍 [Clerk Login] Searching for session in response object...",
-      );
-      console.log(
-        "🔍 [Clerk Login] Full response:",
-        JSON.stringify(signInAttempt, null, 2),
-      );
 
       return {
         success: false,
@@ -257,7 +226,6 @@ export async function loginWithClerk(
       };
     }
 
-    // If sign-in requires additional steps (2FA, etc.)
     console.warn(
       "⚠️ [Clerk Login] Additional verification required. Status:",
       signInAttempt.status,

@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useSignIn, useOAuth } from "@clerk/clerk-expo";
+import { useSignIn, useOAuth, useUser } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import LoginForm from "../../features/auth/components/LoginForm";
 import { loginWithClerk } from "../../features/auth/api/auth.api";
+import { saveClerkSession } from "../../features/auth/auth.utils";
 import { color } from "../../shared/constants/colors";
 import { api } from "../../shared/api";
 
@@ -15,6 +16,8 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn, setActive } = useSignIn();
+  const { user } = useUser();
+  const pendingSessionId = useRef<string | null>(null);
   const { startOAuthFlow: startGoogleOAuth } = useOAuth({
     strategy: "oauth_google",
   });
@@ -23,6 +26,19 @@ export default function LoginScreen() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Once Clerk updates user after login, save the session with the real userId
+  useEffect(() => {
+    if (user?.id && pendingSessionId.current) {
+      const sessionId = pendingSessionId.current;
+      pendingSessionId.current = null;
+      console.log("💾 [Login Screen] useUser resolved userId:", user.id);
+      saveClerkSession({ sessionId, userId: user.id }).then(() => {
+        console.log("💾 [Login Screen] Session saved to AsyncStorage");
+        router.replace("/(tabs)");
+      });
+    }
+  }, [user?.id]);
 
   const handleLogin = async (email: string, password: string) => {
     console.log("📱 [Login Screen] Login button pressed");
@@ -43,8 +59,11 @@ export default function LoginScreen() {
     setSubmitting(false);
 
     if (result.success) {
-      console.log("✅ [Login Screen] Login successful, navigating to home");
-      router.replace("/(tabs)");
+      console.log(
+        "✅ [Login Screen] Login successful, waiting for user context...",
+      );
+      pendingSessionId.current = result.sessionId;
+      // Navigation will happen in the useEffect above once user.id is available
     } else {
       console.error("❌ [Login Screen] Login failed:", result.message);
       setError(result.message);
@@ -65,6 +84,7 @@ export default function LoginScreen() {
         createdSessionId,
         setActive: oAuthSetActive,
         signUp: oAuthSignUp,
+        signIn: oAuthSignIn,
       } = await startOAuthFlow({ redirectUrl });
 
       if (createdSessionId && oAuthSetActive) {
@@ -73,9 +93,19 @@ export default function LoginScreen() {
           "✅ [Login Screen] OAuth login successful, persisting to backend...",
         );
 
-        // Only persist if this was a new sign-up (createdUserId is set on the signUp resource)
-        const userId = oAuthSignUp?.createdUserId ?? null;
-        const email = oAuthSignUp?.emailAddress ?? null;
+        // Resolve userId — new signups have it on signUp, returning users on signIn
+        const userId =
+          oAuthSignUp?.createdUserId ??
+          (oAuthSignIn as any)?.createdUserId ??
+          null;
+        const email =
+          oAuthSignUp?.emailAddress ?? (oAuthSignIn as any)?.identifier ?? null;
+
+        // Always save the session locally
+        if (userId) {
+          await saveClerkSession({ sessionId: createdSessionId, userId });
+          console.log("💾 [Login Screen] Session saved to AsyncStorage");
+        }
 
         if (userId && email) {
           console.log("🌐 [Login Screen] Persisting new OAuth user:", {
