@@ -20,17 +20,26 @@ export default function IndexScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Settings</Text>
-      <View style={styles.settingsContainer}>
-        <SettingsButton
-          label="Account"
-          iconName="person"
-          onPress={() => router.push("/settings/account-settings")}
-        />
-        <SettingsButton
-          label="Health"
-          iconName="fitness"
-          onPress={() => router.push("/settings/health-settings")}
-        />
+      <View style={styles.settingsOuterContainer}>
+        <View style={styles.settingsRow}>
+          <SettingsButton
+            label="Account"
+            iconName="person"
+            onPress={() => router.push("/settings/account-settings")}
+          />
+          <SettingsButton
+            label="Health"
+            iconName="fitness"
+            onPress={() => router.push("/settings/health-settings")}
+          />
+        </View>
+        <View style={styles.settingsRow}>
+          <SettingsButton
+            label="FAQs"
+            iconName="help-circle-outline"
+            onPress={() => router.push("/faqs")}
+          />
+        </View>
       </View>
       <View style={styles.logoutContainer}>
         <Button
@@ -43,7 +52,6 @@ export default function IndexScreen() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -56,10 +64,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 16,
   },
-  settingsContainer: {
+  settingsOuterContainer: {
     flex: 1,
+    gap: 20,
+    paddingHorizontal: 12,
+  },
+  settingsRow: {
     flexDirection: "row",
     gap: 20,
+    justifyContent: "flex-start",
   },
   logoutContainer: {
     width: "100%",

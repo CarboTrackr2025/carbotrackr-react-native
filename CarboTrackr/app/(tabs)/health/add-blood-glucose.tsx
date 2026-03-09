@@ -63,7 +63,7 @@ export default function AddBloodGlucoseScreen() {
 
       Alert.alert(
         "Blood glucose recorded successfully.",
-        evaluateBloodGlucose(values.level),
+        evaluateBloodGlucose(Number(values.level)),
       );
     } catch (err) {
       console.log(err);
