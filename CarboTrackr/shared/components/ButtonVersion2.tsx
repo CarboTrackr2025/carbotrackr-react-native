@@ -1,7 +1,7 @@
 import React from "react";
 import {Pressable, Text, View, StyleSheet} from "react-native";
 import {LinearGradient} from "expo-linear-gradient";
-import {color, gradient} from "../../../shared/constants/colors";
+import { color, gradient } from "../constants/colors";
 import {Ionicons} from "@expo/vector-icons";
 
 
@@ -17,10 +17,10 @@ const BORDER_W = 2.5;
 const BUTTON_SIZE = 172;
 const RADIUS = 22;
 
-export function SettingsButton({
+export function ButtonVersion2({
                                    label,
                                    onPress,
-                                   iconName = "settings-outline",
+                                   iconName = "camera",
                                    disabled = false,
                                    size = BUTTON_SIZE,
                                }: Props) {
