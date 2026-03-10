@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     RefreshControl,
     StyleSheet,
@@ -18,6 +19,7 @@ import {
     getFoodLogsByAccountId,
     type FoodLogForUI,
 } from "../../../features/foodLogs/api/get-food-logs-by-account-id";
+import { deleteFoodLog } from "../../../features/foodLogs/api/delete-food-log";
 import { FoodLogCard } from "../../../features/foodLogs/components/FoodLogCard";
 
 const toYMDLocal = (d: Date) => {
@@ -73,9 +75,34 @@ export default function FoodLogsIndexScreen() {
         setRefreshing(false);
     }, [fetchLogs]);
 
-    const onDeleteLocal = useCallback((item: FoodLogForUI) => {
-        setLogs((prev) => prev.filter((x) => x.id !== item.id));
-    }, []);
+    const onDelete = useCallback(
+        (item: FoodLogForUI) => {
+            Alert.alert(
+                "Delete food log",
+                `Are you sure you want to delete "${item.food_name}"?`,
+                [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: async () => {
+                            try {
+                                await deleteFoodLog(item.id);
+                                await fetchLogs(); // refresh from server
+                                Alert.alert("Deleted", "Food log deleted successfully.");
+                            } catch (err: any) {
+                                Alert.alert(
+                                    "Delete failed",
+                                    err?.message ?? "Food log could not be deleted. Please try again."
+                                );
+                            }
+                        },
+                    },
+                ]
+            );
+        },
+        [fetchLogs]
+    );
 
     return (
         <View style={styles.screen}>
@@ -83,7 +110,7 @@ export default function FoodLogsIndexScreen() {
                 data={!loading && !error ? logs : []}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                    <FoodLogCard item={item} onPress={() => {}} onDelete={onDeleteLocal} />
+                    <FoodLogCard item={item} onPress={() => {}} onDelete={onDelete} />
                 )}
                 contentContainerStyle={styles.content}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
