@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 
-export default function CarbohydrateReportScreen() {
+export function CarbohydrateReportScreen() {
     return (
         <View style={styles.container}>
             <Text>Carbohydrate Report Screen</Text>
