@@ -67,6 +67,10 @@ export async function getClerkUserId(): Promise<string | null> {
   return await AsyncStorage.getItem(CLERK_USER_ID_KEY);
 }
 
+export async function updateClerkUserId(userId: string): Promise<void> {
+  await AsyncStorage.setItem(CLERK_USER_ID_KEY, userId);
+}
+
 export async function removeClerkSession(): Promise<void> {
   await AsyncStorage.multiRemove([CLERK_SESSION_KEY, CLERK_USER_ID_KEY]);
 }

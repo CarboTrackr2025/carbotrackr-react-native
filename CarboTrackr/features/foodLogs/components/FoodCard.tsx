@@ -8,10 +8,10 @@ export type FoodCardItem = {
     food_id: string;
     serving_id: string | null;
 
-    food_name: string;              // already includes brand if available
+    food_name: string; // already includes brand if available
     serving_description: string;
-    metric: string;                 // "28.35 g"
-    calories: string;               // "255 cal"
+    metric: string; // "28.35 g"
+    calories: string; // "255 cal"
 };
 
 export type FoodCardProps = FoodCardItem & {
@@ -31,12 +31,10 @@ export function FoodCard({
     return (
         <View style={styles.card}>
             <View style={styles.textWrap}>
-                {/* Food name (already includes brand) */}
                 <Text style={styles.foodName} numberOfLines={2} ellipsizeMode="tail">
                     {food_name}
                 </Text>
 
-                {/* Serving info */}
                 <Text style={styles.subtitle} numberOfLines={2} ellipsizeMode="tail">
                     {calories}, {serving_description}
                     {metric ? ` • ${metric}` : ""}
@@ -74,11 +72,8 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 18,
         marginVertical: 10,
-        shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 4,
+        borderWidth: 2.5,
+        borderColor: "#D1D5DB", // simple gray border
     },
 
     textWrap: {
