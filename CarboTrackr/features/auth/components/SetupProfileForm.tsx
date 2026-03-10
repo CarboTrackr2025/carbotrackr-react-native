@@ -6,6 +6,14 @@ import { Dropdown } from "../../../shared/components/Dropdown"
 import { GradientTextInput } from "../../../shared/components/GradientTextInput"
 import { color, gradient } from "../../../shared/constants/colors"
 
+/** Serialize a Date as "YYYY-MM-DD" in local time (no UTC conversion). */
+function toLocalDateString(date: Date): string {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, "0")
+    const d = String(date.getDate()).padStart(2, "0")
+    return `${y}-${m}-${d}`
+}
+
 export type SetupProfileInput = {
     gender: "MALE" | "FEMALE" | null
     date_of_birth: string | null
@@ -66,7 +74,7 @@ export default function SetupProfileForm({ onSave, saving, error }: Props) {
         if (!canSave || !dateOfBirth) return
         await onSave({
             gender: gender === "MALE" || gender === "FEMALE" ? gender : null,
-            date_of_birth: dateOfBirth.toISOString(),
+            date_of_birth: toLocalDateString(dateOfBirth),
             height_cm: Number(height),
             weight_kg: Number(weight),
         })
