@@ -19,6 +19,7 @@ export default function RootLayout() {
         <Stack.Screen name="auth/otp" />
         <Stack.Screen name="auth/change-password" />
         <Stack.Screen name="auth/oauth-native-callback" />
+        <Stack.Screen name="auth/setup-profile" options={{ gestureEnabled: false }} />
       </Stack>
     </ClerkProvider>
   );
