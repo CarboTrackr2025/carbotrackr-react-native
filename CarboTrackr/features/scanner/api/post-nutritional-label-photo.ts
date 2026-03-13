@@ -18,12 +18,14 @@ export type PostLabelMacrosOnlyResponse =
     ok: true
     macros_per_serving: LabelMacrosPerServing
     confidence: number
+    source_id?: string | null
 }
     | {
     ok?: false
     error: string
     details?: any
     raw?: any
+    source_id?: string | null
 }
 
 /* ---------- UI Type ---------- */

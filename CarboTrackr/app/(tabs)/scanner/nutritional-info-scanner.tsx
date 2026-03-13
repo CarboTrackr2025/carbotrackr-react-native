@@ -2,13 +2,16 @@ import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator } from "react-native"
 import * as ImagePicker from "expo-image-picker"
 
-import { postLabelMacrosOnly } from "../../../features/scanner/api/post-nutritional-label-photo"
+import { postLabelMacrosOnly, type LabelMacrosResult } from "../../../features/scanner/api/post-nutritional-label-photo"
+import { postScannedFoodLog } from "../../../features/scanner/api/post-food"
 import { CalorieRing } from "../../../shared/components/CalorieRing"
 import { GradientTextDisplay } from "../../../shared/components/GradientTextDisplay"
 import { GradientTextInput } from "../../../shared/components/GradientTextInput"
 import { Dropdown } from "../../../shared/components/Dropdown"
+import { Button } from "../../../shared/components/Button"
 import { color, gradient } from "../../../shared/constants/colors"
 import { formatPhilippinesTime } from "../../../shared/utils/formatters"
+import { getClerkUserId } from "../../../features/auth/auth.utils"
 
 export default function NutritionalInfoScanner() {
     const [imageUri, setImageUri] = useState<string | null>(null)
@@ -16,25 +19,18 @@ export default function NutritionalInfoScanner() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const hasLaunchedRef = useRef(false)
 
-    const [result, setResult] = useState<{
-        macros_per_serving: {
-            calories_kcal: number | null
-            carbs_g: number | null
-            protein_g: number | null
-            fat_g: number | null
-            serving_size_g: number | null
-            serving_size_ml: number | null
-            serving_description: string | null
-        }
-        confidence: number
-    } | null>(null)
+    const [result, setResult] = useState<LabelMacrosResult | null>(null)
 
     const [brandName, setBrandName] = useState("")
     const [servingsText, setServingsText] = useState("1")
     const [mealType, setMealType] = useState<string | number | null>(null)
 
+    const [saving, setSaving] = useState(false)
+    const [saveError, setSaveError] = useState<string | null>(null)
+    const [savedTimestamp, setSavedTimestamp] = useState<string | null>(null)
+
     const recordedTimestamp = useMemo(() => new Date().toISOString(), [])
-    const recordedText = formatPhilippinesTime(recordedTimestamp)
+    const recordedText = savedTimestamp ? formatPhilippinesTime(savedTimestamp) : "-”"
 
     const servings = Number(servingsText) || 1
 
@@ -48,6 +44,7 @@ export default function NutritionalInfoScanner() {
     async function takePhoto() {
         try {
             setErrorMsg(null)
+            setSaveError(null)
             setResult(null)
 
             const perm = await ImagePicker.requestCameraPermissionsAsync()
@@ -81,6 +78,7 @@ export default function NutritionalInfoScanner() {
         try {
             setLoading(true)
             setErrorMsg(null)
+            setSaveError(null)
             setResult(null)
 
             const out = await postLabelMacrosOnly({ imageUri })
@@ -107,6 +105,7 @@ export default function NutritionalInfoScanner() {
         setImageUri(null)
         setResult(null)
         setErrorMsg(null)
+        setSaveError(null)
         await takePhoto()
     }
 
@@ -135,6 +134,62 @@ export default function NutritionalInfoScanner() {
         servingSizeG != null || servingSizeMl != null
             ? `${servingAmount} ${servingUnit}${servingDesc ? ` (${servingDesc})` : ""}`
             : "—"
+
+    const canSave =
+        !!result &&
+        !!brandName.trim() &&
+        !!mealType &&
+        servings > 0 &&
+        !saving
+
+    const extractSavedTimestamp = (foodLog: any): string | null =>
+        foodLog?.recorded_at ?? foodLog?.updated_at ?? foodLog?.created_at ?? null
+
+    async function handleSave() {
+        try {
+            setSaving(true)
+            setSaveError(null)
+
+            if (!result) throw new Error("Analyze a label first")
+            if (!brandName.trim()) throw new Error("Food brand name is required")
+            if (!mealType) throw new Error("Please select a meal type")
+            if (servings <= 0) throw new Error("Number of servings must be greater than 0")
+            if (servingSizeG == null || servingSizeG <= 0) {
+                throw new Error("Serving size (g) is required to save this food")
+            }
+
+            const accountId = await getClerkUserId()
+            if (!accountId) throw new Error("User ID not found")
+
+            const sourceId =
+                String(result?.raw?.source_id ?? "").trim()
+
+            if (!sourceId) {
+                throw new Error("Missing source_id from label scan response")
+            }
+
+            const saveRes = await postScannedFoodLog({
+                account_id: accountId,
+                food_name: brandName.trim(),
+                meal_type: String(mealType) as any,
+                source_id: sourceId,
+                serving_size_g: servingSizeG,
+                serving_size_ml: servingSizeMl ?? null,
+                number_of_servings: servings,
+                calories_kcal: calories,
+                carbohydrates_g: carbsG,
+                protein_g: proteinG,
+                fat_g: fatG,
+            })
+
+            const ts = extractSavedTimestamp(saveRes?.food_log)
+            if (ts) setSavedTimestamp(ts)
+        } catch (e: any) {
+            setSaveError(e?.message ?? "Failed to save food log")
+        } finally {
+            setSaving(false)
+        }
+    }
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
@@ -201,6 +256,15 @@ export default function NutritionalInfoScanner() {
 
             <Text style={styles.label}>Recorded Date and Time</Text>
             <GradientTextDisplay text={recordedText} />
+
+            <Button
+                title={saving ? "Saving..." : "Save"}
+                onPress={handleSave}
+                gradient={gradient.green as [string, string]}
+                disabled={!canSave}
+            />
+
+            {!!saveError && <Text style={styles.saveError}>{saveError}</Text>}
         </ScrollView>
     )
 }
@@ -273,5 +337,10 @@ const styles = StyleSheet.create({
     labelMeta: {
         fontSize: 12,
         color: "#6B7280",
+    },
+    saveError: {
+        marginTop: 8,
+        color: "#B91C1C",
+        fontSize: 12,
     },
 })
