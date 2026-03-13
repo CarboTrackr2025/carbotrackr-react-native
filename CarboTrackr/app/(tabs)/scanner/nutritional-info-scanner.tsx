@@ -1,25 +1,49 @@
-import React, { useMemo, useState } from "react"
-import { Alert, Image, ScrollView, Text, TouchableOpacity, View, ActivityIndicator } from "react-native"
+import React, { useEffect, useMemo, useRef, useState } from "react"
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator } from "react-native"
 import * as ImagePicker from "expo-image-picker"
 
-// ✅ import your API wrapper
 import { postLabelMacrosOnly } from "../../../features/scanner/api/post-nutritional-label-photo"
+import { CalorieRing } from "../../../shared/components/CalorieRing"
+import { GradientTextDisplay } from "../../../shared/components/GradientTextDisplay"
+import { GradientTextInput } from "../../../shared/components/GradientTextInput"
+import { Dropdown } from "../../../shared/components/Dropdown"
+import { color, gradient } from "../../../shared/constants/colors"
+import { formatPhilippinesTime } from "../../../shared/utils/formatters"
 
 export default function NutritionalInfoScanner() {
     const [imageUri, setImageUri] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
+    const [errorMsg, setErrorMsg] = useState<string | null>(null)
+    const hasLaunchedRef = useRef(false)
+
     const [result, setResult] = useState<{
         macros_per_serving: {
             calories_kcal: number | null
             carbs_g: number | null
             protein_g: number | null
             fat_g: number | null
+            serving_size_g: number | null
+            serving_size_ml: number | null
+            serving_description: string | null
         }
         confidence: number
     } | null>(null)
-    const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-    const canAnalyze = useMemo(() => !!imageUri && !loading, [imageUri, loading])
+    const [brandName, setBrandName] = useState("")
+    const [servingsText, setServingsText] = useState("1")
+    const [mealType, setMealType] = useState<string | number | null>(null)
+
+    const recordedTimestamp = useMemo(() => new Date().toISOString(), [])
+    const recordedText = formatPhilippinesTime(recordedTimestamp)
+
+    const servings = Number(servingsText) || 1
+
+    const mealOptions = [
+        { label: "Breakfast", value: "BREAKFAST" },
+        { label: "Lunch", value: "LUNCH" },
+        { label: "Dinner", value: "DINNER" },
+        { label: "Snack", value: "SNACK" },
+    ]
 
     async function takePhoto() {
         try {
@@ -28,7 +52,7 @@ export default function NutritionalInfoScanner() {
 
             const perm = await ImagePicker.requestCameraPermissionsAsync()
             if (!perm.granted) {
-                Alert.alert("Permission required", "Camera permission is needed to take a photo.")
+                setErrorMsg("Camera permission is needed to take a photo.")
                 return
             }
 
@@ -59,7 +83,7 @@ export default function NutritionalInfoScanner() {
             setErrorMsg(null)
             setResult(null)
 
-            const out = await postLabelMacrosOnly({ imageUri }) // ✅ uploads multipart form-data
+            const out = await postLabelMacrosOnly({ imageUri })
             setResult(out)
         } catch (e: any) {
             setErrorMsg(e?.message ?? "Failed to analyze label")
@@ -68,100 +92,186 @@ export default function NutritionalInfoScanner() {
         }
     }
 
-    function reset() {
+    useEffect(() => {
+        if (hasLaunchedRef.current) return
+        hasLaunchedRef.current = true
+        takePhoto()
+    }, [])
+
+    useEffect(() => {
+        if (!imageUri) return
+        analyze()
+    }, [imageUri])
+
+    async function retakePhoto() {
         setImageUri(null)
         setResult(null)
         setErrorMsg(null)
-        setLoading(false)
+        await takePhoto()
     }
 
+    const carbsG = result?.macros_per_serving?.carbs_g ?? 0
+    const proteinG = result?.macros_per_serving?.protein_g ?? 0
+    const fatG = result?.macros_per_serving?.fat_g ?? 0
+    const servingSizeG = result?.macros_per_serving?.serving_size_g ?? null
+    const servingSizeMl = result?.macros_per_serving?.serving_size_ml ?? null
+    const servingDesc = result?.macros_per_serving?.serving_description ?? null
+
+    const carbsK = carbsG * 4
+    const proteinK = proteinG * 4
+    const fatK = fatG * 9
+
+    const servingAmount =
+        servingSizeG ?? servingSizeMl ?? 1
+
+    const servingUnit =
+        servingSizeG != null ? "g" : servingSizeMl != null ? "ml" : "serving"
+
+    const calories =
+        result?.macros_per_serving?.calories_kcal ??
+        carbsK + proteinK + fatK
+
+    const servingText =
+        servingSizeG != null || servingSizeMl != null
+            ? `${servingAmount} ${servingUnit}${servingDesc ? ` (${servingDesc})` : ""}`
+            : "—"
+
     return (
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-            <Text style={{ fontSize: 20, fontWeight: "700" }}>Label Macros Test</Text>
+        <ScrollView contentContainerStyle={styles.container}>
+            <Modal visible={loading} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <ActivityIndicator />
+                        <Text style={styles.modalTitle}>Analyzing photo...</Text>
+                        <Text style={styles.modalBody}>Please wait</Text>
+                    </View>
+                </View>
+            </Modal>
 
-            <View style={{ flexDirection: "row", gap: 10 }}>
-                <TouchableOpacity
-                    onPress={takePhoto}
-                    style={{
-                        paddingVertical: 12,
-                        paddingHorizontal: 14,
-                        borderRadius: 10,
-                        backgroundColor: "#111827",
-                    }}
-                >
-                    <Text style={{ color: "white", fontWeight: "600" }}>Take Photo</Text>
-                </TouchableOpacity>
+            <Modal visible={!!errorMsg} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>Error</Text>
+                        <Text style={styles.modalBody}>{errorMsg}</Text>
+                        <Pressable style={styles.modalButton} onPress={retakePhoto}>
+                            <Text style={styles.modalButtonText}>Open Camera Again</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
 
-                <TouchableOpacity
-                    onPress={analyze}
-                    disabled={!canAnalyze}
-                    style={{
-                        paddingVertical: 12,
-                        paddingHorizontal: 14,
-                        borderRadius: 10,
-                        backgroundColor: canAnalyze ? "#2563EB" : "#93C5FD",
+            <View style={styles.ringWrap}>
+                <CalorieRing
+                    nutrition={{
+                        calories_kcal: calories,
+                        carbs: { grams: carbsG, kcal: carbsK },
+                        protein: { grams: proteinG, kcal: proteinK },
+                        fat: { grams: fatG, kcal: fatK },
+                        metric_serving_amount: servingAmount,
+                        metric_serving_unit: servingUnit,
                     }}
-                >
-                    <Text style={{ color: "white", fontWeight: "600" }}>
-                        {loading ? "Analyzing..." : "Upload & Analyze"}
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    onPress={reset}
-                    style={{
-                        paddingVertical: 12,
-                        paddingHorizontal: 14,
-                        borderRadius: 10,
-                        backgroundColor: "#E5E7EB",
-                    }}
-                >
-                    <Text style={{ color: "#111827", fontWeight: "600" }}>Reset</Text>
-                </TouchableOpacity>
+                    servings={servings}
+                    size={160}
+                />
             </View>
 
-            {imageUri ? (
-                <View style={{ gap: 8 }}>
-                    <Text style={{ fontWeight: "600" }}>Preview</Text>
-                    <Image
-                        source={{ uri: imageUri }}
-                        style={{ width: "100%", height: 320, borderRadius: 12, backgroundColor: "#F3F4F6" }}
-                        resizeMode="cover"
-                    />
-                    <Text style={{ color: "#6B7280", fontSize: 12 }}>{imageUri}</Text>
-                </View>
-            ) : (
-                <Text style={{ color: "#6B7280" }}>No photo yet. Tap “Take Photo”.</Text>
-            )}
+            <Text style={styles.label}>Food Brand Name</Text>
+            <GradientTextInput
+                placeholder="Enter brand name"
+                value={brandName}
+                onChangeText={setBrandName}
+            />
 
-            {loading && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                    <ActivityIndicator />
-                    <Text>Sending image to API…</Text>
-                </View>
-            )}
+            <View style={styles.labelRow}>
+                <Text style={styles.label}>Number of Servings</Text>
+                <Text style={styles.labelMeta}>{servingText}</Text>
+            </View>
+            <GradientTextInput
+                keyboardType="numeric"
+                value={servingsText}
+                onChangeText={setServingsText}
+            />
 
-            {errorMsg && (
-                <View style={{ padding: 12, borderRadius: 10, backgroundColor: "#FEE2E2" }}>
-                    <Text style={{ color: "#991B1B", fontWeight: "700" }}>Error</Text>
-                    <Text style={{ color: "#991B1B" }}>{errorMsg}</Text>
-                </View>
-            )}
+            <Text style={styles.label}>Meal Type</Text>
+            <Dropdown
+                options={mealOptions}
+                selectedValue={mealType}
+                onSelect={setMealType}
+            />
 
-            {result && (
-                <View style={{ padding: 12, borderRadius: 12, backgroundColor: "#ECFDF5", gap: 6 }}>
-                    <Text style={{ fontWeight: "700", color: "#065F46" }}>Result (per serving)</Text>
-
-                    <Text>Calories: {result.macros_per_serving.calories_kcal ?? "null"} kcal</Text>
-                    <Text>Carbs: {result.macros_per_serving.carbs_g ?? "null"} g</Text>
-                    <Text>Protein: {result.macros_per_serving.protein_g ?? "null"} g</Text>
-                    <Text>Fat: {result.macros_per_serving.fat_g ?? "null"} g</Text>
-
-                    <Text style={{ marginTop: 6, color: "#065F46" }}>
-                        Confidence: {(result.confidence * 100).toFixed(0)}%
-                    </Text>
-                </View>
-            )}
+            <Text style={styles.label}>Recorded Date and Time</Text>
+            <GradientTextDisplay text={recordedText} />
         </ScrollView>
     )
 }
+
+const styles = StyleSheet.create({
+    container: {
+        padding: 16,
+        backgroundColor: color.white,
+        gap: 10,
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: color.black,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.45)",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+    },
+    modalCard: {
+        width: "100%",
+        maxWidth: 360,
+        backgroundColor: color.white,
+        borderRadius: 14,
+        padding: 20,
+        alignItems: "center",
+        gap: 8,
+    },
+    modalTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: color.black,
+        textAlign: "center",
+    },
+    modalBody: {
+        fontSize: 14,
+        color: "#444",
+        textAlign: "center",
+    },
+    modalButton: {
+        marginTop: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderRadius: 10,
+        backgroundColor: gradient.green[1],
+    },
+    modalButtonText: {
+        color: "white",
+        fontWeight: "600",
+    },
+    ringWrap: {
+        marginTop: 8,
+        alignItems: "center",
+    },
+    label: {
+        marginTop: 8,
+        marginBottom: 4,
+        fontSize: 14,
+        fontWeight: "600",
+        color: color.black,
+    },
+    labelRow: {
+        flexDirection: "row",
+        alignItems: "baseline",
+        gap: 8,
+    },
+    labelMeta: {
+        fontSize: 12,
+        color: "#6B7280",
+    },
+})
