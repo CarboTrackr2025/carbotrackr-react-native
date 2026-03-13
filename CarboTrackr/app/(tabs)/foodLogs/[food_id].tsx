@@ -155,6 +155,10 @@ export default function FoodByServingScreen() {
     const scaledProteinK = data.protein.kcal * servings;
     const scaledFatK = data.fat.kcal * servings;
 
+    const servingAmount = data.serving.metric_serving_amount;
+    const servingUnit = data.serving.metric_serving_unit;
+    const servingDesc = data.serving.serving_description;
+    const servingText = `${servingAmount} ${servingUnit}${servingDesc ? ` (${servingDesc})` : ""}`;
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
@@ -176,7 +180,10 @@ export default function FoodByServingScreen() {
             <Text style={styles.label}>Food</Text>
             <GradientTextDisplay text={data.title} />
 
-            <Text style={styles.label}>Number of Servings</Text>
+            <View style={styles.labelRow}>
+                <Text style={styles.label}>Number of Servings</Text>
+                <Text style={styles.labelMeta}>{servingText}</Text>
+            </View>
             <GradientTextInput
                 keyboardType="numeric"
                 value={servingsText}
@@ -232,6 +239,15 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
         color: color.black,
+    },
+    labelRow: {
+        flexDirection: "row",
+        alignItems: "baseline",
+        gap: 8,
+    },
+    labelMeta: {
+        fontSize: 12,
+        color: "#6B7280",
     },
 
     // serving row
