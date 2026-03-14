@@ -6,10 +6,10 @@ import {
     TouchableOpacity,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
-import { color, gradient } from "../../../shared/constants/colors"
-import { GradientTextInput } from "../../../shared/components/GradientTextInput"
-import { Button } from "../../../shared/components/Button"
-import { Header } from "../../../shared/components/Header"
+import { color, gradient } from "../../shared/constants/colors"
+import { GradientTextInput } from "../../shared/components/GradientTextInput"
+import { Button } from "../../shared/components/Button"
+import { Header } from "../../shared/components/Header"
 
 type Props = {
     submitting?: boolean

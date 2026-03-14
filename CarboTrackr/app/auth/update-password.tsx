@@ -2,7 +2,7 @@ import React, { useState } from "react"
 import { StyleSheet } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useRouter } from "expo-router"
-import UpdatePasswordForm from "../../features/settings/components/UpdatePasswordForm"
+import UpdatePasswordForm from "../../features/auth/UpdatePasswordForm"
 import { color } from "../../shared/constants/colors"
 
 export default function UpdatePasswordScreen() {

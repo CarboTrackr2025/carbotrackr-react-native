@@ -1,5 +1,4 @@
 import { StyleSheet, Text, View } from "react-native";
-import { SettingsButton } from "../../../features/settings/components/SettingsButton";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -7,6 +6,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import { Button } from "../../../shared/components/Button";
 import { gradient } from "../../../shared/constants/colors";
 import { clearClerkTokenCache } from "../../../features/auth/auth.utils";
+import {ButtonVersion2} from "../../../shared/components/ButtonVersion2";
 
 export default function IndexScreen() {
   const { signOut } = useAuth();
@@ -22,19 +22,19 @@ export default function IndexScreen() {
       <Text style={styles.title}>Settings</Text>
       <View style={styles.settingsOuterContainer}>
         <View style={styles.settingsRow}>
-          <SettingsButton
+          <ButtonVersion2
             label="Account"
             iconName="person"
             onPress={() => router.push("/settings/account-settings")}
           />
-          <SettingsButton
+          <ButtonVersion2
             label="Health"
             iconName="fitness"
             onPress={() => router.push("/settings/health-settings")}
           />
         </View>
         <View style={styles.settingsRow}>
-          <SettingsButton
+          <ButtonVersion2
             label="FAQs"
             iconName="help-circle-outline"
             onPress={() => router.push("/faqs")}
