@@ -5,6 +5,7 @@ import {formatPhilippinesTime} from "../../../shared/utils/formatters"
 import {Button} from "../../../shared/components/Button"
 import {GradientTextInput} from "../../../shared/components/GradientTextInput"
 import {GradientTextDisplay} from "../../../shared/components/GradientTextDisplay";
+import { Reading } from "../../../shared/components/Reading"
 
 
 type BloodPressureInput = {
@@ -40,6 +41,8 @@ export default function AddBloodPressureForm({submitting = false, onSubmit, time
 
     return (
         <View style={styles.container}>
+            <Reading text={`${systolic || "—"}/${diastolic || "—"}`} unit="mmHg" containerStyle={{alignSelf: "center"}} textStyle={{fontSize: 32}}/>
+
             <View style={styles.entryContainer}>
                 <Text style={styles.label}> Systolic</Text>
                 <GradientTextInput

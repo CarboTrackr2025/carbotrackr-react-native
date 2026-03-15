@@ -8,6 +8,9 @@ export type LabelMacrosPerServing = {
     carbs_g: number | null
     protein_g: number | null
     fat_g: number | null
+    serving_size_g: number | null
+    serving_size_ml: number | null
+    serving_description: string | null
 }
 
 export type PostLabelMacrosOnlyResponse =
@@ -15,12 +18,14 @@ export type PostLabelMacrosOnlyResponse =
     ok: true
     macros_per_serving: LabelMacrosPerServing
     confidence: number
+    source_id?: string | null
 }
     | {
     ok?: false
     error: string
     details?: any
     raw?: any
+    source_id?: string | null
 }
 
 /* ---------- UI Type ---------- */
@@ -44,6 +49,9 @@ export type RNImageFile = {
 const isNumberOrNull = (v: any): v is number | null =>
     v === null || (typeof v === "number" && Number.isFinite(v))
 
+const isStringOrNull = (v: any): v is string | null =>
+    v === null || typeof v === "string"
+
 const toConfidence01 = (v: any): number => {
     const n = Number(v)
     if (!Number.isFinite(n)) return 0
@@ -63,7 +71,10 @@ const normalize = (payload: any): LabelMacrosResult => {
         isNumberOrNull(macros.calories_kcal) &&
         isNumberOrNull(macros.carbs_g) &&
         isNumberOrNull(macros.protein_g) &&
-        isNumberOrNull(macros.fat_g)
+        isNumberOrNull(macros.fat_g) &&
+        isNumberOrNull(macros.serving_size_g) &&
+        isNumberOrNull(macros.serving_size_ml) &&
+        isStringOrNull(macros.serving_description)
 
     if (!valid) {
         throw new Error("Invalid response: missing macro fields")
@@ -75,6 +86,9 @@ const normalize = (payload: any): LabelMacrosResult => {
             carbs_g: macros.carbs_g,
             protein_g: macros.protein_g,
             fat_g: macros.fat_g,
+            serving_size_g: macros.serving_size_g,
+            serving_size_ml: macros.serving_size_ml,
+            serving_description: macros.serving_description,
         },
         confidence,
         raw: payload as PostLabelMacrosOnlyResponse,
