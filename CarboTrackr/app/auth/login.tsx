@@ -100,6 +100,8 @@ export default function LoginScreen() {
           null;
         const email =
           oAuthSignUp?.emailAddress ?? (oAuthSignIn as any)?.identifier ?? null;
+        // A brand-new OAuth user will have createdUserId on oAuthSignUp
+        const isNewUser = !!oAuthSignUp?.createdUserId;
 
         // Always save the session locally
         if (userId) {
@@ -133,7 +135,12 @@ export default function LoginScreen() {
           );
         }
 
-        router.replace("/(tabs)");
+        if (isNewUser) {
+          console.log("📝 [Login Screen] New OAuth user — redirecting to profile setup");
+          router.replace("/auth/setup-profile");
+        } else {
+          router.replace("/(tabs)");
+        }
       } else {
         console.log("✅ [Login Screen] OAuth flow initiated");
       }

@@ -44,8 +44,8 @@ export default function SignupScreen() {
     setSubmitting(false);
 
     if (result.success) {
-      console.log("✅ [Signup Screen] Sign-up successful! Navigating to home.");
-      router.replace("/(tabs)");
+      console.log("✅ [Signup Screen] Sign-up successful! Navigating to profile setup.");
+      router.replace("/auth/setup-profile");
     } else if ("needsVerification" in result && result.needsVerification) {
       console.log(
         "📧 [Signup Screen] Email verification required, navigating to OTP.",
@@ -92,6 +92,8 @@ export default function SignupScreen() {
           oAuthSignUp?.emailAddress ??
           (oAuthSignIn as any)?.identifier ??
           null;
+        // A brand-new OAuth signup will have createdUserId on oAuthSignUp
+        const isNewUser = !!oAuthSignUp?.createdUserId;
 
         // Always save the session locally
         if (userId) {
@@ -128,7 +130,12 @@ export default function SignupScreen() {
           );
         }
 
-        router.replace("/(tabs)");
+        if (isNewUser) {
+          console.log("📝 [Signup Screen] New OAuth user — redirecting to profile setup");
+          router.replace("/auth/setup-profile");
+        } else {
+          router.replace("/(tabs)");
+        }
       } else {
         console.log("✅ [Signup Screen] OAuth flow initiated");
       }
