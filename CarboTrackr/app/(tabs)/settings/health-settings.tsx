@@ -11,6 +11,7 @@ import {
 } from "../../../features/settings/api/get-health-settings"
 import { putHealthSettings } from "../../../features/settings/api/put-health-settings"
 import { getClerkUserId } from "../../../features/auth/auth.utils"
+import { scheduleHealthReminders } from "../../../shared/utils/reminders"
 
 const EMPTY_SETTINGS: HealthSettingsData = {
     daily_calorie_goal_kcal: null,
@@ -67,7 +68,29 @@ export default function HealthSettingsScreen() {
                         : prev.reminder_time,
             }))
 
-            Alert.alert("Success", result?.message ?? "Health settings updated successfully.")
+            let reminderMessage = ""
+            try {
+                const reminderResult = await scheduleHealthReminders({
+                    frequency: values.reminder_frequency,
+                    timeOfDay: values.reminder_time,
+                })
+
+                if (reminderResult.permission === "denied") {
+                    reminderMessage =
+                        "Notifications are disabled. Enable them in system settings to receive reminders."
+                }
+            } catch (reminderError) {
+                console.log("Reminder scheduling error:", reminderError)
+                reminderMessage = "Unable to schedule reminders on this device."
+            }
+
+            const baseMessage =
+                result?.message ?? "Health settings updated successfully."
+            const message = reminderMessage
+                ? `${baseMessage}\n\n${reminderMessage}`
+                : baseMessage
+
+            Alert.alert("Success", message)
         } catch (err) {
             console.log("Health settings save error:", err)
             Alert.alert("Error", getErrorMessage(err))
