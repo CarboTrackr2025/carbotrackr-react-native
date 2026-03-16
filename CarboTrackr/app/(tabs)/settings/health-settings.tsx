@@ -16,6 +16,7 @@ const EMPTY_SETTINGS: HealthSettingsData = {
     daily_calorie_goal_kcal: null,
     daily_carbohydrate_goal_g: null,
     reminder_frequency: null,
+    reminder_time: null,
     diagnosed_with: null,
 }
 
@@ -49,6 +50,7 @@ export default function HealthSettingsScreen() {
                 daily_calorie_goal_kcal: values.daily_calorie_goal_kcal,
                 daily_carbohydrate_goal_g: values.daily_carbohydrate_goal_g,
                 reminder_frequency: values.reminder_frequency,
+                reminder_time: values.reminder_time,
                 diagnosed_with: values.diagnosed_with,
             })
 
@@ -59,6 +61,10 @@ export default function HealthSettingsScreen() {
             setInitialValues((prev) => ({
                 ...prev,
                 ...values,
+                reminder_time:
+                    typeof result?.data?.reminder_time === "string"
+                        ? result.data.reminder_time
+                        : prev.reminder_time,
             }))
 
             Alert.alert("Success", result?.message ?? "Health settings updated successfully.")
