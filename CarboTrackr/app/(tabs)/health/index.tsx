@@ -292,36 +292,16 @@ export default function BloodPressureIndexScreen() {
         }}
       />
 
-      <View style={styles.toggleRow}>
-        <View style={styles.toggleItem}>
-          <Button
-            title="Blood pressure/glucose"
-            onPress={() => setActiveSection("readings")}
-            gradient={
-              activeSection === "readings"
-                ? (gradient.green as [string, string])
-                : (gradient.indigo as [string, string])
-            }
-          />
-        </View>
-        <View style={styles.toggleItem}>
-          <Button
-            title="Heart rate & steps"
-            onPress={async () => {
-              setActiveSection("watch");
-              await Promise.all([fetchHeartRate(), fetchSteps()]);
-            }}
-            gradient={
-              activeSection === "watch"
-                ? (gradient.green as [string, string])
-                : (gradient.indigo as [string, string])
-            }
-          />
-        </View>
-      </View>
-
       {activeSection === "watch" ? (
         <>
+          <View style={styles.watchBackRow}>
+            <Button
+              title="← Check my blood pressure/glucose"
+              onPress={() => setActiveSection("readings")}
+              gradient={gradient.green as [string, string]}
+            />
+          </View>
+
           {heartRateLoading ? (
             <View style={styles.loadingBox}>
               <ActivityIndicator />
@@ -352,16 +332,6 @@ export default function BloodPressureIndexScreen() {
               <Button
                 title="Sync Step Count"
                 onPress={fetchSteps}
-                gradient={gradient.green as [string, string]}
-              />
-            </View>
-          </View>
-
-          <View style={styles.buttonRow}>
-            <View style={styles.buttonItemWide}>
-              <Button
-                title="← Check my blood pressure/glucose"
-                onPress={() => setActiveSection("readings")}
                 gradient={gradient.green as [string, string]}
               />
             </View>
@@ -414,6 +384,17 @@ export default function BloodPressureIndexScreen() {
               />
             </View>
           </View>
+
+          <View style={styles.watchCtaRow}>
+            <Button
+              title="Check my heart rate and step count  →"
+              onPress={async () => {
+                setActiveSection("watch");
+                await Promise.all([fetchHeartRate(), fetchSteps()]);
+              }}
+              gradient={gradient.green as [string, string]}
+            />
+          </View>
         </>
       )}
     </ScrollView>
@@ -427,13 +408,6 @@ const styles = StyleSheet.create({
   headerRow: { marginBottom: 10 },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
   subTitle: { marginTop: 2, fontSize: 12, color: "#6B7280" },
-
-  toggleRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 10,
-  },
-  toggleItem: { flex: 1 },
 
   sectionTitle: {
     fontSize: 15,
@@ -477,4 +451,12 @@ const styles = StyleSheet.create({
   },
   buttonItem: { flex: 1 },
   buttonItemWide: { flex: 1 },
+
+  watchCtaRow: {
+    marginTop: 12,
+  },
+  watchBackRow: {
+    marginTop: 6,
+    marginBottom: 10,
+  },
 });
