@@ -17,6 +17,20 @@ import { Button } from "../../../shared/components/Button";
 import { router } from "expo-router";
 import { color, gradient } from "../../../shared/constants/colors";
 
+import StepsChart, {
+  type StepsPoint,
+} from "../../../features/health/components/StepsChart";
+import HeartRateChart, {
+  type HeartRatePoint,
+} from "../../../features/health/components/HeartRateChart";
+
+import {
+  ensureHealthConnectInitialized,
+  readHeartRateSamples,
+  readStepsSamples,
+  requestStepsAndHeartRatePermissions,
+} from "../../../features/health/healthConnect";
+
 import {
   getBloodPressureReport,
   type BpMeasurement,
@@ -51,6 +65,16 @@ export default function BloodPressureIndexScreen() {
 
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
+
+  const [activeSection, setActiveSection] = useState<"readings" | "watch">(
+    "readings",
+  );
+
+  const [stepsLoading, setStepsLoading] = useState(false);
+  const [stepsPoints, setStepsPoints] = useState<StepsPoint[]>([]);
+
+  const [heartRateLoading, setHeartRateLoading] = useState(false);
+  const [heartRatePoints, setHeartRatePoints] = useState<HeartRatePoint[]>([]);
 
   const fetchMeasurements = useCallback(async () => {
     try {
@@ -108,6 +132,113 @@ export default function BloodPressureIndexScreen() {
     }
   }, [startDate, endDate]);
 
+  const ensureHealthConnectReady = useCallback(async () => {
+    const init = await ensureHealthConnectInitialized();
+    if (!init.initialized) {
+      throw new Error(
+        init.error ??
+          "Health Connect could not be initialized. Ensure Health Connect is installed and set up.",
+      );
+    }
+    await requestStepsAndHeartRatePermissions();
+  }, []);
+
+  const fetchSteps = useCallback(async () => {
+    try {
+      setStepsLoading(true);
+      setStepsPoints([]);
+
+      await ensureHealthConnectReady();
+
+      const start = startOfDay(startDate);
+      const end = endOfDay(endDate);
+
+      const samples = await readStepsSamples({
+        startTime: start,
+        endTime: end,
+      });
+
+      const byDay = new Map<string, number>();
+      for (const s of samples) {
+        const d = new Date(s.startTime);
+        const key = toYMDLocal(d);
+        byDay.set(key, (byDay.get(key) ?? 0) + (s.count ?? 0));
+      }
+
+      const points: StepsPoint[] = [];
+      const cursor = new Date(start);
+      while (cursor <= end) {
+        const key = toYMDLocal(cursor);
+        points.push({ label: key.slice(5), value: byDay.get(key) ?? 0 });
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      setStepsPoints(points);
+    } catch (err: any) {
+      console.log("Failed to fetch steps from Health Connect", {
+        message: err?.message,
+      });
+      Alert.alert(
+        "Could not load steps",
+        err?.message ??
+          "Please confirm Health Connect permissions and try again.",
+      );
+    } finally {
+      setStepsLoading(false);
+    }
+  }, [startDate, endDate, ensureHealthConnectReady]);
+
+  const fetchHeartRate = useCallback(async () => {
+    try {
+      setHeartRateLoading(true);
+      setHeartRatePoints([]);
+
+      await ensureHealthConnectReady();
+
+      const start = startOfDay(startDate);
+      const end = endOfDay(endDate);
+
+      const samples = await readHeartRateSamples({
+        startTime: start,
+        endTime: end,
+      });
+
+      // Aggregate by day: average bpm.
+      const sums = new Map<string, { sum: number; n: number }>();
+      for (const s of samples) {
+        const d = new Date(s.time);
+        const key = toYMDLocal(d);
+        const cur = sums.get(key) ?? { sum: 0, n: 0 };
+        sums.set(key, { sum: cur.sum + (s.bpm ?? 0), n: cur.n + 1 });
+      }
+
+      const points: HeartRatePoint[] = [];
+      const cursor = new Date(start);
+      while (cursor <= end) {
+        const key = toYMDLocal(cursor);
+        const v = sums.get(key);
+        points.push({
+          label: key.slice(5),
+          value: v && v.n ? Math.round(v.sum / v.n) : 0,
+        });
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      setHeartRatePoints(points);
+    } catch (err: any) {
+      console.log("Failed to fetch heart rate from Health Connect", {
+        message: err?.message,
+      });
+      Alert.alert(
+        "Could not load heart rate",
+        err?.message ??
+          "Please confirm Health Connect permissions and try again.",
+      );
+    } finally {
+      setHeartRateLoading(false);
+    }
+  }, [startDate, endDate, ensureHealthConnectReady]);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -125,8 +256,17 @@ export default function BloodPressureIndexScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([fetchMeasurements(), fetchGlucoseMeasurements()]);
+    if (activeSection === "watch") {
+      await Promise.all([fetchHeartRate(), fetchSteps()]);
+    }
     setRefreshing(false);
-  }, [fetchMeasurements, fetchGlucoseMeasurements]);
+  }, [
+    fetchMeasurements,
+    fetchGlucoseMeasurements,
+    activeSection,
+    fetchHeartRate,
+    fetchSteps,
+  ]);
 
   return (
     <ScrollView
@@ -152,7 +292,82 @@ export default function BloodPressureIndexScreen() {
         }}
       />
 
-      {loading ? (
+      <View style={styles.toggleRow}>
+        <View style={styles.toggleItem}>
+          <Button
+            title="Blood pressure/glucose"
+            onPress={() => setActiveSection("readings")}
+            gradient={
+              activeSection === "readings"
+                ? (gradient.green as [string, string])
+                : (gradient.indigo as [string, string])
+            }
+          />
+        </View>
+        <View style={styles.toggleItem}>
+          <Button
+            title="Heart rate & steps"
+            onPress={async () => {
+              setActiveSection("watch");
+              await Promise.all([fetchHeartRate(), fetchSteps()]);
+            }}
+            gradient={
+              activeSection === "watch"
+                ? (gradient.green as [string, string])
+                : (gradient.indigo as [string, string])
+            }
+          />
+        </View>
+      </View>
+
+      {activeSection === "watch" ? (
+        <>
+          {heartRateLoading ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator />
+              <Text style={styles.loadingText}>Loading heart rate…</Text>
+            </View>
+          ) : (
+            <HeartRateChart points={heartRatePoints} />
+          )}
+
+          {stepsLoading ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator />
+              <Text style={styles.loadingText}>Loading steps…</Text>
+            </View>
+          ) : (
+            <StepsChart points={stepsPoints} />
+          )}
+
+          <View style={styles.buttonRow}>
+            <View style={styles.buttonItem}>
+              <Button
+                title="Sync Heart Rate"
+                onPress={fetchHeartRate}
+                gradient={gradient.green as [string, string]}
+              />
+            </View>
+            <View style={styles.buttonItem}>
+              <Button
+                title="Sync Step Count"
+                onPress={fetchSteps}
+                gradient={gradient.green as [string, string]}
+              />
+            </View>
+          </View>
+
+          <View style={styles.buttonRow}>
+            <View style={styles.buttonItemWide}>
+              <Button
+                title="← Check my blood pressure/glucose"
+                onPress={() => setActiveSection("readings")}
+                gradient={gradient.green as [string, string]}
+              />
+            </View>
+          </View>
+        </>
+      ) : loading ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator />
           <Text style={styles.loadingText}>Loading readings…</Text>
@@ -182,25 +397,25 @@ export default function BloodPressureIndexScreen() {
               </Text>
             </View>
           )}
+
+          <View style={styles.buttonRow}>
+            <View style={styles.buttonItem}>
+              <Button
+                title="Log Blood Pressure"
+                onPress={() => router.push("/health/add-blood-pressure")}
+                gradient={gradient.green as [string, string]}
+              />
+            </View>
+            <View style={styles.buttonItem}>
+              <Button
+                title="Log Blood Glucose"
+                onPress={() => router.push("/health/add-blood-glucose")}
+                gradient={gradient.green as [string, string]}
+              />
+            </View>
+          </View>
         </>
       )}
-
-      <View style={styles.buttonRow}>
-        <View style={styles.buttonItem}>
-          <Button
-            title="Log Blood Pressure"
-            onPress={() => router.push("/health/add-blood-pressure")}
-            gradient={gradient.green as [string, string]}
-          />
-        </View>
-        <View style={styles.buttonItem}>
-          <Button
-            title="Log Blood Glucose"
-            onPress={() => router.push("/health/add-blood-glucose")}
-            gradient={gradient.green as [string, string]}
-          />
-        </View>
-      </View>
     </ScrollView>
   );
 }
@@ -212,6 +427,13 @@ const styles = StyleSheet.create({
   headerRow: { marginBottom: 10 },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
   subTitle: { marginTop: 2, fontSize: 12, color: "#6B7280" },
+
+  toggleRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+  },
+  toggleItem: { flex: 1 },
 
   sectionTitle: {
     fontSize: 15,
@@ -254,4 +476,5 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   buttonItem: { flex: 1 },
+  buttonItemWide: { flex: 1 },
 });
