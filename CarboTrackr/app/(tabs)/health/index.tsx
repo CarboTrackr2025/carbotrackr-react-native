@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Platform,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
@@ -29,6 +30,7 @@ import {
   readHeartRateSamples,
   readStepsSamples,
   requestStepsAndHeartRatePermissions,
+  resetHealthConnectInitialization,
 } from "../../../features/health/healthConnect";
 
 import {
@@ -55,6 +57,9 @@ const startOfDay = (d: Date) =>
 const endOfDay = (d: Date) =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
 
+// Health Connect is only available on Android
+const isAndroid = Platform.OS === "android";
+
 export default function BloodPressureIndexScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,6 +80,13 @@ export default function BloodPressureIndexScreen() {
 
   const [heartRateLoading, setHeartRateLoading] = useState(false);
   const [heartRatePoints, setHeartRatePoints] = useState<HeartRatePoint[]>([]);
+
+  const [healthConnectAvailable, setHealthConnectAvailable] = useState<
+    boolean | null
+  >(null);
+  const [healthConnectError, setHealthConnectError] = useState<string | null>(
+    null,
+  );
 
   const fetchMeasurements = useCallback(async () => {
     try {
@@ -133,22 +145,50 @@ export default function BloodPressureIndexScreen() {
   }, [startDate, endDate]);
 
   const ensureHealthConnectReady = useCallback(async () => {
-    const init = await ensureHealthConnectInitialized();
-    if (!init.initialized) {
-      throw new Error(
-        init.error ??
-          "Health Connect could not be initialized. Ensure Health Connect is installed and set up.",
-      );
+    if (!isAndroid) {
+      setHealthConnectAvailable(false);
+      setHealthConnectError("Health Connect is only available on Android");
+      return;
     }
-    await requestStepsAndHeartRatePermissions();
+
+    try {
+      const result = await ensureHealthConnectInitialized();
+      setHealthConnectAvailable(result.available);
+      setHealthConnectError(result.error ?? null);
+
+      if (!result.initialized) {
+        throw new Error(
+          result.error ??
+            "Health Connect could not be initialized. Ensure Health Connect is installed and set up.",
+        );
+      }
+    } catch (err: any) {
+      setHealthConnectAvailable(false);
+      setHealthConnectError(err?.message ?? "Unknown error");
+      throw err;
+    }
   }, []);
 
   const fetchSteps = useCallback(async () => {
+    if (!isAndroid) {
+      Alert.alert("Health Connect is only available on Android");
+      return;
+    }
+
     try {
       setStepsLoading(true);
       setStepsPoints([]);
 
       await ensureHealthConnectReady();
+
+      const permissionResult = await requestStepsAndHeartRatePermissions();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Please grant permission to read step data from Health Connect.",
+        );
+        return;
+      }
 
       const start = startOfDay(startDate);
       const end = endOfDay(endDate);
@@ -189,11 +229,25 @@ export default function BloodPressureIndexScreen() {
   }, [startDate, endDate, ensureHealthConnectReady]);
 
   const fetchHeartRate = useCallback(async () => {
+    if (!isAndroid) {
+      Alert.alert("Health Connect is only available on Android");
+      return;
+    }
+
     try {
       setHeartRateLoading(true);
       setHeartRatePoints([]);
 
       await ensureHealthConnectReady();
+
+      const permissionResult = await requestStepsAndHeartRatePermissions();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Please grant permission to read heart rate data from Health Connect.",
+        );
+        return;
+      }
 
       const start = startOfDay(startDate);
       const end = endOfDay(endDate);
@@ -239,6 +293,19 @@ export default function BloodPressureIndexScreen() {
     }
   }, [startDate, endDate, ensureHealthConnectReady]);
 
+  // Initialize Health Connect on mount
+  useEffect(() => {
+    (async () => {
+      if (isAndroid) {
+        try {
+          await ensureHealthConnectReady();
+        } catch (err) {
+          // Error already handled in ensureHealthConnectReady
+        }
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -267,6 +334,28 @@ export default function BloodPressureIndexScreen() {
     fetchHeartRate,
     fetchSteps,
   ]);
+
+  const handleWatchSectionPress = async () => {
+    if (!isAndroid) {
+      Alert.alert(
+        "Platform Not Supported",
+        "Health Connect (for heart rate and steps) is only available on Android devices.",
+      );
+      return;
+    }
+
+    if (!healthConnectAvailable) {
+      Alert.alert(
+        "Health Connect Not Available",
+        healthConnectError ??
+          "Health Connect is not available on this device. Please install it from the Play Store (Android 13 and below) or enable it in settings (Android 14+).",
+      );
+      return;
+    }
+
+    setActiveSection("watch");
+    await Promise.all([fetchHeartRate(), fetchSteps()]);
+  };
 
   return (
     <ScrollView
@@ -302,40 +391,67 @@ export default function BloodPressureIndexScreen() {
             />
           </View>
 
-          {heartRateLoading ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator />
-              <Text style={styles.loadingText}>Loading heart rate…</Text>
+          {!isAndroid ? (
+            <View style={styles.platformWarning}>
+              <Text style={styles.warningTitle}>Android Only</Text>
+              <Text style={styles.warningText}>
+                Heart rate and step count syncing via Health Connect is only
+                available on Android devices.
+              </Text>
+            </View>
+          ) : !healthConnectAvailable ? (
+            <View style={styles.platformWarning}>
+              <Text style={styles.warningTitle}>
+                Health Connect Unavailable
+              </Text>
+              <Text style={styles.warningText}>
+                {healthConnectError ??
+                  "Health Connect is not available on this device."}
+              </Text>
+              <Text style={styles.warningSubtext}>
+                • Android 14+: Health Connect is built-in. Check Settings → Apps
+                → Health Connect.{"\n"}• Android 13 and below: Install from Play
+                Store.
+              </Text>
             </View>
           ) : (
-            <HeartRateChart points={heartRatePoints} />
-          )}
+            <>
+              {heartRateLoading ? (
+                <View style={styles.loadingBox}>
+                  <ActivityIndicator />
+                  <Text style={styles.loadingText}>Loading heart rate…</Text>
+                </View>
+              ) : (
+                <HeartRateChart points={heartRatePoints} />
+              )}
 
-          {stepsLoading ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator />
-              <Text style={styles.loadingText}>Loading steps…</Text>
-            </View>
-          ) : (
-            <StepsChart points={stepsPoints} />
-          )}
+              {stepsLoading ? (
+                <View style={styles.loadingBox}>
+                  <ActivityIndicator />
+                  <Text style={styles.loadingText}>Loading steps…</Text>
+                </View>
+              ) : (
+                <StepsChart points={stepsPoints} />
+              )}
 
-          <View style={styles.buttonRow}>
-            <View style={styles.buttonItem}>
-              <Button
-                title="Sync Heart Rate"
-                onPress={fetchHeartRate}
-                gradient={gradient.green as [string, string]}
-              />
-            </View>
-            <View style={styles.buttonItem}>
-              <Button
-                title="Sync Step Count"
-                onPress={fetchSteps}
-                gradient={gradient.green as [string, string]}
-              />
-            </View>
-          </View>
+              <View style={styles.buttonRow}>
+                <View style={styles.buttonItem}>
+                  <Button
+                    title="Sync Heart Rate"
+                    onPress={fetchHeartRate}
+                    gradient={gradient.green as [string, string]}
+                  />
+                </View>
+                <View style={styles.buttonItem}>
+                  <Button
+                    title="Sync Step Count"
+                    onPress={fetchSteps}
+                    gradient={gradient.green as [string, string]}
+                  />
+                </View>
+              </View>
+            </>
+          )}
         </>
       ) : loading ? (
         <View style={styles.loadingBox}>
@@ -388,10 +504,7 @@ export default function BloodPressureIndexScreen() {
           <View style={styles.watchCtaRow}>
             <Button
               title="Check my heart rate and step count  →"
-              onPress={async () => {
-                setActiveSection("watch");
-                await Promise.all([fetchHeartRate(), fetchSteps()]);
-              }}
+              onPress={handleWatchSectionPress}
               gradient={gradient.green as [string, string]}
             />
           </View>
@@ -458,5 +571,32 @@ const styles = StyleSheet.create({
   watchBackRow: {
     marginTop: 6,
     marginBottom: 10,
+  },
+
+  platformWarning: {
+    marginTop: 10,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#F59E0B",
+    backgroundColor: "#FFFBEB",
+  },
+  warningTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#92400E",
+    marginBottom: 8,
+  },
+  warningText: {
+    fontSize: 13,
+    color: "#78350F",
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  warningSubtext: {
+    fontSize: 12,
+    color: "#92400E",
+    lineHeight: 18,
+    marginTop: 4,
   },
 });
