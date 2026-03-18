@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -10,6 +11,8 @@ import {
   Platform,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import * as IntentLauncher from "expo-intent-launcher";
+import * as Application from "expo-application";
 
 import BloodPressureChart from "../../../features/health/components/BloodPressureChart";
 import BloodGlucoseChart from "../../../features/health/components/BloodGlucoseChart";
@@ -169,6 +172,196 @@ export default function BloodPressureIndexScreen() {
     }
   }, []);
 
+  const openHealthConnect = async () => {
+    // Resolve the *actual* runtime package name/applicationId.
+    // This frequently differs between dev-client/debug/release builds.
+    const runtimePackage =
+      Application.applicationId || Application.applicationName || "unknown";
+
+    console.log("[HealthConnectUI] runtime package", {
+      applicationId: Application.applicationId,
+      applicationName: Application.applicationName,
+    });
+
+    // Health Connect package: com.google.android.apps.healthdata
+    // Try to open the permission/settings screen via Android Intent (most reliable),
+    // then fall back to deep links, and finally Play Store.
+
+    const marketUrl = "market://details?id=com.google.android.apps.healthdata";
+    const webUrl =
+      "https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata";
+
+    // Deep-link schemes are not supported on many devices.
+    const hcPermissionUrl = `healthconnect://permissions?packageName=${encodeURIComponent(runtimePackage)}`;
+    const hcMainUrl = "healthconnect://";
+
+    // Intent actions (support varies by Android / Health Connect version).
+    const ACTION_HEALTH_CONNECT_SETTINGS =
+      "androidx.health.ACTION_HEALTH_CONNECT_SETTINGS";
+    const ACTION_SHOW_PERMISSIONS_RATIONALE =
+      "androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE";
+
+    try {
+      // 1) Try opening Health Connect settings UI (Android 14+ / some builds)
+      console.log(
+        "[HealthConnectUI] trying IntentLauncher ACTION_HEALTH_CONNECT_SETTINGS",
+      );
+      await IntentLauncher.startActivityAsync(
+        ACTION_HEALTH_CONNECT_SETTINGS as any,
+      );
+      return;
+    } catch (e1) {
+      console.warn(
+        "[HealthConnectUI] ACTION_HEALTH_CONNECT_SETTINGS failed",
+        e1,
+      );
+    }
+
+    try {
+      // 2) Try rationale/permissions activity (if available on device)
+      console.log(
+        "[HealthConnectUI] trying IntentLauncher ACTION_SHOW_PERMISSIONS_RATIONALE",
+      );
+      await IntentLauncher.startActivityAsync(
+        ACTION_SHOW_PERMISSIONS_RATIONALE as any,
+        {
+          // Some implementations look for these extras.
+          extra: {
+            packageName: runtimePackage,
+          },
+        },
+      );
+      return;
+    } catch (e2) {
+      console.warn(
+        "[HealthConnectUI] ACTION_SHOW_PERMISSIONS_RATIONALE failed",
+        e2,
+      );
+    }
+
+    try {
+      // 3) Deep links (often unsupported)
+      const canOpenPermission = await Linking.canOpenURL(hcPermissionUrl);
+      const canOpenMain = await Linking.canOpenURL(hcMainUrl);
+      const canOpenMarket = await Linking.canOpenURL(marketUrl);
+
+      console.log("[HealthConnectUI] canOpenURL", {
+        hcPermissionUrl: canOpenPermission,
+        hcMainUrl: canOpenMain,
+        marketUrl: canOpenMarket,
+      });
+
+      if (canOpenPermission) {
+        console.log(
+          "[HealthConnectUI] opening hcPermissionUrl",
+          hcPermissionUrl,
+        );
+        await Linking.openURL(hcPermissionUrl);
+        return;
+      }
+
+      if (canOpenMain) {
+        console.log("[HealthConnectUI] opening hcMainUrl", hcMainUrl);
+        await Linking.openURL(hcMainUrl);
+        return;
+      }
+
+      // 4) Store/web fallback
+      console.log(
+        "[HealthConnectUI] opening store/web fallback",
+        canOpenMarket ? marketUrl : webUrl,
+      );
+      await Linking.openURL(canOpenMarket ? marketUrl : webUrl);
+    } catch (e3) {
+      console.warn(
+        "[HealthConnectUI] openHealthConnect failed, opening webUrl",
+        e3,
+      );
+      await Linking.openURL(webUrl);
+    }
+  };
+
+  const promptHealthConnectPermissions = useCallback(async () => {
+    if (!isAndroid) {
+      Alert.alert("Health Connect is only available on Android");
+      return;
+    }
+
+    try {
+      console.log("[HealthConnectUI] promptHealthConnectPermissions() pressed");
+      console.log(
+        "[HealthConnectUI] Current app package:",
+        Application.applicationId,
+      );
+
+      await ensureHealthConnectReady();
+
+      console.log(
+        "[HealthConnectUI] About to call requestStepsAndHeartRatePermissions()",
+      );
+      console.log(
+        "[HealthConnectUI] EXPECTATION: A SYSTEM DIALOG should appear OVER the app",
+      );
+      console.log(
+        "[HealthConnectUI] If NO dialog appears, the permissions may not be properly configured in AndroidManifest",
+      );
+
+      // This triggers the SYSTEM PERMISSION DIALOG - this is the critical step!
+      const result = await requestStepsAndHeartRatePermissions();
+      console.log("[HealthConnectUI] permission result", result);
+      console.log(
+        "[HealthConnectUI] grantedPermissions:",
+        JSON.stringify(result.grantedPermissions),
+      );
+
+      if (result.granted) {
+        Alert.alert(
+          "Permissions Granted",
+          "Health Connect access has been granted. You can now sync steps and heart rate.",
+        );
+      } else {
+        // Permissions were NOT granted
+        console.log(
+          "[HealthConnectUI] Permissions not granted. grantedPermissions:",
+          result.grantedPermissions,
+        );
+
+        // Check if ANY permissions were granted
+        const hasSomePermissions =
+          result.grantedPermissions && result.grantedPermissions.length > 0;
+
+        Alert.alert(
+          "Permission Status",
+          hasSomePermissions
+            ? "Some permissions were granted, but not all. Please manually enable the remaining permissions in Health Connect."
+            : "No permissions were granted. This usually means:\n\n1. You denied the permission dialog, OR\n2. The dialog didn't appear (check logs)\n\nTap 'Open Health Connect' to manually enable permissions.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Open Health Connect",
+              onPress: async () => {
+                console.log(
+                  "[HealthConnectUI] Opening Health Connect for manual permission grant",
+                );
+                await openHealthConnect();
+              },
+            },
+          ],
+        );
+      }
+    } catch (e: any) {
+      console.warn(
+        "[HealthConnectUI] promptHealthConnectPermissions() error",
+        e,
+      );
+      console.warn("[HealthConnectUI] error stack:", e?.stack);
+      Alert.alert(
+        "Health Connect",
+        e?.message ?? "Failed to request Health Connect permissions.",
+      );
+    }
+  }, [ensureHealthConnectReady]);
+
   const fetchSteps = useCallback(async () => {
     if (!isAndroid) {
       Alert.alert("Health Connect is only available on Android");
@@ -181,11 +374,21 @@ export default function BloodPressureIndexScreen() {
 
       await ensureHealthConnectReady();
 
+      // First, trigger the permission request dialog
       const permissionResult = await requestStepsAndHeartRatePermissions();
       if (!permissionResult.granted) {
         Alert.alert(
           "Permission Required",
-          "Please grant permission to read step data from Health Connect.",
+          "To read step data, you need to grant permission in Health Connect.\n\n1. Tap 'Grant Permission' below\n2. Find your app in the list\n3. Enable 'Read' access for Steps",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Grant Permission",
+              onPress: async () => {
+                await openHealthConnect();
+              },
+            },
+          ],
         );
         return;
       }
@@ -240,11 +443,21 @@ export default function BloodPressureIndexScreen() {
 
       await ensureHealthConnectReady();
 
+      // First, trigger the permission request dialog
       const permissionResult = await requestStepsAndHeartRatePermissions();
       if (!permissionResult.granted) {
         Alert.alert(
           "Permission Required",
-          "Please grant permission to read heart rate data from Health Connect.",
+          "To read heart rate data, you need to grant permission in Health Connect.\n\n1. Tap 'Grant Permission' below\n2. Find your app in the list\n3. Enable 'Read' access for Heart Rate",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Grant Permission",
+              onPress: async () => {
+                await openHealthConnect();
+              },
+            },
+          ],
         );
         return;
       }
@@ -416,6 +629,14 @@ export default function BloodPressureIndexScreen() {
             </View>
           ) : (
             <>
+              <View style={styles.permissionRow}>
+                <Button
+                  title="Grant Health Connect Permissions"
+                  onPress={promptHealthConnectPermissions}
+                  gradient={gradient.green as [string, string]}
+                />
+              </View>
+
               {heartRateLoading ? (
                 <View style={styles.loadingBox}>
                   <ActivityIndicator />
@@ -517,6 +738,7 @@ export default function BloodPressureIndexScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#fff" },
   content: { padding: 12, paddingBottom: 24 },
+  permissionRow: { marginTop: 10, marginBottom: 10 },
 
   headerRow: { marginBottom: 10 },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },

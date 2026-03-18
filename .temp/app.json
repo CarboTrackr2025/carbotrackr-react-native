@@ -8,7 +8,7 @@
     "owner": "eenvees-inc",
     "slug": "carbotrackrtester",
     "android": {
-      "package": "com.eenvees.carbotrackrtester",
+      "package": "com.kinra23.carbotrackrtester",
       "permissions": [
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_HEART_RATE",
@@ -17,7 +17,7 @@
       ]
     },
     "ios": {
-      "bundleIdentifier": "com.eenvees.carbotrackrtester"
+      "bundleIdentifier": "com.kinra23.carbotrackrwatchtest"
     },
     "plugins": [
       [

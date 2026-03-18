@@ -5,26 +5,14 @@ export default {
         projectId: "b93d7a65-e09c-47a7-8b1b-2c40c8367202",
       },
     },
-    owner: "eenvees-inc",
+    owner: "3envees-inc",
     slug: "carbotrackrtester",
     name: "CarboTrackr",
     android: {
-      package: "com.eenvees.carbotrackrtester",
-      manifest: {
-        application: {
-          "meta-data": [
-            {
-              $: {
-                "android:name": "androidx.health.connect.client.id",
-                "android:value": "com.eenvees.carbotrackrtester",
-              },
-            },
-          ],
-        },
-      },
+      package: "com.kinra23.carbotrackrtester",
     },
     ios: {
-      bundleIdentifier: "com.eenvees.carbotrackrtester",
+      bundleIdentifier: "com.kinra23.carbotrackrtester",
     },
     plugins: [
       [
@@ -42,9 +30,6 @@ export default {
           },
         },
       ],
-      // expo-health-connect MUST be before react-native-health-connect
-      // This initializes the permission request infrastructure first
-      ["expo-health-connect"],
       [
         "react-native-health-connect",
         {
@@ -53,10 +38,10 @@ export default {
             "android.permission.health.READ_HEART_RATE",
             "android.permission.health.WRITE_STEPS",
             "android.permission.health.WRITE_HEART_RATE",
-            "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND",
           ],
         },
       ],
+      ["expo-health-connect"],
     ],
   },
 };
