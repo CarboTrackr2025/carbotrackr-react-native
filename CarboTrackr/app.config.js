@@ -9,19 +9,13 @@ export default {
     slug: "carbotrackrtester",
     name: "CarboTrackr",
     android: {
-      package: "com.eenvees.carbotrackrtester",
-      manifest: {
-        application: {
-          "meta-data": [
-            {
-              $: {
-                "android:name": "androidx.health.connect.client.id",
-                "android:value": "com.eenvees.carbotrackrtester",
-              },
-            },
-          ],
-        },
-      },
+      package: "com.eenvees.carbotrackrtester", 
+      permissions: [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.WRITE_STEPS",
+        "android.permission.health.WRITE_HEART_RATE"
+      ]
     },
     ios: {
       bundleIdentifier: "com.eenvees.carbotrackrtester",
@@ -42,19 +36,13 @@ export default {
           },
         },
       ],
-      // expo-health-connect MUST be before react-native-health-connect
-      // This initializes the permission request infrastructure first
-      ["expo-health-connect"],
+      // Per react-native-health-connect docs (Expo installation)
       [
-        "react-native-health-connect",
+        "expo-health-connect",
         {
-          permissions: [
-            "android.permission.health.READ_STEPS",
-            "android.permission.health.READ_HEART_RATE",
-            "android.permission.health.WRITE_STEPS",
-            "android.permission.health.WRITE_HEART_RATE",
-            "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND",
-          ],
+          rationale:
+            "We need access to your health data to track steps and heart rate.",
+          permissions: ["Steps", "HeartRate"],
         },
       ],
     ],

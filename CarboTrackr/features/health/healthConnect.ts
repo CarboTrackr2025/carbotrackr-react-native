@@ -185,7 +185,7 @@ export async function requestStepsAndHeartRatePermissions(): Promise<PermissionR
     hcLog("initResult", initResult);
 
     if (!initResult.initialized) {
-      hcErr("Health Connect not initialized");
+      hcErr("Health Connect not initialized", initResult);
       throw new Error(
         initResult.error ??
           "Health Connect not initialized. Call ensureHealthConnectInitialized() first.",
@@ -193,11 +193,10 @@ export async function requestStepsAndHeartRatePermissions(): Promise<PermissionR
     }
 
     if (!initResult.available) {
-      hcErr("Health Connect not available");
+      hcErr("Health Connect not available", initResult);
       throw new Error("Health Connect is not available on this device");
     }
 
-    // Keep to the minimum needed for testing.
     const permissions: Permission[] = [
       { accessType: "read", recordType: "Steps" },
       { accessType: "read", recordType: "HeartRate" },
@@ -209,7 +208,7 @@ export async function requestStepsAndHeartRatePermissions(): Promise<PermissionR
         JSON.stringify(permissions),
       );
       hcLog(
-        "This should trigger a SYSTEM DIALOG (not redirect to Health Connect app)",
+        "If no UI appears: permissions may already be granted, Health Connect may require screen lock, or the app may not be rebuilt after config-plugin changes.",
       );
 
       // Small delay to ensure native side is fully ready after initialization
@@ -220,21 +219,21 @@ export async function requestStepsAndHeartRatePermissions(): Promise<PermissionR
       hcLog("requestPermission() returned:", JSON.stringify(grantedRaw));
 
       const grantedPermissions = normalizeGrantedPermissions(grantedRaw);
-      // Check what was actually granted
       const granted = includesAllPermissions(grantedPermissions, permissions);
 
-      hcLog("requestPermission() -> normalized", {
+      hcLog("requestPermission() -> computed granted?", {
         granted,
         grantedPermissions,
         requestedPermissions: permissions,
       });
 
-      // Return the result - granted will be true only if ALL requested permissions were granted
       return { granted, permissions, grantedPermissions };
     } catch (e: any) {
-      hcErr("requestPermission() threw", e);
-      hcErr("Error stack:", e?.stack);
-      // Permission denied or error
+      hcErr("requestPermission() threw", {
+        message: e?.message,
+        name: e?.name,
+        stack: e?.stack,
+      });
       return { granted: false, permissions };
     }
   })();

@@ -29,6 +29,13 @@
             "minSdkVersion": 26
           }
         }
+      ],
+      [
+        "expo-health-connect",
+        {
+          "rationale": "We need access to your health data to track steps and heart rate.",
+          "permissions": ["Steps", "HeartRate"]
+        }
       ]
     ]
   }
