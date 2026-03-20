@@ -1,10 +1,23 @@
+import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { ClerkProvider } from "@clerk/clerk-expo";
+import * as Notifications from "expo-notifications";
 import { tokenCache } from "../features/auth/auth.utils";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
 export default function RootLayout() {
+  useEffect(() => {
+        Notifications.setNotificationHandler({
+            handleNotification: async () => ({
+                shouldPlaySound: true,
+                shouldSetBadge: false,
+                shouldShowBanner: true,
+                shouldShowList: true,
+            }),
+        });
+    }, []);
+
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <Stack screenOptions={{ headerShown: false }}>

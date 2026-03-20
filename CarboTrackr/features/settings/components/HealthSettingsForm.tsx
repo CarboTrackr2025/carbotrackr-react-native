@@ -1,9 +1,17 @@
 import React, { useMemo, useState } from "react"
-import { StyleSheet, Text, View } from "react-native"
+import { Platform, StyleSheet, Text, View } from "react-native"
+import DateTimePicker, {
+    DateTimePickerEvent,
+} from "@react-native-community/datetimepicker"
 import { Button } from "../../../shared/components/Button"
 import { Dropdown } from "../../../shared/components/Dropdown"
 import { GradientTextInput } from "../../../shared/components/GradientTextInput"
 import { color, gradient } from "../../../shared/constants/colors"
+import {
+    formatPhilippinesTimeOfDay,
+    formatTimeOfDayForApi,
+    parseTimeOfDayToDate,
+} from "../../../shared/utils/formatters"
 import type { HealthSettingsData as ApiHealthSettingsData } from "../api/get-health-settings"
 
 type DiagnosedWith = NonNullable<ApiHealthSettingsData["diagnosed_with"]>
@@ -14,6 +22,7 @@ export type SaveHealthSettingsInput = {
     daily_calorie_goal_kcal: number
     daily_carbohydrate_goal_g: number
     reminder_frequency: number
+    reminder_time: string
     diagnosed_with: DiagnosedWith
 }
 
@@ -46,8 +55,23 @@ export default function HealthSettingsForm({
             : ""
     )
 
+    const [reminderTime, setReminderTime] = useState<Date | null>(
+        parseTimeOfDayToDate(initialValues.reminder_time)
+    )
+    const [showReminderTimePicker, setShowReminderTimePicker] = useState(false)
+
     const [diagnosedWith, setDiagnosedWith] = useState<DiagnosedWith | null>(
         initialValues.diagnosed_with ?? null
+    )
+
+    const reminderTimeValue = useMemo(
+        () => formatTimeOfDayForApi(reminderTime),
+        [reminderTime]
+    )
+
+    const formattedReminderTime = useMemo(
+        () => (reminderTimeValue ? formatPhilippinesTimeOfDay(reminderTimeValue) : ""),
+        [reminderTimeValue]
     )
 
     const diagnosedOptions = [
@@ -68,6 +92,7 @@ export default function HealthSettingsForm({
             carbs > 0 &&
             Number.isInteger(reminders) &&
             reminders >= 0 &&
+            !!reminderTime &&
             !!diagnosedWith &&
             !saving
         )
@@ -75,17 +100,32 @@ export default function HealthSettingsForm({
         dailyCalorieGoal,
         dailyCarbohydrateGoal,
         reminderFrequency,
+        reminderTime,
         diagnosedWith,
         saving,
     ])
 
+    const handleReminderTimeChange = (
+        event: DateTimePickerEvent,
+        selectedDate?: Date
+    ) => {
+        if (Platform.OS === "android") {
+            setShowReminderTimePicker(false)
+        }
+
+        if (event.type === "set" && selectedDate && !Number.isNaN(selectedDate.getTime())) {
+            setReminderTime(selectedDate)
+        }
+    }
+
     const handleSave = async () => {
-        if (!canSave || !diagnosedWith) return
+        if (!canSave || !diagnosedWith || !reminderTimeValue) return
 
         await onSave({
             daily_calorie_goal_kcal: Number(dailyCalorieGoal),
             daily_carbohydrate_goal_g: Number(dailyCarbohydrateGoal),
             reminder_frequency: Number(reminderFrequency),
+            reminder_time: reminderTimeValue,
             diagnosed_with: diagnosedWith,
         })
     }
@@ -123,6 +163,26 @@ export default function HealthSettingsForm({
                     keyboardType="number-pad"
                     iconName="pencil"
                 />
+            </View>
+
+            <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Reminder Time (PHT)</Text>
+                <GradientTextInput
+                    value={formattedReminderTime}
+                    placeholder="08:00 AM"
+                    iconName="alarm"
+                    showSoftInputOnFocus={false}
+                    caretHidden
+                    onFocus={() => setShowReminderTimePicker(true)}
+                />
+                {showReminderTimePicker && (
+                    <DateTimePicker
+                        value={reminderTime ?? new Date()}
+                        mode="time"
+                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                        onChange={handleReminderTimeChange}
+                    />
+                )}
             </View>
 
             <View style={styles.fieldGroup}>
