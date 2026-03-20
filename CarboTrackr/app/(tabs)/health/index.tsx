@@ -49,9 +49,13 @@ export default function BloodPressureIndexScreen() {
     GlucoseMeasurement[]
   >([]);
 
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
+  // Blood Pressure date range
+  const [bpStartDate, setBpStartDate] = useState(new Date());
+  const [bpEndDate, setBpEndDate] = useState(new Date());
 
+  // Blood Glucose date range
+  const [bgStartDate, setBgStartDate] = useState(new Date());
+  const [bgEndDate, setBgEndDate] = useState(new Date());
   const fetchMeasurements = useCallback(async () => {
     try {
       setMeasurements([]);
@@ -63,8 +67,8 @@ export default function BloodPressureIndexScreen() {
 
       const { measurements: cleaned } = await getBloodPressureReport({
         accountId: accountIdFromClerk,
-        startDate: startOfDay(startDate),
-        endDate: endOfDay(endDate),
+        startDate: startOfDay(bpStartDate),
+        endDate: endOfDay(bpEndDate),
       });
 
       setMeasurements(cleaned);
@@ -78,7 +82,7 @@ export default function BloodPressureIndexScreen() {
       });
       Alert.alert("Could not load blood pressure history", "Please try again.");
     }
-  }, [startDate, endDate]);
+  }, [bpStartDate, bpEndDate]);
 
   const fetchGlucoseMeasurements = useCallback(async () => {
     try {
@@ -91,8 +95,8 @@ export default function BloodPressureIndexScreen() {
 
       const { measurements: cleaned } = await getBloodGlucoseReport({
         accountId: accountIdFromClerk,
-        startDate: startOfDay(startDate),
-        endDate: endOfDay(endDate),
+        startDate: startOfDay(bgStartDate),
+        endDate: endOfDay(bgEndDate),
       });
 
       setGlucoseMeasurements(cleaned);
@@ -106,7 +110,7 @@ export default function BloodPressureIndexScreen() {
       });
       Alert.alert("Could not load blood glucose history", "Please try again.");
     }
-  }, [startDate, endDate]);
+  }, [bgStartDate, bgEndDate]);
 
   useEffect(() => {
     (async () => {
@@ -139,18 +143,14 @@ export default function BloodPressureIndexScreen() {
       <View style={styles.headerRow}>
         <Text style={styles.headerTitle}>Health</Text>
         <Text style={styles.subTitle}>
-          {toYMDLocal(startDate)} → {toYMDLocal(endDate)}
+          BP: {toYMDLocal(bpStartDate)} → {toYMDLocal(bpEndDate)}
+        </Text>
+        <Text style={styles.subTitle}>
+          BG: {toYMDLocal(bgStartDate)} → {toYMDLocal(bgEndDate)}
         </Text>
       </View>
 
-      <DateRangePicker
-        startDate={startDate}
-        endDate={endDate}
-        onChange={(s, e) => {
-          setStartDate(s);
-          setEndDate(e);
-        }}
-      />
+      {/* Remove the single DateRangePicker from here */}
 
       {loading ? (
         <View style={styles.loadingBox}>
@@ -160,6 +160,17 @@ export default function BloodPressureIndexScreen() {
       ) : (
         <>
           <Text style={styles.sectionTitle}>Blood Pressure</Text>
+
+          {/* BP Date Range Picker */}
+          <DateRangePicker
+            startDate={bpStartDate}
+            endDate={bpEndDate}
+            onChange={(s, e) => {
+              setBpStartDate(s);
+              setBpEndDate(e);
+            }}
+          />
+
           <BloodPressureChart measurements={measurements} />
 
           {measurements.length === 0 && (
@@ -172,6 +183,17 @@ export default function BloodPressureIndexScreen() {
           )}
 
           <Text style={styles.sectionTitle}>Blood Glucose</Text>
+
+          {/* BG Date Range Picker */}
+          <DateRangePicker
+            startDate={bgStartDate}
+            endDate={bgEndDate}
+            onChange={(s, e) => {
+              setBgStartDate(s);
+              setBgEndDate(e);
+            }}
+          />
+
           <BloodGlucoseChart measurements={glucoseMeasurements} />
 
           {glucoseMeasurements.length === 0 && (
