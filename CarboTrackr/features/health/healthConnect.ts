@@ -200,6 +200,7 @@ export async function requestStepsAndHeartRatePermissions(): Promise<PermissionR
     const permissions: Permission[] = [
       { accessType: "read", recordType: "Steps" },
       { accessType: "read", recordType: "HeartRate" },
+      { accessType: "read", recordType: "TotalCaloriesBurned" },
     ];
 
     try {

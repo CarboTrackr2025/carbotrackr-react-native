@@ -401,6 +401,16 @@ export default function BloodPressureIndexScreen() {
         endTime: end,
       });
 
+      // Hook up calories sync as well
+      try {
+        await readCaloriesSamples({
+          startTime: start,
+          endTime: end,
+        });
+      } catch (e) {
+        console.warn("Failed to sync calories", e);
+      }
+
       const byDay = new Map<string, number>();
       for (const s of samples) {
         const d = new Date(s.startTime);

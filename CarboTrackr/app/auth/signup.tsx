@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useSignUp, useOAuth } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
+import * as AuthSession from "expo-auth-session";
 import SignupForm from "../../features/auth/components/SignupForm";
 import { signUpWithClerk } from "../../features/auth/api/auth.api";
 import { saveClerkSession } from "../../features/auth/auth.utils";
@@ -69,7 +70,12 @@ export default function SignupScreen() {
     try {
       const startOAuthFlow =
         provider === "oauth_google" ? startGoogleOAuth : startFacebookOAuth;
-      const redirectUrl = Linking.createURL("/auth/oauth-native-callback");
+      const redirectUrl = AuthSession.makeRedirectUri({
+        useProxy: true,
+        projectNameForProxy: "@eenvees-inc/carbotrackrtester",
+        path: "auth/oauth-native-callback",
+      });
+      console.log("🔗 [Signup Screen] OAuth redirectUrl:", redirectUrl);
       const {
         createdSessionId,
         setActive: oAuthSetActive,

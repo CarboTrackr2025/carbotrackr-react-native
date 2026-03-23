@@ -14,7 +14,9 @@ export default {
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_HEART_RATE",
         "android.permission.health.WRITE_STEPS",
-        "android.permission.health.WRITE_HEART_RATE"
+        "android.permission.health.WRITE_HEART_RATE",
+         "android.permission.health.READ_TOTAL_CALORIES_BURNED",
+         "android.permission.health.WRITE_TOTAL_CALORIES_BURNED",
       ]
     },
     ios: {
@@ -45,6 +47,9 @@ export default {
           permissions: ["Steps", "HeartRate"],
         },
       ],
+        [
+            "expo-secure-store",
+        ]
     ],
   },
 };
