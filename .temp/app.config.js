@@ -5,14 +5,22 @@ export default {
         projectId: "b93d7a65-e09c-47a7-8b1b-2c40c8367202",
       },
     },
-    owner: "3envees-inc",
+    owner: "eenvees-inc",
     slug: "carbotrackrtester",
     name: "CarboTrackr",
     android: {
-      package: "com.kinra23.carbotrackrtester",
+      package: "com.eenvees.carbotrackrtester", 
+      permissions: [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.WRITE_STEPS",
+        "android.permission.health.WRITE_HEART_RATE",
+         "android.permission.health.READ_TOTAL_CALORIES_BURNED",
+         "android.permission.health.WRITE_TOTAL_CALORIES_BURNED",
+      ]
     },
     ios: {
-      bundleIdentifier: "com.kinra23.carbotrackrtester",
+      bundleIdentifier: "com.eenvees.carbotrackrtester",
     },
     plugins: [
       [
@@ -30,18 +38,18 @@ export default {
           },
         },
       ],
+      // Per react-native-health-connect docs (Expo installation)
       [
-        "react-native-health-connect",
+        "expo-health-connect",
         {
-          permissions: [
-            "android.permission.health.READ_STEPS",
-            "android.permission.health.READ_HEART_RATE",
-            "android.permission.health.WRITE_STEPS",
-            "android.permission.health.WRITE_HEART_RATE",
-          ],
+          rationale:
+            "We need access to your health data to track steps and heart rate.",
+          permissions: ["Steps", "HeartRate"],
         },
       ],
-      ["expo-health-connect"],
+        [
+            "expo-secure-store",
+        ]
     ],
   },
 };
