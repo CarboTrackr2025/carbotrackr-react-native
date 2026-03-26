@@ -19,9 +19,8 @@ export type GetWatchMetricsResponse = {
 
 export async function getWatchMetrics(params: GetWatchMetricsParams) {
   const res = await axios.get<GetWatchMetricsResponse>(
-    `${API_BASE_URL}/watch/getData`,
-    { params }
+    `${API_BASE_URL}/watch/metrics`,
+    { params },
   );
   return res.data;
 }
-

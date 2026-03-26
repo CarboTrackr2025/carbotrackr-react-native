@@ -32,9 +32,13 @@ import {
   ensureHealthConnectInitialized,
   readHeartRateSamples,
   readStepsSamples,
-  requestStepsAndHeartRatePermissions,
+  readTotalCaloriesBurned,
+  requestHealthDataPermissions,
   resetHealthConnectInitialization,
 } from "../../../features/health/healthConnect";
+
+import { createWatchMetric } from "../../../features/health/api/post-watch-data";
+import { getWatchMetrics } from "../../../features/health/api/get-watch-data";
 
 import {
   getBloodPressureReport,
@@ -53,6 +57,12 @@ const toYMDLocal = (d: Date) => {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+};
+
+const toHHmm = (d: Date) => {
+  const h = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${h}:${min}`;
 };
 
 const startOfDay = (d: Date) =>
@@ -297,7 +307,7 @@ export default function BloodPressureIndexScreen() {
       await ensureHealthConnectReady();
 
       console.log(
-        "[HealthConnectUI] About to call requestStepsAndHeartRatePermissions()",
+        "[HealthConnectUI] About to call requestHealthDataPermissions()",
       );
       console.log(
         "[HealthConnectUI] EXPECTATION: A SYSTEM DIALOG should appear OVER the app",
@@ -307,7 +317,7 @@ export default function BloodPressureIndexScreen() {
       );
 
       // This triggers the SYSTEM PERMISSION DIALOG - this is the critical step!
-      const result = await requestStepsAndHeartRatePermissions();
+      const result = await requestHealthDataPermissions();
       console.log("[HealthConnectUI] permission result", result);
       console.log(
         "[HealthConnectUI] grantedPermissions:",
@@ -370,12 +380,10 @@ export default function BloodPressureIndexScreen() {
 
     try {
       setStepsLoading(true);
-      setStepsPoints([]);
 
       await ensureHealthConnectReady();
 
-      // First, trigger the permission request dialog
-      const permissionResult = await requestStepsAndHeartRatePermissions();
+      const permissionResult = await requestHealthDataPermissions();
       if (!permissionResult.granted) {
         Alert.alert(
           "Permission Required",
@@ -393,40 +401,32 @@ export default function BloodPressureIndexScreen() {
         return;
       }
 
+      const syncedAt = new Date();
       const start = startOfDay(startDate);
       const end = endOfDay(endDate);
 
-      const samples = await readStepsSamples({
+      // Get profile_id for syncing
+      const accountId = await getClerkUserId();
+
+      // Read metrics - data is automatically synced to backend via onHealthDataRead
+      const stepSamples = await readStepsSamples({
         startTime: start,
         endTime: end,
+        profile_id: accountId || "",
+        preferredSources: ["com.google.android.apps.fitness"],
       });
 
-      // Hook up calories sync as well
-      try {
-        await readCaloriesSamples({
-          startTime: start,
-          endTime: end,
-        });
-      } catch (e) {
-        console.warn("Failed to sync calories", e);
-      }
+      const totalSteps = stepSamples.reduce(
+        (acc, s) => acc + (s.count ?? 0),
+        0,
+      );
+      const syncLabel = toHHmm(syncedAt);
 
-      const byDay = new Map<string, number>();
-      for (const s of samples) {
-        const d = new Date(s.startTime);
-        const key = toYMDLocal(d);
-        byDay.set(key, (byDay.get(key) ?? 0) + (s.count ?? 0));
-      }
-
-      const points: StepsPoint[] = [];
-      const cursor = new Date(start);
-      while (cursor <= end) {
-        const key = toYMDLocal(cursor);
-        points.push({ label: key.slice(5), value: byDay.get(key) ?? 0 });
-        cursor.setDate(cursor.getDate() + 1);
-      }
-
-      setStepsPoints(points);
+      // Append one point per sync press, labeled with the sync time
+      setStepsPoints((prev) => [
+        ...prev,
+        { label: syncLabel, value: totalSteps },
+      ]);
     } catch (err: any) {
       console.log("Failed to fetch steps from Health Connect", {
         message: err?.message,
@@ -449,12 +449,10 @@ export default function BloodPressureIndexScreen() {
 
     try {
       setHeartRateLoading(true);
-      setHeartRatePoints([]);
 
       await ensureHealthConnectReady();
 
-      // First, trigger the permission request dialog
-      const permissionResult = await requestStepsAndHeartRatePermissions();
+      const permissionResult = await requestHealthDataPermissions();
       if (!permissionResult.granted) {
         Alert.alert(
           "Permission Required",
@@ -472,36 +470,34 @@ export default function BloodPressureIndexScreen() {
         return;
       }
 
+      const syncedAt = new Date();
       const start = startOfDay(startDate);
       const end = endOfDay(endDate);
 
-      const samples = await readHeartRateSamples({
+      // Get profile_id for syncing
+      const accountId = await getClerkUserId();
+
+      // Read metrics - data is automatically synced to backend via onHealthDataRead
+      const hrSamples = await readHeartRateSamples({
         startTime: start,
         endTime: end,
+        profile_id: accountId || "",
+        preferredSources: [
+          "com.samsung.android.fitness",
+          "com.sec.android.app.shealth",
+        ],
       });
 
-      // Aggregate by day: average bpm.
-      const sums = new Map<string, { sum: number; n: number }>();
-      for (const s of samples) {
-        const d = new Date(s.time);
-        const key = toYMDLocal(d);
-        const cur = sums.get(key) ?? { sum: 0, n: 0 };
-        sums.set(key, { sum: cur.sum + (s.bpm ?? 0), n: cur.n + 1 });
-      }
+      const totalBpm = hrSamples.reduce((acc, s) => acc + (s.bpm ?? 0), 0);
+      const avgBpm =
+        hrSamples.length > 0 ? Math.round(totalBpm / hrSamples.length) : 1;
+      const syncLabel = toHHmm(syncedAt);
 
-      const points: HeartRatePoint[] = [];
-      const cursor = new Date(start);
-      while (cursor <= end) {
-        const key = toYMDLocal(cursor);
-        const v = sums.get(key);
-        points.push({
-          label: key.slice(5),
-          value: v && v.n ? Math.round(v.sum / v.n) : 0,
-        });
-        cursor.setDate(cursor.getDate() + 1);
-      }
-
-      setHeartRatePoints(points);
+      // Append one point per sync press, labeled with the sync time
+      setHeartRatePoints((prev) => [
+        ...prev,
+        { label: syncLabel, value: avgBpm },
+      ]);
     } catch (err: any) {
       console.log("Failed to fetch heart rate from Health Connect", {
         message: err?.message,
@@ -515,6 +511,149 @@ export default function BloodPressureIndexScreen() {
       setHeartRateLoading(false);
     }
   }, [startDate, endDate, ensureHealthConnectReady]);
+
+  const fetchWatchData = useCallback(async () => {
+    try {
+      const accountIdFromClerk = await getClerkUserId();
+      if (!accountIdFromClerk) {
+        throw new Error("User ID from Clerk Auth API not found");
+      }
+
+      // Query the backend for watch metrics in the selected date range
+      const res = await getWatchMetrics({
+        profile_id: accountIdFromClerk,
+        from: startOfDay(startDate).toISOString(),
+        to: endOfDay(endDate).toISOString(),
+        limit: 500,
+      });
+
+      const rows = res.data ?? [];
+
+      // Map DB rows to chart points (chronological order)
+      const sorted = rows
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(a.measured_at).getTime() -
+            new Date(b.measured_at).getTime(),
+        );
+
+      const mappedSteps: StepsPoint[] = sorted.map((r) => ({
+        label: toHHmm(new Date(r.measured_at)),
+        value: Number(r.steps_count) || 0,
+      }));
+
+      const mappedHr: HeartRatePoint[] = sorted.map((r) => ({
+        label: toHHmm(new Date(r.measured_at)),
+        value: Number(r.heart_rate_bpm) || 0,
+      }));
+
+      setStepsPoints(mappedSteps);
+      setHeartRatePoints(mappedHr);
+    } catch (err: any) {
+      console.log("Failed to fetch watch data from backend", {
+        message: err?.message,
+        status: err?.response?.status,
+        data: err?.response?.data,
+      });
+    }
+  }, [startDate, endDate]);
+
+  const syncAll = useCallback(async () => {
+    if (!isAndroid) {
+      Alert.alert("Health Connect is only available on Android");
+      return;
+    }
+
+    try {
+      setHeartRateLoading(true);
+      setStepsLoading(true);
+
+      await ensureHealthConnectReady();
+
+      const permissionResult = await requestHealthDataPermissions();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          "Permission Required",
+          "To read health data, you need to grant permission in Health Connect. Please grant permissions and try again.",
+        );
+        return;
+      }
+
+      const syncedAt = new Date();
+      const start = startOfDay(startDate);
+      const end = endOfDay(endDate);
+
+      const accountId = await getClerkUserId();
+      if (!accountId) throw new Error("User id not found");
+
+      // Read raw samples
+      const [stepSamples, hrSamples, caloriesSamples] = await Promise.all([
+        readStepsSamples({
+          startTime: start,
+          endTime: end,
+          profile_id: accountId,
+          preferredSources: ["com.google.android.apps.fitness"],
+        }).catch(() => []),
+        readHeartRateSamples({
+          startTime: start,
+          endTime: end,
+          profile_id: accountId,
+          preferredSources: [
+            "com.samsung.android.fitness",
+            "com.sec.android.app.shealth",
+          ],
+        }).catch(() => []),
+        readTotalCaloriesBurned({
+          startTime: start,
+          endTime: end,
+          profile_id: accountId,
+          preferredSources: [
+            "com.samsung.android.fitness",
+            "com.sec.android.app.shealth",
+          ],
+        }).catch(() => []),
+      ]);
+
+      const totalSteps = stepSamples.reduce(
+        (acc, s) => acc + (s.count ?? 0),
+        0,
+      );
+      const totalBpm = hrSamples.reduce((acc, s) => acc + (s.bpm ?? 0), 0);
+      const avgBpm =
+        hrSamples.length > 0 ? Math.round(totalBpm / hrSamples.length) : 1;
+      const totalCalories = Math.round(
+        caloriesSamples.reduce(
+          (acc, s) => acc + (s.energy?.inCalories ?? 0),
+          0,
+        ),
+      );
+
+      // Persist aggregated metric to backend
+      await createWatchMetric({
+        profile_id: accountId,
+        heart_rate_bpm: avgBpm,
+        steps_count: Math.max(0, totalSteps),
+        calories_burned_kcal: Math.max(0, totalCalories),
+        measured_at: syncedAt.toISOString(),
+      });
+
+      // Refresh charts from DB
+      await fetchWatchData();
+    } catch (err: any) {
+      console.log("Failed to sync all metrics", {
+        message: err?.message,
+        data: err?.response?.data,
+      });
+      Alert.alert(
+        "Sync failed",
+        err?.message ?? "Failed to sync metrics. Check logs.",
+      );
+    } finally {
+      setHeartRateLoading(false);
+      setStepsLoading(false);
+    }
+  }, [startDate, endDate, ensureHealthConnectReady, fetchWatchData]);
 
   // Initialize Health Connect on mount
   useEffect(() => {
@@ -666,17 +805,10 @@ export default function BloodPressureIndexScreen() {
               )}
 
               <View style={styles.buttonRow}>
-                <View style={styles.buttonItem}>
+                <View style={styles.buttonItemWide}>
                   <Button
-                    title="Sync Heart Rate"
-                    onPress={fetchHeartRate}
-                    gradient={gradient.green as [string, string]}
-                  />
-                </View>
-                <View style={styles.buttonItem}>
-                  <Button
-                    title="Sync Step Count"
-                    onPress={fetchSteps}
+                    title="Sync All Metrics"
+                    onPress={syncAll}
                     gradient={gradient.green as [string, string]}
                   />
                 </View>
