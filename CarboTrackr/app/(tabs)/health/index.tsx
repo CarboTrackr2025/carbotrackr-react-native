@@ -30,11 +30,10 @@ import HeartRateChart, {
 
 import {
   ensureHealthConnectInitialized,
-  readHeartRateSamples,
-  readStepsSamples,
-  readTotalCaloriesBurned,
   requestHealthDataPermissions,
-  resetHealthConnectInitialization,
+  readTotalSteps,
+  readTotalCalories,
+  readMostRecentHeartRate,
 } from "../../../features/health/healthConnect";
 
 import { createWatchMetric } from "../../../features/health/api/post-watch-data";
@@ -52,6 +51,7 @@ import {
 
 import { getClerkUserId } from "../../../features/auth/auth.utils";
 
+// ─── Date helpers ────────────────────────────────────────────────────────────
 const toYMDLocal = (d: Date) => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -73,7 +73,11 @@ const endOfDay = (d: Date) =>
 // Health Connect is only available on Android
 const isAndroid = Platform.OS === "android";
 
-export default function BloodPressureIndexScreen() {
+// ─── Sync logger ─────────────────────────────────────────────────────────────
+const syncLog = (msg: string) => console.log(`[WatchSync] ${msg}`);
+
+// ─────────────────────────────────────────────────────────────────────────────
+export default function HealthIndexScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [measurements, setMeasurements] = useState<BpMeasurement[]>([]);
@@ -88,10 +92,10 @@ export default function BloodPressureIndexScreen() {
     "readings",
   );
 
-  const [stepsLoading, setStepsLoading] = useState(false);
-  const [stepsPoints, setStepsPoints] = useState<StepsPoint[]>([]);
+  const [watchDataLoading, setWatchDataLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
 
-  const [heartRateLoading, setHeartRateLoading] = useState(false);
+  const [stepsPoints, setStepsPoints] = useState<StepsPoint[]>([]);
   const [heartRatePoints, setHeartRatePoints] = useState<HeartRatePoint[]>([]);
 
   const [healthConnectAvailable, setHealthConnectAvailable] = useState<
@@ -101,30 +105,21 @@ export default function BloodPressureIndexScreen() {
     null,
   );
 
+  // ─── Blood pressure / glucose ───────────────────────────────────────────────
+
   const fetchMeasurements = useCallback(async () => {
     try {
       setMeasurements([]);
-
-      const accountIdFromClerk = await getClerkUserId();
-      if (!accountIdFromClerk) {
-        throw new Error("User ID from Clerk Auth API not found");
-      }
-
+      const accountId = await getClerkUserId();
+      if (!accountId) throw new Error("User ID from Clerk Auth API not found");
       const { measurements: cleaned } = await getBloodPressureReport({
-        accountId: accountIdFromClerk,
+        accountId,
         startDate: startOfDay(startDate),
         endDate: endOfDay(endDate),
       });
-
       setMeasurements(cleaned);
     } catch (err: any) {
-      console.log("Failed to fetch BP measurements", {
-        message: err?.message,
-        status: err?.response?.status,
-        url: err?.config?.url,
-        params: err?.config?.params,
-        data: err?.response?.data,
-      });
+      console.warn("[Health] Failed to fetch BP measurements:", err?.message);
       Alert.alert("Could not load blood pressure history", "Please try again.");
     }
   }, [startDate, endDate]);
@@ -132,30 +127,24 @@ export default function BloodPressureIndexScreen() {
   const fetchGlucoseMeasurements = useCallback(async () => {
     try {
       setGlucoseMeasurements([]);
-
-      const accountIdFromClerk = await getClerkUserId();
-      if (!accountIdFromClerk) {
-        throw new Error("User ID from Clerk Auth API not found");
-      }
-
+      const accountId = await getClerkUserId();
+      if (!accountId) throw new Error("User ID from Clerk Auth API not found");
       const { measurements: cleaned } = await getBloodGlucoseReport({
-        accountId: accountIdFromClerk,
+        accountId,
         startDate: startOfDay(startDate),
         endDate: endOfDay(endDate),
       });
-
       setGlucoseMeasurements(cleaned);
     } catch (err: any) {
-      console.log("Failed to fetch glucose measurements", {
-        message: err?.message,
-        status: err?.response?.status,
-        url: err?.config?.url,
-        params: err?.config?.params,
-        data: err?.response?.data,
-      });
+      console.warn(
+        "[Health] Failed to fetch glucose measurements:",
+        err?.message,
+      );
       Alert.alert("Could not load blood glucose history", "Please try again.");
     }
   }, [startDate, endDate]);
+
+  // ─── Health Connect setup ────────────────────────────────────────────────────
 
   const ensureHealthConnectReady = useCallback(async () => {
     if (!isAndroid) {
@@ -163,12 +152,10 @@ export default function BloodPressureIndexScreen() {
       setHealthConnectError("Health Connect is only available on Android");
       return;
     }
-
     try {
       const result = await ensureHealthConnectInitialized();
       setHealthConnectAvailable(result.available);
       setHealthConnectError(result.error ?? null);
-
       if (!result.initialized) {
         throw new Error(
           result.error ??
@@ -183,110 +170,35 @@ export default function BloodPressureIndexScreen() {
   }, []);
 
   const openHealthConnect = async () => {
-    // Resolve the *actual* runtime package name/applicationId.
-    // This frequently differs between dev-client/debug/release builds.
     const runtimePackage =
       Application.applicationId || Application.applicationName || "unknown";
-
-    console.log("[HealthConnectUI] runtime package", {
-      applicationId: Application.applicationId,
-      applicationName: Application.applicationName,
-    });
-
-    // Health Connect package: com.google.android.apps.healthdata
-    // Try to open the permission/settings screen via Android Intent (most reliable),
-    // then fall back to deep links, and finally Play Store.
-
-    const marketUrl = "market://details?id=com.google.android.apps.healthdata";
+    const marketUrl =
+      "market://details?id=com.google.android.apps.healthdata";
     const webUrl =
       "https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata";
-
-    // Deep-link schemes are not supported on many devices.
     const hcPermissionUrl = `healthconnect://permissions?packageName=${encodeURIComponent(runtimePackage)}`;
     const hcMainUrl = "healthconnect://";
-
-    // Intent actions (support varies by Android / Health Connect version).
-    const ACTION_HEALTH_CONNECT_SETTINGS =
-      "androidx.health.ACTION_HEALTH_CONNECT_SETTINGS";
-    const ACTION_SHOW_PERMISSIONS_RATIONALE =
-      "androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE";
-
     try {
-      // 1) Try opening Health Connect settings UI (Android 14+ / some builds)
-      console.log(
-        "[HealthConnectUI] trying IntentLauncher ACTION_HEALTH_CONNECT_SETTINGS",
-      );
       await IntentLauncher.startActivityAsync(
-        ACTION_HEALTH_CONNECT_SETTINGS as any,
+        "androidx.health.ACTION_HEALTH_CONNECT_SETTINGS" as any,
       );
       return;
-    } catch (e1) {
-      console.warn(
-        "[HealthConnectUI] ACTION_HEALTH_CONNECT_SETTINGS failed",
-        e1,
-      );
-    }
-
+    } catch (_) {}
     try {
-      // 2) Try rationale/permissions activity (if available on device)
-      console.log(
-        "[HealthConnectUI] trying IntentLauncher ACTION_SHOW_PERMISSIONS_RATIONALE",
-      );
       await IntentLauncher.startActivityAsync(
-        ACTION_SHOW_PERMISSIONS_RATIONALE as any,
-        {
-          // Some implementations look for these extras.
-          extra: {
-            packageName: runtimePackage,
-          },
-        },
+        "androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" as any,
+        { extra: { packageName: runtimePackage } },
       );
       return;
-    } catch (e2) {
-      console.warn(
-        "[HealthConnectUI] ACTION_SHOW_PERMISSIONS_RATIONALE failed",
-        e2,
-      );
-    }
-
+    } catch (_) {}
     try {
-      // 3) Deep links (often unsupported)
-      const canOpenPermission = await Linking.canOpenURL(hcPermissionUrl);
-      const canOpenMain = await Linking.canOpenURL(hcMainUrl);
-      const canOpenMarket = await Linking.canOpenURL(marketUrl);
-
-      console.log("[HealthConnectUI] canOpenURL", {
-        hcPermissionUrl: canOpenPermission,
-        hcMainUrl: canOpenMain,
-        marketUrl: canOpenMarket,
-      });
-
-      if (canOpenPermission) {
-        console.log(
-          "[HealthConnectUI] opening hcPermissionUrl",
-          hcPermissionUrl,
-        );
-        await Linking.openURL(hcPermissionUrl);
-        return;
-      }
-
-      if (canOpenMain) {
-        console.log("[HealthConnectUI] opening hcMainUrl", hcMainUrl);
-        await Linking.openURL(hcMainUrl);
-        return;
-      }
-
-      // 4) Store/web fallback
-      console.log(
-        "[HealthConnectUI] opening store/web fallback",
-        canOpenMarket ? marketUrl : webUrl,
-      );
-      await Linking.openURL(canOpenMarket ? marketUrl : webUrl);
-    } catch (e3) {
-      console.warn(
-        "[HealthConnectUI] openHealthConnect failed, opening webUrl",
-        e3,
-      );
+      const canPerm = await Linking.canOpenURL(hcPermissionUrl);
+      const canMain = await Linking.canOpenURL(hcMainUrl);
+      const canMarket = await Linking.canOpenURL(marketUrl);
+      if (canPerm) { await Linking.openURL(hcPermissionUrl); return; }
+      if (canMain) { await Linking.openURL(hcMainUrl); return; }
+      await Linking.openURL(canMarket ? marketUrl : webUrl);
+    } catch (_) {
       await Linking.openURL(webUrl);
     }
   };
@@ -296,75 +208,29 @@ export default function BloodPressureIndexScreen() {
       Alert.alert("Health Connect is only available on Android");
       return;
     }
-
     try {
-      console.log("[HealthConnectUI] promptHealthConnectPermissions() pressed");
-      console.log(
-        "[HealthConnectUI] Current app package:",
-        Application.applicationId,
-      );
-
       await ensureHealthConnectReady();
-
-      console.log(
-        "[HealthConnectUI] About to call requestHealthDataPermissions()",
-      );
-      console.log(
-        "[HealthConnectUI] EXPECTATION: A SYSTEM DIALOG should appear OVER the app",
-      );
-      console.log(
-        "[HealthConnectUI] If NO dialog appears, the permissions may not be properly configured in AndroidManifest",
-      );
-
-      // This triggers the SYSTEM PERMISSION DIALOG - this is the critical step!
       const result = await requestHealthDataPermissions();
-      console.log("[HealthConnectUI] permission result", result);
-      console.log(
-        "[HealthConnectUI] grantedPermissions:",
-        JSON.stringify(result.grantedPermissions),
-      );
-
       if (result.granted) {
         Alert.alert(
           "Permissions Granted",
-          "Health Connect access has been granted. You can now sync steps and heart rate.",
+          "Health Connect access has been granted. You can now sync metrics.",
         );
       } else {
-        // Permissions were NOT granted
-        console.log(
-          "[HealthConnectUI] Permissions not granted. grantedPermissions:",
-          result.grantedPermissions,
-        );
-
-        // Check if ANY permissions were granted
-        const hasSomePermissions =
+        const hasSome =
           result.grantedPermissions && result.grantedPermissions.length > 0;
-
         Alert.alert(
           "Permission Status",
-          hasSomePermissions
-            ? "Some permissions were granted, but not all. Please manually enable the remaining permissions in Health Connect."
-            : "No permissions were granted. This usually means:\n\n1. You denied the permission dialog, OR\n2. The dialog didn't appear (check logs)\n\nTap 'Open Health Connect' to manually enable permissions.",
+          hasSome
+            ? "Some permissions were granted but not all. Please enable the remaining in Health Connect."
+            : "No permissions were granted. Tap 'Open Health Connect' to manually enable them.",
           [
             { text: "Cancel", style: "cancel" },
-            {
-              text: "Open Health Connect",
-              onPress: async () => {
-                console.log(
-                  "[HealthConnectUI] Opening Health Connect for manual permission grant",
-                );
-                await openHealthConnect();
-              },
-            },
+            { text: "Open Health Connect", onPress: openHealthConnect },
           ],
         );
       }
     } catch (e: any) {
-      console.warn(
-        "[HealthConnectUI] promptHealthConnectPermissions() error",
-        e,
-      );
-      console.warn("[HealthConnectUI] error stack:", e?.stack);
       Alert.alert(
         "Health Connect",
         e?.message ?? "Failed to request Health Connect permissions.",
@@ -372,165 +238,26 @@ export default function BloodPressureIndexScreen() {
     }
   }, [ensureHealthConnectReady]);
 
-  const fetchSteps = useCallback(async () => {
-    if (!isAndroid) {
-      Alert.alert("Health Connect is only available on Android");
-      return;
-    }
+  // ─── Watch charts (loaded from backend) ─────────────────────────────────────
 
-    try {
-      setStepsLoading(true);
-
-      await ensureHealthConnectReady();
-
-      const permissionResult = await requestHealthDataPermissions();
-      if (!permissionResult.granted) {
-        Alert.alert(
-          "Permission Required",
-          "To read step data, you need to grant permission in Health Connect.\n\n1. Tap 'Grant Permission' below\n2. Find your app in the list\n3. Enable 'Read' access for Steps",
-          [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Grant Permission",
-              onPress: async () => {
-                await openHealthConnect();
-              },
-            },
-          ],
-        );
-        return;
-      }
-
-      const syncedAt = new Date();
-      const start = startOfDay(startDate);
-      const end = endOfDay(endDate);
-
-      // Get profile_id for syncing
-      const accountId = await getClerkUserId();
-
-      // Read metrics - data is automatically synced to backend via onHealthDataRead
-      const stepSamples = await readStepsSamples({
-        startTime: start,
-        endTime: end,
-        profile_id: accountId || "",
-        preferredSources: ["com.google.android.apps.fitness"],
-      });
-
-      const totalSteps = stepSamples.reduce(
-        (acc, s) => acc + (s.count ?? 0),
-        0,
-      );
-      const syncLabel = toHHmm(syncedAt);
-
-      // Append one point per sync press, labeled with the sync time
-      setStepsPoints((prev) => [
-        ...prev,
-        { label: syncLabel, value: totalSteps },
-      ]);
-    } catch (err: any) {
-      console.log("Failed to fetch steps from Health Connect", {
-        message: err?.message,
-      });
-      Alert.alert(
-        "Could not load steps",
-        err?.message ??
-          "Please confirm Health Connect permissions and try again.",
-      );
-    } finally {
-      setStepsLoading(false);
-    }
-  }, [startDate, endDate, ensureHealthConnectReady]);
-
-  const fetchHeartRate = useCallback(async () => {
-    if (!isAndroid) {
-      Alert.alert("Health Connect is only available on Android");
-      return;
-    }
-
-    try {
-      setHeartRateLoading(true);
-
-      await ensureHealthConnectReady();
-
-      const permissionResult = await requestHealthDataPermissions();
-      if (!permissionResult.granted) {
-        Alert.alert(
-          "Permission Required",
-          "To read heart rate data, you need to grant permission in Health Connect.\n\n1. Tap 'Grant Permission' below\n2. Find your app in the list\n3. Enable 'Read' access for Heart Rate",
-          [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Grant Permission",
-              onPress: async () => {
-                await openHealthConnect();
-              },
-            },
-          ],
-        );
-        return;
-      }
-
-      const syncedAt = new Date();
-      const start = startOfDay(startDate);
-      const end = endOfDay(endDate);
-
-      // Get profile_id for syncing
-      const accountId = await getClerkUserId();
-
-      // Read metrics - data is automatically synced to backend via onHealthDataRead
-      const hrSamples = await readHeartRateSamples({
-        startTime: start,
-        endTime: end,
-        profile_id: accountId || "",
-        preferredSources: [
-          "com.samsung.android.fitness",
-          "com.sec.android.app.shealth",
-        ],
-      });
-
-      const totalBpm = hrSamples.reduce((acc, s) => acc + (s.bpm ?? 0), 0);
-      const avgBpm =
-        hrSamples.length > 0 ? Math.round(totalBpm / hrSamples.length) : 1;
-      const syncLabel = toHHmm(syncedAt);
-
-      // Append one point per sync press, labeled with the sync time
-      setHeartRatePoints((prev) => [
-        ...prev,
-        { label: syncLabel, value: avgBpm },
-      ]);
-    } catch (err: any) {
-      console.log("Failed to fetch heart rate from Health Connect", {
-        message: err?.message,
-      });
-      Alert.alert(
-        "Could not load heart rate",
-        err?.message ??
-          "Please confirm Health Connect permissions and try again.",
-      );
-    } finally {
-      setHeartRateLoading(false);
-    }
-  }, [startDate, endDate, ensureHealthConnectReady]);
-
+  /**
+   * Load watch charts from the backend using the currently selected date range.
+   * Called on section enter, date change, and after a successful sync.
+   */
   const fetchWatchData = useCallback(async () => {
     try {
-      const accountIdFromClerk = await getClerkUserId();
-      if (!accountIdFromClerk) {
-        throw new Error("User ID from Clerk Auth API not found");
-      }
+      setWatchDataLoading(true);
+      const accountId = await getClerkUserId();
+      if (!accountId) throw new Error("User ID from Clerk Auth API not found");
 
-      // Query the backend for watch metrics in the selected date range
       const res = await getWatchMetrics({
-        profile_id: accountIdFromClerk,
+        profile_id: accountId,
         from: startOfDay(startDate).toISOString(),
         to: endOfDay(endDate).toISOString(),
         limit: 500,
       });
 
-      const rows = res.data ?? [];
-
-      // Map DB rows to chart points (chronological order)
-      const sorted = rows
+      const rows = (res.data ?? [])
         .slice()
         .sort(
           (a, b) =>
@@ -538,27 +265,34 @@ export default function BloodPressureIndexScreen() {
             new Date(b.measured_at).getTime(),
         );
 
-      const mappedSteps: StepsPoint[] = sorted.map((r) => ({
-        label: toHHmm(new Date(r.measured_at)),
-        value: Number(r.steps_count) || 0,
-      }));
-
-      const mappedHr: HeartRatePoint[] = sorted.map((r) => ({
-        label: toHHmm(new Date(r.measured_at)),
-        value: Number(r.heart_rate_bpm) || 0,
-      }));
-
-      setStepsPoints(mappedSteps);
-      setHeartRatePoints(mappedHr);
+      setStepsPoints(
+        rows.map((r) => ({
+          label: toHHmm(new Date(r.measured_at)),
+          value: Number(r.steps_count) || 0,
+        })),
+      );
+      setHeartRatePoints(
+        rows.map((r) => ({
+          label: toHHmm(new Date(r.measured_at)),
+          value: Number(r.heart_rate_bpm) || 0,
+        })),
+      );
     } catch (err: any) {
-      console.log("Failed to fetch watch data from backend", {
-        message: err?.message,
-        status: err?.response?.status,
-        data: err?.response?.data,
-      });
+      console.warn(
+        "[Health] Failed to fetch watch data from backend:",
+        err?.message,
+      );
+    } finally {
+      setWatchDataLoading(false);
     }
   }, [startDate, endDate]);
 
+  // ─── Sync all metrics ────────────────────────────────────────────────────────
+
+  /**
+   * Reads the most recent data from Health Connect (always from today),
+   * sends it to the backend as one combined metric record, then refreshes charts.
+   */
   const syncAll = useCallback(async () => {
     if (!isAndroid) {
       Alert.alert("Health Connect is only available on Android");
@@ -566,108 +300,141 @@ export default function BloodPressureIndexScreen() {
     }
 
     try {
-      setHeartRateLoading(true);
-      setStepsLoading(true);
-
+      setSyncLoading(true);
       await ensureHealthConnectReady();
 
       const permissionResult = await requestHealthDataPermissions();
       if (!permissionResult.granted) {
         Alert.alert(
           "Permission Required",
-          "To read health data, you need to grant permission in Health Connect. Please grant permissions and try again.",
+          "Please grant Health Connect permissions and try again.",
         );
         return;
       }
 
-      const syncedAt = new Date();
-      const start = startOfDay(startDate);
-      const end = endOfDay(endDate);
-
       const accountId = await getClerkUserId();
-      if (!accountId) throw new Error("User id not found");
+      if (!accountId) throw new Error("User ID not found");
 
-      // Read raw samples
-      const [stepSamples, hrSamples, caloriesSamples] = await Promise.all([
-        readStepsSamples({
-          startTime: start,
-          endTime: end,
-          profile_id: accountId,
-          preferredSources: ["com.google.android.apps.fitness"],
-        }).catch(() => []),
-        readHeartRateSamples({
-          startTime: start,
-          endTime: end,
-          profile_id: accountId,
-          preferredSources: [
-            "com.samsung.android.fitness",
-            "com.sec.android.app.shealth",
-          ],
-        }).catch(() => []),
-        readTotalCaloriesBurned({
-          startTime: start,
-          endTime: end,
-          profile_id: accountId,
-          preferredSources: [
-            "com.samsung.android.fitness",
-            "com.sec.android.app.shealth",
-          ],
-        }).catch(() => []),
+      // Always read from start-of-today → now for the absolute latest data
+      const now = new Date();
+      const todayStart = startOfDay(now);
+
+      syncLog("──────────────────────────────────────────────────────");
+      syncLog("Reading from Health Connect...");
+      syncLog(
+        `Time window: today (${toYMDLocal(todayStart)}) → ${toHHmm(now)}`,
+      );
+
+      // ── Read all three in parallel ──────────────────────────────────────────
+      // Steps   : aggregateRecord → COUNT_TOTAL (Google Fit preferred)
+      // Calories: aggregateRecord → ENERGY_TOTAL.inCalories (Samsung Health)
+      // HR      : readRecords → most-recent sample   (Samsung Health)
+      const [stepsResult, hrResult, caloriesResult] = await Promise.all([
+        readTotalSteps(todayStart, now).catch((e: any) => {
+          syncLog(`Steps error: ${e?.message}`);
+          return { totalSteps: 0, dataOrigins: [] };
+        }),
+
+        readMostRecentHeartRate([
+          "com.samsung.android.fitness",
+          "com.sec.android.app.shealth",
+        ]).catch((e: any) => {
+          syncLog(`HeartRate error: ${e?.message}`);
+          return null;
+        }),
+
+        readTotalCalories(todayStart, now, [
+          "com.samsung.android.fitness",
+          "com.sec.android.app.shealth",
+        ]).catch((e: any) => {
+          syncLog(`Calories error: ${e?.message}`);
+          return { totalCalories: 0, dataOrigins: [] };
+        }),
       ]);
 
-      const totalSteps = stepSamples.reduce(
-        (acc, s) => acc + (s.count ?? 0),
-        0,
+      // ── Extract values ──────────────────────────────────────────────────────
+      const totalSteps = stepsResult.totalSteps;
+      const latestBpm = hrResult?.bpm ?? 1;
+      const latestHrTime = hrResult?.time ?? now.toISOString();
+      const latestHrSource = hrResult?.source ?? "unknown";
+      // totalCalories is already in Calories (not kcal)
+      const totalCalories = caloriesResult.totalCalories;
+
+      // ── Structured log ──────────────────────────────────────────────────────
+      syncLog(
+        `Steps      : ${totalSteps} (aggregated total) | origins: ${stepsResult.dataOrigins.join(", ") || "none"}`,
       );
-      const totalBpm = hrSamples.reduce((acc, s) => acc + (s.bpm ?? 0), 0);
-      const avgBpm =
-        hrSamples.length > 0 ? Math.round(totalBpm / hrSamples.length) : 1;
-      const totalCalories = Math.round(
-        caloriesSamples.reduce(
-          (acc, s) => acc + (s.energy?.inCalories ?? 0),
-          0,
-        ),
+      if (hrResult) {
+        syncLog(
+          `HeartRate  : ${latestBpm} bpm (most-recent sample) | source: ${latestHrSource} | time: ${latestHrTime}`,
+        );
+      } else {
+        syncLog("HeartRate  : no sample in last 24 h — defaulting to 1 bpm");
+      }
+      syncLog(
+        `Calories   : ${totalCalories} kcal (aggregated total) | origins: ${caloriesResult.dataOrigins.join(", ") || "none"}`,
       );
 
-      // Persist aggregated metric to backend
-      await createWatchMetric({
+      syncLog("──────────────────────────────────────────────────────");
+      syncLog("Sending to backend...");
+
+      // Use HR measurement time as the record timestamp when available so the
+      // entry is anchored to when the data was actually recorded, not synced.
+      const measuredAt = hrResult?.time ?? now.toISOString();
+
+      const payload = {
         profile_id: accountId,
-        heart_rate_bpm: avgBpm,
+        heart_rate_bpm: Math.max(1, latestBpm),
         steps_count: Math.max(0, totalSteps),
+        // Column is named calories_burned_kcal in the DB but stores raw Calories
         calories_burned_kcal: Math.max(0, totalCalories),
-        measured_at: syncedAt.toISOString(),
-      });
+        measured_at: measuredAt,
+      };
 
-      // Refresh charts from DB
-      await fetchWatchData();
-    } catch (err: any) {
-      console.log("Failed to sync all metrics", {
-        message: err?.message,
-        data: err?.response?.data,
-      });
-      Alert.alert(
-        "Sync failed",
-        err?.message ?? "Failed to sync metrics. Check logs.",
+      syncLog(
+        `Payload    : steps=${payload.steps_count}, hr=${payload.heart_rate_bpm} bpm, calories=${payload.calories_burned_kcal} cal, measured_at=${payload.measured_at}`,
       );
+
+      const response = await createWatchMetric(payload);
+
+      if (response?.status === "Success" || response?.data) {
+        syncLog(
+          `Result     : SUCCESS ✓ | backend id: ${response?.data?.id ?? "n/a"}`,
+        );
+        // Refresh charts so the newly-saved row appears immediately
+        await fetchWatchData();
+        syncLog("Charts updated ✓");
+      } else {
+        syncLog(
+          `Result     : FAILED ✗ | message: ${response?.message ?? "unknown"}`,
+        );
+      }
+
+      syncLog("──────────────────────────────────────────────────────");
+    } catch (err: any) {
+      const httpBody = err?.response?.data;
+      const httpStatus = err?.response?.status;
+      const detail = httpBody
+        ? `HTTP ${httpStatus}: ${JSON.stringify(httpBody)}`
+        : err?.message ?? "Unknown error";
+      syncLog(`ERROR: ${detail}`);
+      console.error("[WatchSync] Full error:", httpBody ?? err?.message, err);
+      Alert.alert("Sync failed", detail);
     } finally {
-      setHeartRateLoading(false);
-      setStepsLoading(false);
+      setSyncLoading(false);
     }
-  }, [startDate, endDate, ensureHealthConnectReady, fetchWatchData]);
+  }, [ensureHealthConnectReady, fetchWatchData]);
+
+  // ─── Lifecycle ───────────────────────────────────────────────────────────────
 
   // Initialize Health Connect on mount
   useEffect(() => {
-    (async () => {
-      if (isAndroid) {
-        try {
-          await ensureHealthConnectReady();
-        } catch (err) {
-          // Error already handled in ensureHealthConnectReady
-        }
-      }
-    })();
+    if (isAndroid) {
+      ensureHealthConnectReady().catch(() => {});
+    }
   }, []);
 
+  // Load blood pressure + glucose data on mount and date change
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -676,26 +443,28 @@ export default function BloodPressureIndexScreen() {
     })();
   }, [fetchMeasurements, fetchGlucoseMeasurements]);
 
+  // Reload BP/glucose when screen is focused
   useFocusEffect(
     useCallback(() => {
       Promise.all([fetchMeasurements(), fetchGlucoseMeasurements()]);
     }, [fetchMeasurements, fetchGlucoseMeasurements]),
   );
 
+  // Load watch chart data from backend whenever section or date range changes
+  useEffect(() => {
+    if (activeSection === "watch") {
+      fetchWatchData();
+    }
+  }, [activeSection, startDate, endDate]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([fetchMeasurements(), fetchGlucoseMeasurements()]);
     if (activeSection === "watch") {
-      await Promise.all([fetchHeartRate(), fetchSteps()]);
+      await fetchWatchData();
     }
     setRefreshing(false);
-  }, [
-    fetchMeasurements,
-    fetchGlucoseMeasurements,
-    activeSection,
-    fetchHeartRate,
-    fetchSteps,
-  ]);
+  }, [fetchMeasurements, fetchGlucoseMeasurements, activeSection, fetchWatchData]);
 
   const handleWatchSectionPress = async () => {
     if (!isAndroid) {
@@ -705,7 +474,6 @@ export default function BloodPressureIndexScreen() {
       );
       return;
     }
-
     if (!healthConnectAvailable) {
       Alert.alert(
         "Health Connect Not Available",
@@ -714,10 +482,11 @@ export default function BloodPressureIndexScreen() {
       );
       return;
     }
-
     setActiveSection("watch");
-    await Promise.all([fetchHeartRate(), fetchSteps()]);
+    // fetchWatchData is triggered via the useEffect above on activeSection change
   };
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <ScrollView
@@ -771,9 +540,9 @@ export default function BloodPressureIndexScreen() {
                   "Health Connect is not available on this device."}
               </Text>
               <Text style={styles.warningSubtext}>
-                • Android 14+: Health Connect is built-in. Check Settings → Apps
-                → Health Connect.{"\n"}• Android 13 and below: Install from Play
-                Store.
+                • Android 14+: Health Connect is built-in. Check Settings →
+                Apps → Health Connect.{"\n"}• Android 13 and below: Install
+                from Play Store.
               </Text>
             </View>
           ) : (
@@ -786,28 +555,22 @@ export default function BloodPressureIndexScreen() {
                 />
               </View>
 
-              {heartRateLoading ? (
+              {watchDataLoading ? (
                 <View style={styles.loadingBox}>
                   <ActivityIndicator />
-                  <Text style={styles.loadingText}>Loading heart rate…</Text>
+                  <Text style={styles.loadingText}>Loading charts…</Text>
                 </View>
               ) : (
-                <HeartRateChart points={heartRatePoints} />
-              )}
-
-              {stepsLoading ? (
-                <View style={styles.loadingBox}>
-                  <ActivityIndicator />
-                  <Text style={styles.loadingText}>Loading steps…</Text>
-                </View>
-              ) : (
-                <StepsChart points={stepsPoints} />
+                <>
+                  <HeartRateChart points={heartRatePoints} />
+                  <StepsChart points={stepsPoints} />
+                </>
               )}
 
               <View style={styles.buttonRow}>
                 <View style={styles.buttonItemWide}>
                   <Button
-                    title="Sync All Metrics"
+                    title={syncLoading ? "Syncing…" : "Sync All Metrics"}
                     onPress={syncAll}
                     gradient={gradient.green as [string, string]}
                   />
@@ -929,13 +692,8 @@ const styles = StyleSheet.create({
   buttonItem: { flex: 1 },
   buttonItemWide: { flex: 1 },
 
-  watchCtaRow: {
-    marginTop: 12,
-  },
-  watchBackRow: {
-    marginTop: 6,
-    marginBottom: 10,
-  },
+  watchCtaRow: { marginTop: 12 },
+  watchBackRow: { marginTop: 6, marginBottom: 10 },
 
   platformWarning: {
     marginTop: 10,

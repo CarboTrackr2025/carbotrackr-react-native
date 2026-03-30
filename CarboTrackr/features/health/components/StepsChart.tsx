@@ -9,14 +9,21 @@ export type StepsPoint = {
 };
 
 const PLOT_HEIGHT = 140;
-const LABEL_HEIGHT = 24;
-const CHART_HEIGHT = PLOT_HEIGHT + LABEL_HEIGHT;
+const VALUE_LABEL_HEIGHT = 18;
+const TIME_LABEL_HEIGHT = 24;
+const CHART_HEIGHT = VALUE_LABEL_HEIGHT + PLOT_HEIGHT + TIME_LABEL_HEIGHT;
 
-const BAR_WIDTH = 18;
+const BAR_WIDTH = 36;
 const BAR_RADIUS = 8;
-const GROUP_GAP = 18;
+const GROUP_GAP = 14;
 
 const maxOr1 = (arr: number[]) => Math.max(1, ...arr);
+
+const formatSteps = (n: number): string => {
+  if (n <= 0) return "0";
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+};
 
 export default function StepsChart({ points }: { points: StepsPoint[] }) {
   const scrollRef = useRef<ScrollView>(null);
@@ -59,21 +66,29 @@ export default function StepsChart({ points }: { points: StepsPoint[] }) {
           snapToInterval={BAR_WIDTH + GROUP_GAP}
           decelerationRate="fast"
         >
-          <View style={styles.chart}>
+          <View style={[styles.chart, { height: CHART_HEIGHT }]}>
             <View style={[styles.plotRow, { width: contentWidth }]}>
               {cleaned.length > 0 ? (
                 cleaned.map((p, idx) => (
                   <View key={`${p.label}-${idx}`} style={styles.group}>
+                    {/* Value legend above bar */}
+                    <View style={styles.valueLabelArea}>
+                      <Text style={styles.valueLabel} numberOfLines={1}>
+                        {formatSteps(p.value)}
+                      </Text>
+                    </View>
+
+                    {/* Bar */}
                     <View style={styles.plotArea}>
                       <View
                         style={[
                           styles.bar,
-                          {
-                            height: toHeight(p.value),
-                          },
+                          { height: toHeight(p.value) },
                         ]}
                       />
                     </View>
+
+                    {/* Time label */}
                     <View style={styles.labelArea}>
                       <Text style={styles.xLabel} numberOfLines={1}>
                         {p.label}
@@ -95,7 +110,7 @@ export default function StepsChart({ points }: { points: StepsPoint[] }) {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 2 },
+  container: { padding: 2, marginBottom: 8 },
   title: {
     fontSize: 16,
     fontWeight: "600",
@@ -112,10 +127,24 @@ const styles = StyleSheet.create({
 
   scrollContent: { paddingRight: 6, paddingBottom: 4 },
 
-  chart: { height: CHART_HEIGHT, justifyContent: "flex-end" },
+  chart: { justifyContent: "flex-end" },
   plotRow: { flexDirection: "row", alignItems: "flex-end", gap: GROUP_GAP },
 
-  group: { alignItems: "center" },
+  group: { alignItems: "center", width: BAR_WIDTH },
+
+  valueLabelArea: {
+    height: VALUE_LABEL_HEIGHT,
+    justifyContent: "flex-end",
+    alignItems: "center",
+    width: BAR_WIDTH + 6,
+  },
+  valueLabel: {
+    fontSize: 9,
+    color: "#374151",
+    fontWeight: "600",
+    textAlign: "center",
+  },
+
   plotArea: { height: PLOT_HEIGHT, justifyContent: "flex-end" },
   bar: {
     width: BAR_WIDTH,
@@ -123,11 +152,11 @@ const styles = StyleSheet.create({
     backgroundColor: color.green,
   },
 
-  labelArea: { height: LABEL_HEIGHT, justifyContent: "center" },
+  labelArea: { height: TIME_LABEL_HEIGHT, justifyContent: "center" },
   xLabel: { fontSize: 10, color: "#6B7280", textAlign: "center" },
 
   noData: {
-    width: "100%",
+    width: 200,
     height: CHART_HEIGHT,
     alignItems: "center",
     justifyContent: "center",
