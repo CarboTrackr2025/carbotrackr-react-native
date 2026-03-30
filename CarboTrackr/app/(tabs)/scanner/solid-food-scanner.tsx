@@ -9,38 +9,50 @@ import { color, gradient } from "../../../shared/constants/colors"
 
 export default function SolidFoodScanner() {
     const [imageUri, setImageUri] = useState<string | null>(null)
+    const [imageName, setImageName] = useState<string | null>(null)
+    const [imageType, setImageType] = useState<string | null>(null)
+    const [imageSize, setImageSize] = useState<number | null>(null)
     const [loading, setLoading] = useState(false)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const [result, setResult] = useState<SolidFoodPredictionResult | null>(null)
     const hasLaunchedRef = useRef(false)
 
-    async function takePhoto() {
+    async function pickImage() {
         try {
             setErrorMsg(null)
             setResult(null)
 
-            const perm = await ImagePicker.requestCameraPermissionsAsync()
+            const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
+            console.log("[SolidFoodScanner] media permission", perm)
             if (!perm.granted) {
-                setErrorMsg("Camera permission is needed to take a photo.")
+                setErrorMsg("Media library permission is needed to upload a photo.")
                 return
             }
 
-            const shot = await ImagePicker.launchCameraAsync({
-                quality: 1,
+            const shot = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                quality: 0.15,
                 allowsEditing: false,
             })
 
             if (shot.canceled) return
 
-            const uri = shot.assets?.[0]?.uri ?? null
+            const asset = shot.assets?.[0]
+            console.log("[SolidFoodScanner] picked asset", asset)
+            const uri = asset?.uri?.trim() ?? null
             if (!uri) {
-                setErrorMsg("No image URI returned by camera.")
+                setErrorMsg("No image URI returned by picker.")
                 return
             }
 
+            console.log("[SolidFoodScanner] imageUri set", uri)
             setImageUri(uri)
+            setImageName(asset?.fileName ?? null)
+            setImageType(asset?.mimeType ?? null)
+            setImageSize(asset?.fileSize ?? null)
         } catch (e: any) {
-            setErrorMsg(e?.message ?? "Failed to open camera")
+            console.log("[SolidFoodScanner] pickImage error", e)
+            setErrorMsg(e?.message ?? "Failed to open image picker")
         }
     }
 
@@ -52,9 +64,21 @@ export default function SolidFoodScanner() {
             setErrorMsg(null)
             setResult(null)
 
-            const out = await postSolidFoodPhoto({ imageUri })
+            if (imageSize && imageSize > 3_000_000) {
+                throw new Error("Photo is still too large for upload. Please retake closer to the food.")
+            }
+
+            const payload = {
+                imageUri: imageUri.trim(),
+                imageName: imageName ?? undefined,
+                imageType: imageType ?? undefined,
+            }
+            console.log("[SolidFoodScanner] analyze payload", payload)
+            const out = await postSolidFoodPhoto(payload)
+            console.log("[SolidFoodScanner] analyze success", out)
             setResult(out)
         } catch (e: any) {
+            console.log("[SolidFoodScanner] analyze error", e)
             setErrorMsg(e?.message ?? "Failed to analyze solid food photo")
         } finally {
             setLoading(false)
@@ -64,7 +88,7 @@ export default function SolidFoodScanner() {
     useEffect(() => {
         if (hasLaunchedRef.current) return
         hasLaunchedRef.current = true
-        takePhoto()
+        pickImage()
     }, [])
 
     useEffect(() => {
@@ -74,9 +98,12 @@ export default function SolidFoodScanner() {
 
     async function retakePhoto() {
         setImageUri(null)
+        setImageName(null)
+        setImageType(null)
+        setImageSize(null)
         setResult(null)
         setErrorMsg(null)
-        await takePhoto()
+        await pickImage()
     }
 
     const carbsG = result?.prediction?.total_carbohydrates_g ?? 0
@@ -103,7 +130,7 @@ export default function SolidFoodScanner() {
                         <Text style={styles.modalTitle}>Error</Text>
                         <Text style={styles.modalBody}>{errorMsg}</Text>
                         <Pressable style={styles.modalButton} onPress={retakePhoto}>
-                            <Text style={styles.modalButtonText}>Open Camera Again</Text>
+                            <Text style={styles.modalButtonText}>Upload Image Again</Text>
                         </Pressable>
                     </View>
                 </View>
@@ -137,7 +164,7 @@ export default function SolidFoodScanner() {
             )}
 
             <Button
-                title="Retake Photo"
+                title="Upload Another Image"
                 onPress={retakePhoto}
                 gradient={gradient.green as [string, string]}
             />
