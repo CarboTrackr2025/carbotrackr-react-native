@@ -49,7 +49,7 @@ const toNumberOrNull = (v: number | string | null | undefined): number | null =>
     return Number.isFinite(n) ? n : n
 }
 
-export async function postScannedFoodLog(input: SaveScannedFoodLogRequest) {
+export async function postFoodLogFromNutritionalLabelScanner(input: SaveScannedFoodLogRequest) {
     const payload = {
         account_id: String(input.account_id ?? "").trim(),
         food_name: String(input.food_name ?? "").trim(),
