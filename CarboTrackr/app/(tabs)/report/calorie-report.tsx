@@ -1,1 +1,2 @@
-export { CalorieReportScreen } from "../../../features/report/components/CalorieReportScreen"
+import { CalorieReportScreen } from "../../../features/report/components/CalorieReportScreen";
+export default CalorieReportScreen;
