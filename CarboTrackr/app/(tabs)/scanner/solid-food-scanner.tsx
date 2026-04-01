@@ -1,11 +1,17 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import * as ImagePicker from "expo-image-picker"
 
 import { postSolidFoodPhoto, type SolidFoodPredictionResult } from "../../../features/scanner/api/post-solid-food-photo"
+import { postFoodLogFromNutritionalLabelScanner } from "../../../features/scanner/api/post-food"
+import { getClerkUserId } from "../../../features/auth/auth.utils"
 import { CalorieRing } from "../../../shared/components/CalorieRing"
+import { GradientTextDisplay } from "../../../shared/components/GradientTextDisplay"
+import { GradientTextInput } from "../../../shared/components/GradientTextInput"
+import { Dropdown } from "../../../shared/components/Dropdown"
 import { Button } from "../../../shared/components/Button"
 import { color, gradient } from "../../../shared/constants/colors"
+import { formatPhilippinesTime } from "../../../shared/utils/formatters"
 
 export default function SolidFoodScanner() {
     const [imageUri, setImageUri] = useState<string | null>(null)
@@ -16,10 +22,17 @@ export default function SolidFoodScanner() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const [result, setResult] = useState<SolidFoodPredictionResult | null>(null)
     const hasLaunchedRef = useRef(false)
+    const [brandName, setBrandName] = useState("")
+    const [servingsText, setServingsText] = useState("1")
+    const [mealType, setMealType] = useState<string | number | null>(null)
+    const [saving, setSaving] = useState(false)
+    const [saveError, setSaveError] = useState<string | null>(null)
+    const [savedTimestamp, setSavedTimestamp] = useState<string | null>(null)
 
     async function takePhoto() {
         try {
             setErrorMsg(null)
+            setSaveError(null)
             setResult(null)
 
             const perm = await ImagePicker.requestCameraPermissionsAsync()
@@ -77,6 +90,10 @@ export default function SolidFoodScanner() {
             const out = await postSolidFoodPhoto(payload)
             console.log("[SolidFoodScanner] analyze success", out)
             setResult(out)
+            if (!brandName.trim()) {
+                const firstDetected = out?.prediction?.detected_items?.[0]?.food_name ?? ""
+                if (firstDetected) setBrandName(firstDetected)
+            }
         } catch (e: any) {
             console.log("[SolidFoodScanner] analyze error", e)
             setErrorMsg(e?.message ?? "Failed to analyze solid food photo")
@@ -103,6 +120,7 @@ export default function SolidFoodScanner() {
         setImageSize(null)
         setResult(null)
         setErrorMsg(null)
+        setSaveError(null)
         await takePhoto()
     }
 
@@ -111,6 +129,60 @@ export default function SolidFoodScanner() {
     const fatG = result?.prediction?.total_fat_g ?? 0
     const calories = result?.prediction?.total_calories_kcal ?? carbsG * 4 + proteinG * 4 + fatG * 9
     const detectedItems = result?.prediction?.detected_items ?? []
+    const servings = Number(servingsText) || 1
+    const mealOptions = [
+        { label: "Breakfast", value: "BREAKFAST" },
+        { label: "Lunch", value: "LUNCH" },
+        { label: "Dinner", value: "DINNER" },
+        { label: "Snack", value: "SNACK" },
+    ]
+    const recordedText = useMemo(
+        () => (savedTimestamp ? formatPhilippinesTime(savedTimestamp) : "-"),
+        [savedTimestamp]
+    )
+    const canSave = !!result && !!brandName.trim() && !!mealType && servings > 0 && !saving
+
+    const extractSavedTimestamp = (foodLog: any): string | null =>
+        foodLog?.recorded_at ?? foodLog?.updated_at ?? foodLog?.created_at ?? null
+
+    async function handleSave() {
+        try {
+            setSaving(true)
+            setSaveError(null)
+
+            if (!result) throw new Error("Analyze a photo first")
+            if (!brandName.trim()) throw new Error("Food brand name is required")
+            if (!mealType) throw new Error("Please select a meal type")
+            if (servings <= 0) throw new Error("Number of servings must be greater than 0")
+
+            const sourceId = String(detectedItems[0]?.source_id ?? "").trim()
+            if (!sourceId) throw new Error("Missing source_id from prediction response")
+
+            const accountId = await getClerkUserId()
+            if (!accountId) throw new Error("User ID not found")
+
+            const saveRes = await postFoodLogFromNutritionalLabelScanner({
+                account_id: accountId,
+                food_name: brandName.trim(),
+                meal_type: String(mealType) as any,
+                source_id: sourceId,
+                serving_size_g: 1,
+                serving_size_ml: null,
+                number_of_servings: servings,
+                calories_kcal: calories,
+                carbohydrates_g: carbsG,
+                protein_g: proteinG,
+                fat_g: fatG,
+            })
+
+            const ts = extractSavedTimestamp(saveRes?.food_log)
+            if (ts) setSavedTimestamp(ts)
+        } catch (e: any) {
+            setSaveError(e?.message ?? "Failed to save food log")
+        } finally {
+            setSaving(false)
+        }
+    }
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
@@ -146,10 +218,46 @@ export default function SolidFoodScanner() {
                         metric_serving_amount: 1,
                         metric_serving_unit: "serving",
                     }}
-                    servings={1}
+                    servings={servings}
                     size={160}
                 />
             </View>
+
+            <Text style={styles.label}>Food Brand Name</Text>
+            <GradientTextInput
+                placeholder="Enter brand name"
+                value={brandName}
+                onChangeText={setBrandName}
+            />
+
+            <View style={styles.labelRow}>
+                <Text style={styles.label}>Number of Servings</Text>
+                <Text style={styles.labelMeta}>1 serving</Text>
+            </View>
+            <GradientTextInput
+                keyboardType="numeric"
+                value={servingsText}
+                onChangeText={setServingsText}
+            />
+
+            <Text style={styles.label}>Meal Type</Text>
+            <Dropdown
+                options={mealOptions}
+                selectedValue={mealType}
+                onSelect={setMealType}
+            />
+
+            <Text style={styles.label}>Recorded Date and Time</Text>
+            <GradientTextDisplay text={recordedText} />
+
+            <Button
+                title={saving ? "Saving..." : "Save"}
+                onPress={handleSave}
+                gradient={gradient.green as [string, string]}
+                disabled={!canSave}
+            />
+
+            {!!saveError && <Text style={styles.saveError}>{saveError}</Text>}
 
             <Text style={styles.sectionTitle}>Detected Ingredients</Text>
             {detectedItems.length === 0 ? (
@@ -168,13 +276,6 @@ export default function SolidFoodScanner() {
                 onPress={retakePhoto}
                 gradient={gradient.green as [string, string]}
             />
-
-            <Text style={styles.debugTitle}>Debug Result</Text>
-            <View style={styles.debugBox}>
-                <Text style={styles.debugText}>
-                    {result ? JSON.stringify(result.raw, null, 2) : "No result yet."}
-                </Text>
-            </View>
         </ScrollView>
     )
 }
@@ -227,6 +328,22 @@ const styles = StyleSheet.create({
         marginTop: 8,
         alignItems: "center",
     },
+    label: {
+        marginTop: 8,
+        marginBottom: 4,
+        fontSize: 14,
+        fontWeight: "600",
+        color: color.black,
+    },
+    labelRow: {
+        flexDirection: "row",
+        alignItems: "baseline",
+        gap: 8,
+    },
+    labelMeta: {
+        fontSize: 12,
+        color: "#6B7280",
+    },
     sectionTitle: {
         marginTop: 8,
         marginBottom: 4,
@@ -255,22 +372,9 @@ const styles = StyleSheet.create({
         color: "#6B7280",
         fontWeight: "600",
     },
-    debugTitle: {
-        marginTop: 12,
-        fontSize: 14,
-        fontWeight: "700",
-        color: color.black,
-    },
-    debugBox: {
-        backgroundColor: "#F3F4F6",
-        borderRadius: 10,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: "#E5E7EB",
-    },
-    debugText: {
-        fontFamily: "monospace",
+    saveError: {
+        marginTop: 8,
+        color: "#B91C1C",
         fontSize: 12,
-        color: "#111827",
     },
 })
