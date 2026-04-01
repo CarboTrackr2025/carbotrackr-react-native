@@ -3,7 +3,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View
 import * as ImagePicker from "expo-image-picker"
 
 import { postSolidFoodPhoto, type SolidFoodPredictionResult } from "../../../features/scanner/api/post-solid-food-photo"
-import { postFoodLogFromNutritionalLabelScanner } from "../../../features/scanner/api/post-food"
+import { postFoodLogFromSolidFoodScanner } from "../../../features/scanner/api/post-food"
 import { getClerkUserId } from "../../../features/auth/auth.utils"
 import { CalorieRing } from "../../../shared/components/CalorieRing"
 import { GradientTextDisplay } from "../../../shared/components/GradientTextDisplay"
@@ -155,24 +155,23 @@ export default function SolidFoodScanner() {
             if (!mealType) throw new Error("Please select a meal type")
             if (servings <= 0) throw new Error("Number of servings must be greater than 0")
 
-            const sourceId = String(detectedItems[0]?.source_id ?? "").trim()
-            if (!sourceId) throw new Error("Missing source_id from prediction response")
+            const mealId = String(result?.prediction?.meal_id ?? "").trim()
+            if (!mealId) throw new Error("Missing meal_id from prediction response")
 
             const accountId = await getClerkUserId()
             if (!accountId) throw new Error("User ID not found")
 
-            const saveRes = await postFoodLogFromNutritionalLabelScanner({
+            const saveRes = await postFoodLogFromSolidFoodScanner({
                 account_id: accountId,
                 food_name: brandName.trim(),
                 meal_type: String(mealType) as any,
-                source_id: sourceId,
-                serving_size_g: 1,
-                serving_size_ml: null,
+                meal_id: mealId,
                 number_of_servings: servings,
                 calories_kcal: calories,
                 carbohydrates_g: carbsG,
                 protein_g: proteinG,
                 fat_g: fatG,
+                detected_items: detectedItems,
             })
 
             const ts = extractSavedTimestamp(saveRes?.food_log)
