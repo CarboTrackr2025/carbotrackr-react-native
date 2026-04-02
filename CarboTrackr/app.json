@@ -43,7 +43,7 @@
     "slug": "CarboTrackr",
     "name": "CarboTrackr",
     "android": {
-      "package": "com.eenvees.carbotrackrtester",
+      "package": "com.athaina.carbotrackr",
       "permissions": [
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_HEART_RATE",
