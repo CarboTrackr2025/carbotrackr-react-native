@@ -2,14 +2,14 @@ export default {
   expo: {
     extra: {
       eas: {
-        projectId: "b93d7a65-e09c-47a7-8b1b-2c40c8367202",
+        projectId: "d9a9f624-620e-4ee9-a738-5b1185411db6",
       },
     },
-    owner: "eenvees-inc",
-    slug: "carbotrackrtester",
+    owner: "athaina-carbotrackr-devs",
+    slug: "CarboTrackr",
     name: "CarboTrackr",
     android: {
-      package: "com.eenvees.carbotrackrtester", 
+      package: "com.athaina.carbotrackr",
       permissions: [
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_HEART_RATE",
@@ -20,7 +20,7 @@ export default {
       ]
     },
     ios: {
-      bundleIdentifier: "com.eenvees.carbotrackrtester",
+      bundleIdentifier: "com.athaina.carbotrackr",
     },
     plugins: [
       [
