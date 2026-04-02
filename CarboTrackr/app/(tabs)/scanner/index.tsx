@@ -18,7 +18,7 @@ export default function IndexScreen() {
                     <ButtonVersion2
                         label="Solid Food Scanner"
                         iconName="fast-food"
-                        onPress={() => router.push("/settings/health-settings")}
+                        onPress={() => router.push("/(tabs)/scanner/solid-food-scanner")}
                     />
                 </View>
             </View>

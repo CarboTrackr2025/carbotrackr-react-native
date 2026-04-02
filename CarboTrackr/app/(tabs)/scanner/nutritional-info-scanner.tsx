@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator
 import * as ImagePicker from "expo-image-picker"
 
 import { postLabelMacrosOnly, type LabelMacrosResult } from "../../../features/scanner/api/post-nutritional-label-photo"
-import { postScannedFoodLog } from "../../../features/scanner/api/post-food"
+import { postFoodLogFromNutritionalLabelScanner } from "../../../features/scanner/api/post-food"
 import { CalorieRing } from "../../../shared/components/CalorieRing"
 import { GradientTextDisplay } from "../../../shared/components/GradientTextDisplay"
 import { GradientTextInput } from "../../../shared/components/GradientTextInput"
@@ -168,7 +168,7 @@ export default function NutritionalInfoScanner() {
                 throw new Error("Missing source_id from label scan response")
             }
 
-            const saveRes = await postScannedFoodLog({
+            const saveRes = await postFoodLogFromNutritionalLabelScanner({
                 account_id: accountId,
                 food_name: brandName.trim(),
                 meal_type: String(mealType) as any,
