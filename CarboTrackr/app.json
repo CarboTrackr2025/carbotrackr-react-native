@@ -1,42 +1,43 @@
 {
   "expo": {
-    "extra": {
-      "eas": {
-        "projectId": "b93d7a65-e09c-47a7-8b1b-2c40c8367202"
-      }
-    },
-    "owner": "eenvees-inc",
-    "slug": "carbotrackrtester",
-    "android": {
-      "package": "com.eenvees.carbotrackrtester",
-      "permissions": [
-        "android.permission.health.READ_STEPS",
-        "android.permission.health.READ_HEART_RATE",
-        "android.permission.health.WRITE_STEPS",
-        "android.permission.health.WRITE_HEART_RATE"
-      ]
+    "name": "CarboTrackr",
+    "scheme": "carbotrackr",
+    "slug": "CarboTrackr",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
     },
     "ios": {
-      "bundleIdentifier": "com.eenvees.carbotrackrtester"
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.athainacarbotrackrdevs.CarboTrackr"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "minSdkVersion": 26
-          }
-        }
-      ],
-      [
-        "expo-health-connect",
-        {
-          "rationale": "We need access to your health data to track steps, heart rate, and calories burned.",
-          "permissions": ["Steps", "HeartRate", "TotalCaloriesBurned"]
-        }
-      ]
-    ]
+      "expo-router",
+      "@react-native-community/datetimepicker",
+      "expo-font"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d9a9f624-620e-4ee9-a738-5b1185411db6"
+      }
+    }
   }
 }
