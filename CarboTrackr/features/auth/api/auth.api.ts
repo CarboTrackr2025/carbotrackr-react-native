@@ -4,7 +4,7 @@ import type {
   SignInResource,
   SignUpResource,
   UserResource,
-} from "@clerk/types";
+} from "@clerk/clerk-expo";
 
 type LoginPayload = {
   email: string;

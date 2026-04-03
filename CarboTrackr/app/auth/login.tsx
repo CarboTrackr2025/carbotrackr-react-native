@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useSignIn, useOAuth, useUser } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
+import * as AuthSession from "expo-auth-session";
 import LoginForm from "../../features/auth/components/LoginForm";
 import { loginWithClerk } from "../../features/auth/api/auth.api";
 import { saveClerkSession } from "../../features/auth/auth.utils";
@@ -79,7 +80,12 @@ export default function LoginScreen() {
     try {
       const startOAuthFlow =
         provider === "oauth_google" ? startGoogleOAuth : startFacebookOAuth;
-      const redirectUrl = Linking.createURL("/auth/oauth-native-callback");
+      const redirectUrl = AuthSession.makeRedirectUri({
+        useProxy: true,
+        projectNameForProxy: "@eenvees-inc/carbotrackrtester",
+        path: "auth/oauth-native-callback",
+      });
+      console.log("🔗 [Login Screen] OAuth redirectUrl:", redirectUrl);
       const {
         createdSessionId,
         setActive: oAuthSetActive,
@@ -100,6 +106,8 @@ export default function LoginScreen() {
           null;
         const email =
           oAuthSignUp?.emailAddress ?? (oAuthSignIn as any)?.identifier ?? null;
+        // A brand-new OAuth user will have createdUserId on oAuthSignUp
+        const isNewUser = !!oAuthSignUp?.createdUserId;
 
         // Always save the session locally
         if (userId) {
@@ -133,7 +141,12 @@ export default function LoginScreen() {
           );
         }
 
-        router.replace("/(tabs)");
+        if (isNewUser) {
+          console.log("📝 [Login Screen] New OAuth user — redirecting to profile setup");
+          router.replace("/auth/setup-profile");
+        } else {
+          router.replace("/(tabs)");
+        }
       } else {
         console.log("✅ [Login Screen] OAuth flow initiated");
       }
