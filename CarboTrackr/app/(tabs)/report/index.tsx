@@ -4,8 +4,8 @@ import { Button } from "../../../shared/components/Button";
 import {gradient} from "../../../shared/constants/colors";
 import { ToggleButton } from "../../../shared/components/ToggleButton";
 import { useState } from "react";
-import { CarbohydrateReportScreen } from "./carbohydrate-report";
-import { CalorieReportScreen } from "./calorie-report";
+import { CarbohydrateReportScreen } from "../../../features/report/components/CarbohydrateReportScreen";
+import { CalorieReportScreen } from "../../../features/report/components/CalorieReportScreen";
 
 export default function Index() {
     const [selected, setSelected] = useState<"option1" | "option2">("option1");

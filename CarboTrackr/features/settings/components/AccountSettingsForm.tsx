@@ -31,6 +31,24 @@ type Props = {
     saving: boolean
 }
 
+/** Parse an ISO/date string as LOCAL midnight to avoid UTC timezone shift. */
+function parseDateLocal(value: string | null): Date | null {
+    if (!value) return null
+    // "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss.sssZ" — grab just the date part
+    const datePart = value.slice(0, 10) // "YYYY-MM-DD"
+    const [year, month, day] = datePart.split("-").map(Number)
+    if (!year || !month || !day) return null
+    return new Date(year, month - 1, day) // local midnight
+}
+
+/** Serialize a Date as "YYYY-MM-DD" in local time (no UTC conversion). */
+function toLocalDateString(date: Date): string {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, "0")
+    const d = String(date.getDate()).padStart(2, "0")
+    return `${y}-${m}-${d}`
+}
+
 export default function AccountSettingsForm({
                                                 initialValues,
                                                 onSave,
@@ -38,7 +56,7 @@ export default function AccountSettingsForm({
                                             }: Props) {
     const [gender, setGender] = useState<string | number | null>(initialValues.gender)
     const [dateOfBirth, setDateOfBirth] = useState<Date | null>(
-        initialValues.date_of_birth ? new Date(initialValues.date_of_birth) : null
+        parseDateLocal(initialValues.date_of_birth)
     )
     const [showDobPicker, setShowDobPicker] = useState(false)
     const [height, setHeight] = useState(
@@ -96,7 +114,7 @@ export default function AccountSettingsForm({
 
         await onSave({
             gender: gender === "MALE" || gender === "FEMALE" ? gender : null,
-            date_of_birth: dateOfBirth.toISOString(),
+            date_of_birth: toLocalDateString(dateOfBirth),
             height_cm: Number(height),
             weight_kg: Number(weight),
         })

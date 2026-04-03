@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useSignUp, useOAuth } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
+import * as AuthSession from "expo-auth-session";
 import SignupForm from "../../features/auth/components/SignupForm";
 import { signUpWithClerk } from "../../features/auth/api/auth.api";
 import { saveClerkSession } from "../../features/auth/auth.utils";
@@ -44,8 +45,8 @@ export default function SignupScreen() {
     setSubmitting(false);
 
     if (result.success) {
-      console.log("✅ [Signup Screen] Sign-up successful! Navigating to home.");
-      router.replace("/(tabs)");
+      console.log("✅ [Signup Screen] Sign-up successful! Navigating to profile setup.");
+      router.replace("/auth/setup-profile");
     } else if ("needsVerification" in result && result.needsVerification) {
       console.log(
         "📧 [Signup Screen] Email verification required, navigating to OTP.",
@@ -69,7 +70,12 @@ export default function SignupScreen() {
     try {
       const startOAuthFlow =
         provider === "oauth_google" ? startGoogleOAuth : startFacebookOAuth;
-      const redirectUrl = Linking.createURL("/auth/oauth-native-callback");
+      const redirectUrl = AuthSession.makeRedirectUri({
+        useProxy: true,
+        projectNameForProxy: "@eenvees-inc/carbotrackrtester",
+        path: "auth/oauth-native-callback",
+      });
+      console.log("🔗 [Signup Screen] OAuth redirectUrl:", redirectUrl);
       const {
         createdSessionId,
         setActive: oAuthSetActive,
@@ -92,6 +98,8 @@ export default function SignupScreen() {
           oAuthSignUp?.emailAddress ??
           (oAuthSignIn as any)?.identifier ??
           null;
+        // A brand-new OAuth signup will have createdUserId on oAuthSignUp
+        const isNewUser = !!oAuthSignUp?.createdUserId;
 
         // Always save the session locally
         if (userId) {
@@ -128,7 +136,12 @@ export default function SignupScreen() {
           );
         }
 
-        router.replace("/(tabs)");
+        if (isNewUser) {
+          console.log("📝 [Signup Screen] New OAuth user — redirecting to profile setup");
+          router.replace("/auth/setup-profile");
+        } else {
+          router.replace("/(tabs)");
+        }
       } else {
         console.log("✅ [Signup Screen] OAuth flow initiated");
       }
