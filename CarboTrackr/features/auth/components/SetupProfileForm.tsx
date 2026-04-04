@@ -5,6 +5,9 @@ import { Button } from "../../../shared/components/Button"
 import { Dropdown } from "../../../shared/components/Dropdown"
 import { GradientTextInput } from "../../../shared/components/GradientTextInput"
 import { color, gradient } from "../../../shared/constants/colors"
+import type { HealthSettingsData as ApiHealthSettingsData } from "../../settings/api/get-health-settings"
+
+type DiagnosedWith = NonNullable<ApiHealthSettingsData["diagnosed_with"]>
 
 /** Serialize a Date as "YYYY-MM-DD" in local time (no UTC conversion). */
 function toLocalDateString(date: Date): string {
@@ -19,6 +22,8 @@ export type SetupProfileInput = {
     date_of_birth: string | null
     height_cm: number | null
     weight_kg: number | null
+    reminder_frequency: number | null
+    diagnosed_with: DiagnosedWith | null
 }
 
 type Props = {
@@ -33,10 +38,18 @@ export default function SetupProfileForm({ onSave, saving, error }: Props) {
     const [showDobPicker, setShowDobPicker] = useState(false)
     const [height, setHeight] = useState("")
     const [weight, setWeight] = useState("")
+    const [reminderFrequency, setReminderFrequency] = useState("")
+    const [diagnosedWith, setDiagnosedWith] = useState<DiagnosedWith | null>(null)
 
     const genderOptions = [
         { label: "Male", value: "MALE" },
         { label: "Female", value: "FEMALE" },
+    ]
+
+    const diagnosedOptions = [
+        { label: "Type 2 Diabetes", value: "TYPE_2_DIABETES" },
+        { label: "Pre-Diabetes", value: "PRE_DIABETES" },
+        { label: "Not Applicable", value: "NOT_APPLICABLE" },
     ]
 
     const formattedDateOfBirth = useMemo(() => {
@@ -51,6 +64,7 @@ export default function SetupProfileForm({ onSave, saving, error }: Props) {
     const canSave = useMemo(() => {
         const parsedHeight = Number(height)
         const parsedWeight = Number(weight)
+        const reminders = Number(reminderFrequency)
         return (
             (gender === "MALE" || gender === "FEMALE") &&
             !!dateOfBirth &&
@@ -59,9 +73,12 @@ export default function SetupProfileForm({ onSave, saving, error }: Props) {
             parsedHeight > 0 &&
             Number.isFinite(parsedWeight) &&
             parsedWeight > 0 &&
+            Number.isInteger(reminders) &&
+            reminders >= 0 &&
+            !!diagnosedWith &&
             !saving
         )
-    }, [gender, dateOfBirth, height, weight, saving])
+    }, [gender, dateOfBirth, height, weight, reminderFrequency, diagnosedWith, saving])
 
     const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
         if (Platform.OS === "android") setShowDobPicker(false)
@@ -77,6 +94,8 @@ export default function SetupProfileForm({ onSave, saving, error }: Props) {
             date_of_birth: toLocalDateString(dateOfBirth),
             height_cm: Number(height),
             weight_kg: Number(weight),
+            reminder_frequency: Number(reminderFrequency),
+            diagnosed_with: diagnosedWith,
         })
     }
 
@@ -138,6 +157,27 @@ export default function SetupProfileForm({ onSave, saving, error }: Props) {
                     placeholder="55"
                     keyboardType="numeric"
                     iconName="pencil"
+                />
+            </View>
+
+            <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Reminder Frequency (per day)</Text>
+                <GradientTextInput
+                    value={reminderFrequency}
+                    onChangeText={(text) => setReminderFrequency(text.replace(/[^\d]/g, ""))}
+                    placeholder="0"
+                    keyboardType="number-pad"
+                    iconName="pencil"
+                />
+            </View>
+
+            <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Diagnosed With</Text>
+                <Dropdown
+                    options={diagnosedOptions}
+                    selectedValue={diagnosedWith}
+                    onSelect={(value) => setDiagnosedWith(value as DiagnosedWith)}
+                    placeholder="Select diagnosis"
                 />
             </View>
 
