@@ -29,6 +29,8 @@ type Props = {
     initialValues: AccountSettingsData
     onSave: (values: SaveAccountSettingsInput) => Promise<void>
     saving: boolean
+    onDeleteAccount?: () => void | Promise<void>
+    deleting?: boolean
 }
 
 /** Parse an ISO/date string as LOCAL midnight to avoid UTC timezone shift. */
@@ -53,6 +55,8 @@ export default function AccountSettingsForm({
                                                 initialValues,
                                                 onSave,
                                                 saving,
+                                                onDeleteAccount,
+                                                deleting,
                                             }: Props) {
     const [gender, setGender] = useState<string | number | null>(initialValues.gender)
     const [dateOfBirth, setDateOfBirth] = useState<Date | null>(
@@ -192,8 +196,9 @@ export default function AccountSettingsForm({
                     gradient={gradient.green as [string, string]}
                 />
                 <Button
-                    title="Delete my Account"
-                    onPress={() => router.push("/auth/login")}
+                    title={deleting ? "Deleting..." : "Delete my Account"}
+                    onPress={onDeleteAccount ?? (() => router.push("/auth/login"))}
+                    disabled={deleting}
                     gradient={gradient.red as [string, string]}
                 />
             </View>
