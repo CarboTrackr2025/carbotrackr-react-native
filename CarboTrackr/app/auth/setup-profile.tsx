@@ -5,11 +5,12 @@ import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import SetupProfileForm, { SetupProfileInput } from "../../features/auth/components/SetupProfileForm"
 import { putAccountSettings } from "../../features/settings/api/put-account-settings"
-import { getClerkUserId } from "../../features/auth/auth.utils"
+import { useAuth } from "@clerk/clerk-expo"
 import { color } from "../../shared/constants/colors"
 
 export default function SetupProfileScreen() {
     const router = useRouter()
+    const { userId } = useAuth()
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -18,7 +19,7 @@ export default function SetupProfileScreen() {
             setSaving(true)
             setError(null)
 
-            const accountId = await getClerkUserId()
+            const accountId = userId
             if (!accountId) {
                 setError("Could not find your account. Please log in again.")
                 return

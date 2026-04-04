@@ -7,7 +7,7 @@ import {
   CreateBloodGlucosePayload,
   createBloodGlucose,
 } from "../../../features/health/api/post-blood-glucose";
-import { getClerkUserId } from "../../../features/auth/auth.utils";
+import { useAuth } from "@clerk/clerk-expo";
 
 const evaluateBloodGlucose = (level: number): string => {
   if (level >= 200) {
@@ -39,6 +39,7 @@ const evaluateBloodGlucose = (level: number): string => {
 };
 
 export default function AddBloodGlucoseScreen() {
+  const { userId } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [recordedTimestamp, setRecordedTimestamp] = useState<string | null>(
     null,
@@ -48,7 +49,7 @@ export default function AddBloodGlucoseScreen() {
     try {
       setSubmitting(true);
 
-      const accountIdFromClerk = await getClerkUserId();
+      const accountIdFromClerk = userId;
       if (!accountIdFromClerk) {
         throw new Error("User ID from Clerk Auth API not found");
       }

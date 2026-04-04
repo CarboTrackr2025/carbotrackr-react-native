@@ -14,7 +14,7 @@ import { router } from "expo-router";
 import DateRangePicker from "../../../shared/components/DateRangePicker";
 import { Button } from "../../../shared/components/Button";
 import { color, gradient } from "../../../shared/constants/colors";
-import { getClerkUserId } from "../../../features/auth/auth.utils";
+import { useAuth } from "@clerk/clerk-expo";
 import {
     getFoodLogsByAccountId,
     type FoodLogForUI,
@@ -34,6 +34,7 @@ export default function FoodLogsIndexScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState("");
     const [logs, setLogs] = useState<FoodLogForUI[]>([]);
+    const { userId } = useAuth();
 
     const [startDate, setStartDate] = useState(new Date());
     const [endDate, setEndDate] = useState(new Date());
@@ -41,7 +42,7 @@ export default function FoodLogsIndexScreen() {
     const fetchLogs = useCallback(async () => {
         try {
             setError("");
-            const accountIdFromClerk = await getClerkUserId();
+            const accountIdFromClerk = userId;
             if (!accountIdFromClerk) throw new Error("User ID from Clerk Auth API not found");
 
             const data = await getFoodLogsByAccountId(
@@ -53,7 +54,7 @@ export default function FoodLogsIndexScreen() {
         } catch (err: any) {
             setError(err?.message ?? "Failed to fetch food logs.");
         }
-    }, [startDate, endDate]);
+    }, [startDate, endDate, userId]);
 
     useEffect(() => {
         (async () => {

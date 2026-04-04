@@ -19,13 +19,14 @@ import { Dropdown} from "../../../shared/components/Dropdown";
 import {Button} from "../../../shared/components/Button";
 import { formatPhilippinesTime } from "../../../shared/utils/formatters";
 import { createFoodLog } from "../../../features/foodLogs/api/post-food"
-import { getClerkUserId } from "../../../features/auth/auth.utils";
+import { useAuth } from "@clerk/clerk-expo";
 
 export default function FoodByServingScreen() {
     const { food_id, serving_id } = useLocalSearchParams<{
         food_id?: string;
         serving_id?: string;
     }>();
+    const { userId } = useAuth();
 
     const [data, setData] = useState<FoodNutritionForUI | null>(null);
     const [mealType, setMealType] = useState<string | number | null>(null);
@@ -59,7 +60,7 @@ export default function FoodByServingScreen() {
 
             setSaving(true);
 
-            const accountIdFromClerk = await getClerkUserId();
+            const accountIdFromClerk = userId;
             if (!accountIdFromClerk) {
                 throw new Error("User ID from Clerk Auth API not found");
             }

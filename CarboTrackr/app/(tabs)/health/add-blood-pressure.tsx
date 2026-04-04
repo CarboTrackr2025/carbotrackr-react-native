@@ -7,7 +7,7 @@ import {
     CreateBloodPressurePayload,
     createBloodPressure,
 } from "../../../features/health/api/post-blood-pressure";
-import { getClerkUserId } from "../../../features/auth/auth.utils";
+import { useAuth } from "@clerk/clerk-expo";
 
 const evaluateBloodPressure = (systolic: number, diastolic: number): string => {
     if (systolic >= 180 || diastolic >= 120) {
@@ -52,6 +52,7 @@ const evaluateBloodPressure = (systolic: number, diastolic: number): string => {
 };
 
 export default function AddBloodPressureScreen() {
+    const { userId } = useAuth();
     const [submitting, setSubmitting] = useState(false);
     const [recordedTimestamp, setRecordedTimestamp] = useState<string | null>(null);
 
@@ -59,7 +60,7 @@ export default function AddBloodPressureScreen() {
         try {
             setSubmitting(true);
 
-            const accountIdFromClerk = await getClerkUserId();
+            const accountIdFromClerk = userId;
             if (!accountIdFromClerk) {
                 throw new Error("User ID from Clerk Auth API not found");
             }
