@@ -5,7 +5,6 @@ import { useRouter } from "expo-router";
 import { useSignIn, useOAuth, useUser } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
-import * as AuthSession from "expo-auth-session";
 import LoginForm from "../../features/auth/components/LoginForm";
 import { loginWithClerk } from "../../features/auth/api/auth.api";
 import { saveClerkSession } from "../../features/auth/auth.utils";
@@ -80,11 +79,7 @@ export default function LoginScreen() {
     try {
       const startOAuthFlow =
         provider === "oauth_google" ? startGoogleOAuth : startFacebookOAuth;
-      const redirectUrl = AuthSession.makeRedirectUri({
-        useProxy: true,
-        projectNameForProxy: "@eenvees-inc/carbotrackrtester",
-        path: "auth/oauth-native-callback",
-      });
+      const redirectUrl = Linking.createURL("/auth/oauth-native-callback");
       console.log("🔗 [Login Screen] OAuth redirectUrl:", redirectUrl);
       const {
         createdSessionId,
@@ -100,12 +95,17 @@ export default function LoginScreen() {
         );
 
         // Resolve userId — new signups have it on signUp, returning users on signIn
+        // Fall back to the Clerk user object which is populated after setActive
         const userId =
           oAuthSignUp?.createdUserId ??
           (oAuthSignIn as any)?.createdUserId ??
+          user?.id ??
           null;
         const email =
-          oAuthSignUp?.emailAddress ?? (oAuthSignIn as any)?.identifier ?? null;
+          oAuthSignUp?.emailAddress ??
+          (oAuthSignIn as any)?.identifier ??
+          user?.primaryEmailAddress?.emailAddress ??
+          null;
         // A brand-new OAuth user will have createdUserId on oAuthSignUp
         const isNewUser = !!oAuthSignUp?.createdUserId;
 
@@ -116,7 +116,7 @@ export default function LoginScreen() {
         }
 
         if (userId && email) {
-          console.log("🌐 [Login Screen] Persisting new OAuth user:", {
+          console.log("🌐 [Login Screen] Persisting OAuth user:", {
             userId,
             email,
           });
@@ -137,7 +137,7 @@ export default function LoginScreen() {
           }
         } else {
           console.log(
-            "ℹ️ [Login Screen] Existing OAuth user — no backend persist needed.",
+            "ℹ️ [Login Screen] userId/email not yet available — oauth-native-callback will handle backend persist.",
           );
         }
 
@@ -148,7 +148,7 @@ export default function LoginScreen() {
           router.replace("/(tabs)");
         }
       } else {
-        console.log("✅ [Login Screen] OAuth flow initiated");
+        console.log("✅ [Login Screen] OAuth flow initiated (will complete via callback)");
       }
     } catch (err: any) {
       console.error("❌ [Login Screen] OAuth failed:", err);

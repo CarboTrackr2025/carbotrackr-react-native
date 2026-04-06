@@ -8,6 +8,7 @@ export default {
     owner: "athaina-carbotrackr-devs",
     slug: "CarboTrackr",
     name: "CarboTrackr",
+    scheme: "carbotrackr",
     android: {
       package: "com.athaina.carbotrackr",
       permissions: [
