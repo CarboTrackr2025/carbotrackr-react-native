@@ -60,6 +60,15 @@ export async function getClerkSession(): Promise<{
   }
 }
 
+/**
+ * Convenience helper: returns just the stored Clerk userId from AsyncStorage.
+ * Prefer using useAuth().userId in components — only use this in non-hook contexts.
+ */
+export async function getClerkUserId(): Promise<string | null> {
+  const { userId } = await getClerkSession();
+  return userId;
+}
+
 // ── Legacy token management (for backend tokens if needed) ──
 
 export async function clearAllAuth(): Promise<void> {
