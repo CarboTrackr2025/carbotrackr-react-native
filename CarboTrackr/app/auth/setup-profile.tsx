@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import SetupProfileForm, { SetupProfileInput } from "../../features/auth/components/SetupProfileForm"
-import { putAccountSettings } from "../../features/settings/api/put-account-settings"
+import { postAccountAndHealthSettings } from "../../features/auth/api/postAccountAndHealthSettings"
 import { getClerkUserId } from "../../features/auth/auth.utils"
 import { color } from "../../shared/constants/colors"
 
@@ -26,13 +26,20 @@ export default function SetupProfileScreen() {
 
             console.log("📝 [SetupProfile] Saving profile for:", accountId)
 
-            await putAccountSettings({
+            const result = await postAccountAndHealthSettings({
                 account_id: accountId,
                 gender: values.gender,
                 date_of_birth: values.date_of_birth,
                 height_cm: values.height_cm,
                 weight_kg: values.weight_kg,
+                reminder_frequency: values.reminder_frequency,
+                diagnosed_with: values.diagnosed_with,
             })
+
+            if (result.status && result.status !== "success") {
+                setError(result.message ?? "Failed to save profile. Please try again.")
+                return
+            }
 
             console.log("✅ [SetupProfile] Profile saved, navigating to home")
             router.replace("/(tabs)")
