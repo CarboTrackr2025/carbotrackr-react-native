@@ -77,7 +77,13 @@ export default function OAuthNativeCallback() {
       }
 
       hasNavigated.current = true;
-      router.replace("/(tabs)");
+      if (isNewUser) {
+        console.log("🆕 [OAuth Callback] New user — navigating to profile setup.");
+        router.replace("/auth/setup-profile");
+      } else {
+        console.log("🔄 [OAuth Callback] Returning user — navigating to tabs.");
+        router.replace("/(tabs)");
+      }
     };
 
     persist();

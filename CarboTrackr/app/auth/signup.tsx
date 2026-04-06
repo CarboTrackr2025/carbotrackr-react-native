@@ -45,8 +45,8 @@ export default function SignupScreen() {
     setSubmitting(false);
 
     if (result.success) {
-      console.log("✅ [Signup Screen] Sign-up successful! Navigating to home.");
-      router.replace("/(tabs)");
+      console.log("✅ [Signup Screen] Sign-up successful! Navigating to profile setup.");
+      router.replace("/auth/setup-profile");
     } else if ("needsVerification" in result && result.needsVerification) {
       console.log(
         "📧 [Signup Screen] Email verification required, navigating to OTP.",
@@ -138,7 +138,14 @@ export default function SignupScreen() {
           );
         }
 
-        router.replace("/(tabs)");
+        // Navigate to setup-profile for new users, or directly to tabs for returning users
+        if (isNewUser) {
+          console.log("🆕 [Signup Screen] New OAuth user — navigating to profile setup.");
+          router.replace("/auth/setup-profile");
+        } else {
+          console.log("🔄 [Signup Screen] Returning OAuth user — navigating to tabs.");
+          router.replace("/(tabs)");
+        }
       } else {
         console.log("✅ [Signup Screen] OAuth flow initiated");
       }

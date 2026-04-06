@@ -31,6 +31,12 @@ type Props = {
     saving: boolean
     onDeleteAccount?: () => void | Promise<void>
     deleting?: boolean
+    /** If true, hides the Change Password and Delete Account buttons (for onboarding). */
+    hideDelete?: boolean
+    /** Label for the optional skip button shown during onboarding. */
+    skipLabel?: string
+    /** Called when the user taps the skip button. */
+    onSkip?: () => void
 }
 
 /** Parse an ISO/date string as LOCAL midnight to avoid UTC timezone shift. */
@@ -57,6 +63,9 @@ export default function AccountSettingsForm({
                                                 saving,
                                                 onDeleteAccount,
                                                 deleting,
+                                                hideDelete = false,
+                                                skipLabel,
+                                                onSkip,
                                             }: Props) {
     const [gender, setGender] = useState<string | number | null>(initialValues.gender)
     const [dateOfBirth, setDateOfBirth] = useState<Date | null>(
@@ -190,17 +199,28 @@ export default function AccountSettingsForm({
                     disabled={!canSave}
                     gradient={gradient.green as [string, string]}
                 />
-                <Button
-                    title="Change Password"
-                    onPress={() => router.push("/auth/change-password")}
-                    gradient={gradient.green as [string, string]}
-                />
-                <Button
-                    title={deleting ? "Deleting..." : "Delete my Account"}
-                    onPress={onDeleteAccount ?? (() => router.push("/auth/login"))}
-                    disabled={deleting}
-                    gradient={gradient.red as [string, string]}
-                />
+                {!hideDelete && (
+                    <>
+                        <Button
+                            title="Change Password"
+                            onPress={() => router.push("/auth/change-password")}
+                            gradient={gradient.green as [string, string]}
+                        />
+                        <Button
+                            title={deleting ? "Deleting..." : "Delete my Account"}
+                            onPress={onDeleteAccount ?? (() => router.push("/auth/login"))}
+                            disabled={deleting}
+                            gradient={gradient.red as [string, string]}
+                        />
+                    </>
+                )}
+                {onSkip && skipLabel && (
+                    <Button
+                        title={skipLabel}
+                        onPress={onSkip}
+                        gradient={["#9E9E9E", "#757575"] as [string, string]}
+                    />
+                )}
             </View>
         </View>
     )
