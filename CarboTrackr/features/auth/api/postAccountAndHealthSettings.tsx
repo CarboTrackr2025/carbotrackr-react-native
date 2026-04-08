@@ -1,48 +1,45 @@
-import axios from "axios"
-import { API_BASE_URL } from "../../../shared/api"
+import axios from "axios";
+import { API_BASE_URL } from "../../../shared/api";
 
-type DiagnosedWith =
-    | "TYPE_2_DIABETES"
-    | "PRE_DIABETES"
-    | "NOT_APPLICABLE"
+type DiagnosedWith = "TYPE_2_DIABETES" | "PRE_DIABETES" | "NOT_APPLICABLE";
 
 export type PostAccountAndHealthSettingsPayload = {
-    account_id: string
-    gender: "MALE" | "FEMALE" | null
-    date_of_birth: string | null
-    height_cm: number | null
-    weight_kg: number | null
-    reminder_frequency: number | null
-    reminder_time: string | null
-    diagnosed_with: DiagnosedWith | null
-}
+  account_id: string;
+  gender: "MALE" | "FEMALE" | null;
+  date_of_birth: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  reminder_frequency: number | null;
+  reminder_time: string | null;
+  diagnosed_with: DiagnosedWith | null;
+};
 
 export type PostAccountAndHealthSettingsResponse = {
-    status?: string
-    message?: string
-    data?: {
-        account_id?: string
-        gender?: "MALE" | "FEMALE" | null
-        date_of_birth?: string | null
-        height_cm?: number | null
-        weight_kg?: number | null
-        reminder_frequency?: number | null
-        reminder_time?: string | null
-        diagnosed_with?: DiagnosedWith | null
-    }
-}
+  status?: string;
+  message?: string;
+  data?: {
+    account_id?: string;
+    gender?: "MALE" | "FEMALE" | null;
+    date_of_birth?: string | null;
+    height_cm?: number | null;
+    weight_kg?: number | null;
+    reminder_frequency?: number | null;
+    reminder_time?: string | null;
+    diagnosed_with?: DiagnosedWith | null;
+  };
+};
 
 export async function postAccountAndHealthSettings(
-    payload: PostAccountAndHealthSettingsPayload
+  payload: PostAccountAndHealthSettingsPayload,
 ) {
-    const res = await axios.post<PostAccountAndHealthSettingsResponse>(
-        `${API_BASE_URL}/settings/save`,
-        payload
-    )
+  const res = await axios.post<PostAccountAndHealthSettingsResponse>(
+    `${API_BASE_URL}/settings/save`,
+    payload,
+  );
 
-    return {
-        data: res.data,
-        message: res.data?.message ?? null,
-        status: res.data?.status ?? null,
-    }
+  return {
+    data: res.data,
+    message: res.data?.message ?? null,
+    status: res.data?.status ?? null,
+  };
 }
