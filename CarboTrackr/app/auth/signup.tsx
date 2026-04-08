@@ -45,7 +45,9 @@ export default function SignupScreen() {
     setSubmitting(false);
 
     if (result.success) {
-      console.log("✅ [Signup Screen] Sign-up successful! Navigating to profile setup.");
+      console.log(
+        "✅ [Signup Screen] Sign-up successful! Navigating to profile setup.",
+      );
       router.replace("/auth/setup-profile");
     } else if ("needsVerification" in result && result.needsVerification) {
       console.log(
@@ -101,7 +103,7 @@ export default function SignupScreen() {
           user?.primaryEmailAddress?.emailAddress ??
           null;
         // A brand-new OAuth signup will have createdUserId on oAuthSignUp
-        const isNewUser = !!oAuthSignUp?.createdUserId;
+        let isNewUser = !!oAuthSignUp?.createdUserId;
 
         // Always save the session locally
         if (userId) {
@@ -115,10 +117,13 @@ export default function SignupScreen() {
             email,
           });
           try {
-            await api.post("/auth/account", { userId, email });
+            const response = await api.post("/auth/account", { userId, email });
             console.log(
               "✅ [Signup Screen] Backend account created/confirmed.",
             );
+            if (response.status === 201) {
+              isNewUser = true; // DB just created it, route to setup
+            }
           } catch (backendErr: any) {
             if (backendErr?.response?.status === 409) {
               console.warn(
@@ -140,10 +145,14 @@ export default function SignupScreen() {
 
         // Navigate to setup-profile for new users, or directly to tabs for returning users
         if (isNewUser) {
-          console.log("🆕 [Signup Screen] New OAuth user — navigating to profile setup.");
+          console.log(
+            "🆕 [Signup Screen] New OAuth user — navigating to profile setup.",
+          );
           router.replace("/auth/setup-profile");
         } else {
-          console.log("🔄 [Signup Screen] Returning OAuth user — navigating to tabs.");
+          console.log(
+            "🔄 [Signup Screen] Returning OAuth user — navigating to tabs.",
+          );
           router.replace("/(tabs)");
         }
       } else {

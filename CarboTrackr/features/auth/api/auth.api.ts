@@ -1,4 +1,5 @@
 import { api } from "../../../shared/api";
+import { saveClerkSession } from "../auth.utils";
 
 type LoginPayload = {
   email: string;
@@ -136,6 +137,8 @@ async function _activateAndPersist(
   // Activate the Clerk session
   await setActive({ session: sessionId });
   console.log("✅ [Clerk SignUp] Session activated!");
+  await saveClerkSession({ sessionId, userId });
+  console.log("💾 [Clerk SignUp] Session saved to AsyncStorage");
 
   // Persist user in our backend DB
   try {

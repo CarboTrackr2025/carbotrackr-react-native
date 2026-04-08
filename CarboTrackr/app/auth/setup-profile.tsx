@@ -33,6 +33,7 @@ export default function SetupProfileScreen() {
                 height_cm: values.height_cm,
                 weight_kg: values.weight_kg,
                 reminder_frequency: values.reminder_frequency,
+                reminder_time: "08:00", // Hardcoded per backend schema requirement
                 diagnosed_with: values.diagnosed_with,
             })
 

@@ -13,6 +13,7 @@ export type PostAccountAndHealthSettingsPayload = {
     height_cm: number | null
     weight_kg: number | null
     reminder_frequency: number | null
+    reminder_time: string | null
     diagnosed_with: DiagnosedWith | null
 }
 
@@ -26,6 +27,7 @@ export type PostAccountAndHealthSettingsResponse = {
         height_cm?: number | null
         weight_kg?: number | null
         reminder_frequency?: number | null
+        reminder_time?: string | null
         diagnosed_with?: DiagnosedWith | null
     }
 }

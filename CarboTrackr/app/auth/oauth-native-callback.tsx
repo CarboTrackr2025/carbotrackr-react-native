@@ -46,7 +46,7 @@ export default function OAuthNativeCallback() {
     // Determine if this is a new user (no external accounts means Clerk just created them)
     // Clerk exposes createdAt – if it's very recent (within 30s) treat as new
     const createdAt = user.createdAt ? new Date(user.createdAt).getTime() : 0;
-    const isNewUser = Date.now() - createdAt < 30_000;
+    let isNewUser = Date.now() - createdAt < 30_000;
 
     const persist = async () => {
       // Always save the session to AsyncStorage
@@ -55,8 +55,11 @@ export default function OAuthNativeCallback() {
 
       // Persist user in backend (upsert — 409 = already exists, that's fine)
       try {
-        await api.post("/auth/account", { userId, email });
+        const response = await api.post("/auth/account", { userId, email });
         console.log("✅ [OAuth Callback] Backend account created/confirmed.");
+        if (response.status === 201) {
+          isNewUser = true; // explicitly new in our DB
+        }
       } catch (err: any) {
         const status = err?.response?.status;
         if (status === 409) {
@@ -78,7 +81,9 @@ export default function OAuthNativeCallback() {
 
       hasNavigated.current = true;
       if (isNewUser) {
-        console.log("🆕 [OAuth Callback] New user — navigating to profile setup.");
+        console.log(
+          "🆕 [OAuth Callback] New user — navigating to profile setup.",
+        );
         router.replace("/auth/setup-profile");
       } else {
         console.log("🔄 [OAuth Callback] Returning user — navigating to tabs.");

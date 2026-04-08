@@ -33,8 +33,44 @@ export default function LoginScreen() {
       const sessionId = pendingSessionId.current;
       pendingSessionId.current = null;
       console.log("💾 [Login Screen] useUser resolved userId:", user.id);
-      saveClerkSession({ sessionId, userId: user.id }).then(() => {
+      saveClerkSession({ sessionId, userId: user.id }).then(async () => {
         console.log("💾 [Login Screen] Session saved to AsyncStorage");
+
+        // Ensure backend account exists when logging in.
+        // This covers the case where a user has a Clerk account but no backend DB account/profile.
+        try {
+          const email = user.primaryEmailAddress?.emailAddress ?? "";
+          console.log("🌐 [Login Screen] Checking/persisting backend user:", {
+            userId: user.id,
+            email,
+          });
+          const response = await api.post("/auth/account", {
+            userId: user.id,
+            email,
+          });
+
+          // If the backend returns 201 Created (or similar), it means the user was just added to the DB
+          if (response.status === 201) {
+            console.log(
+              "🆕 [Login Screen] Backend account was just created. Navigating to profile setup.",
+            );
+            router.replace("/auth/setup-profile");
+            return;
+          }
+        } catch (backendErr: any) {
+          if (backendErr?.response?.status === 409) {
+            console.log(
+              "✅ [Login Screen] Backend account already exists (409).",
+            );
+          } else {
+            console.error(
+              "❌ [Login Screen] Failed to persist backend account:",
+              backendErr?.message,
+            );
+          }
+        }
+
+        // If account already existed, just go to tabs
         router.replace("/(tabs)");
       });
     }
@@ -110,7 +146,7 @@ export default function LoginScreen() {
           user?.primaryEmailAddress?.emailAddress ??
           null;
         // A brand-new OAuth user will have createdUserId on oAuthSignUp
-        const isNewUser = !!oAuthSignUp?.createdUserId;
+        let isNewUser = !!oAuthSignUp?.createdUserId;
 
         // Always save the session locally
         if (userId) {
@@ -124,8 +160,11 @@ export default function LoginScreen() {
             email,
           });
           try {
-            await api.post("/auth/account", { userId, email });
+            const response = await api.post("/auth/account", { userId, email });
             console.log("✅ [Login Screen] Backend account created/confirmed.");
+            if (response.status === 201) {
+              isNewUser = true; // The backend just created the account, so treat as new user
+            }
           } catch (backendErr: any) {
             if (backendErr?.response?.status === 409) {
               console.warn(
@@ -144,9 +183,21 @@ export default function LoginScreen() {
           );
         }
 
-        router.replace("/(tabs)");
+        if (isNewUser) {
+          console.log(
+            "🆕 [Login Screen] New OAuth user — navigating to profile setup.",
+          );
+          router.replace("/auth/setup-profile");
+        } else {
+          console.log(
+            "🔄 [Login Screen] Returning OAuth user — navigating to tabs.",
+          );
+          router.replace("/(tabs)");
+        }
       } else {
-        console.log("✅ [Login Screen] OAuth flow initiated (will complete via callback)");
+        console.log(
+          "✅ [Login Screen] OAuth flow initiated (will complete via callback)",
+        );
       }
     } catch (err: any) {
       console.error("❌ [Login Screen] OAuth failed:", err);
