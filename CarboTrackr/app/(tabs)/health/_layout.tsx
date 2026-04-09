@@ -11,7 +11,6 @@ export default function Layout() {
                 name="add-blood-pressure"
                 options={{headerShown: true, title: "Measure Blood Pressure"}}
             />
-            <Stack.Screen name="blood-glucose" options={{headerShown: false}}/>
             <Stack.Screen
                 name="add-blood-glucose"
                 options={{headerShown: true, title: "Measure Blood Glucose"}}
