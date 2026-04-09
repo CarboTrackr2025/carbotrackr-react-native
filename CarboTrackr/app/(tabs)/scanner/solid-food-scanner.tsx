@@ -4,7 +4,7 @@ import * as ImagePicker from "expo-image-picker"
 
 import { postSolidFoodPhoto, type SolidFoodPredictionResult } from "../../../features/scanner/api/post-solid-food-photo"
 import { postFoodLogFromSolidFoodScanner } from "../../../features/scanner/api/post-food"
-import { getClerkUserId } from "../../../features/auth/auth.utils"
+import { useAuth } from "@clerk/clerk-expo"
 import { CalorieRing } from "../../../shared/components/CalorieRing"
 import { GradientTextDisplay } from "../../../shared/components/GradientTextDisplay"
 import { GradientTextInput } from "../../../shared/components/GradientTextInput"
@@ -14,6 +14,7 @@ import { color, gradient } from "../../../shared/constants/colors"
 import { formatPhilippinesTime } from "../../../shared/utils/formatters"
 
 export default function SolidFoodScanner() {
+    const { userId } = useAuth()
     const [imageUri, setImageUri] = useState<string | null>(null)
     const [imageName, setImageName] = useState<string | null>(null)
     const [imageType, setImageType] = useState<string | null>(null)
@@ -158,8 +159,8 @@ export default function SolidFoodScanner() {
             const mealId = String(result?.prediction?.meal_id ?? "").trim()
             if (!mealId) throw new Error("Missing meal_id from prediction response")
 
-            const accountId = await getClerkUserId()
-            if (!accountId) throw new Error("User ID not found")
+            const accountId = userId
+            if (!accountId) throw new Error("User ID not found. Please log in again.")
 
             const saveRes = await postFoodLogFromSolidFoodScanner({
                 account_id: accountId,

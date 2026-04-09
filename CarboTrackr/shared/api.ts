@@ -1,7 +1,6 @@
 import axios from "axios";
 
-const PORT = 3000;
-const DEV_BASE_URL = `http://192.168.21.33:${PORT}`;
+const DEV_BASE_URL = "https://carbotrackr-node-express.onrender.com";
 
 export const API_BASE_URL: string = DEV_BASE_URL;
 

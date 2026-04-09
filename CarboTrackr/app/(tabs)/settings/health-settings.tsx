@@ -10,7 +10,7 @@ import {
     HealthSettingsData,
 } from "../../../features/settings/api/get-health-settings"
 import { putHealthSettings } from "../../../features/settings/api/put-health-settings"
-import { getClerkUserId } from "../../../features/auth/auth.utils"
+import { useUser } from "@clerk/clerk-expo"
 import { scheduleHealthReminders } from "../../../shared/utils/reminders"
 
 const EMPTY_SETTINGS: HealthSettingsData = {
@@ -36,12 +36,13 @@ export default function HealthSettingsScreen() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [initialValues, setInitialValues] = useState<HealthSettingsData>(EMPTY_SETTINGS)
+    const { user, isLoaded } = useUser()
 
     const handleSave = async (values: SaveHealthSettingsInput) => {
         try {
             setSaving(true)
 
-            const accountIdFromClerk = await getClerkUserId()
+            const accountIdFromClerk = user?.id
             if (!accountIdFromClerk) {
                 throw new Error("User ID from Clerk Auth API not found")
             }
@@ -104,12 +105,15 @@ export default function HealthSettingsScreen() {
 
         async function run() {
             try {
-                setLoading(true)
-
-                const accountIdFromClerk = await getClerkUserId()
+                if (!isLoaded) return
+                
+                const accountIdFromClerk = user?.id
                 if (!accountIdFromClerk) {
-                    throw new Error("User ID from Clerk Auth API not found")
+                    setLoading(false)
+                    return
                 }
+                
+                setLoading(true)
 
                 const { data } = await getHealthSettings(accountIdFromClerk)
 
@@ -128,7 +132,7 @@ export default function HealthSettingsScreen() {
         return () => {
             mounted = false
         }
-    }, [])
+    }, [user?.id, isLoaded])
 
     if (loading) {
         return (

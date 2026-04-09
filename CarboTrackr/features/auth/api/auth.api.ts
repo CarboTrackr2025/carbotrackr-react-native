@@ -1,10 +1,5 @@
-import { saveClerkSession } from "../auth.utils";
 import { api } from "../../../shared/api";
-import type {
-  SignInResource,
-  SignUpResource,
-  UserResource,
-} from "@clerk/clerk-expo";
+import { saveClerkSession } from "../auth.utils";
 
 type LoginPayload = {
   email: string;
@@ -30,7 +25,7 @@ type SignUpResult =
  * NOTE: Email verification (OTP) is disabled on the Clerk dashboard — sign-up completes immediately.
  */
 export async function signUpWithClerk(
-  signUp: SignUpResource,
+  signUp: any,
   setActive: any,
   payload: SignUpPayload,
 ): Promise<SignUpResult> {
@@ -87,7 +82,7 @@ export async function signUpWithClerk(
  * Complete email verification after sign-up (when Clerk sends an OTP).
  */
 export async function verifySignUpEmail(
-  signUp: SignUpResource,
+  signUp: any,
   setActive: any,
   code: string,
   email: string,
@@ -122,7 +117,7 @@ export async function verifySignUpEmail(
  * Activate the Clerk session and persist the user in our backend DB.
  */
 async function _activateAndPersist(
-  signUpAttempt: SignUpResource,
+  signUpAttempt: any,
   setActive: any,
   email: string,
 ): Promise<SignUpResult> {
@@ -142,8 +137,6 @@ async function _activateAndPersist(
   // Activate the Clerk session
   await setActive({ session: sessionId });
   console.log("✅ [Clerk SignUp] Session activated!");
-
-  // Save session locally
   await saveClerkSession({ sessionId, userId });
   console.log("💾 [Clerk SignUp] Session saved to AsyncStorage");
 
@@ -189,7 +182,7 @@ async function _activateAndPersist(
  * the Clerk user context has updated (i.e. via useUser() in the screen).
  */
 export async function loginWithClerk(
-  signIn: SignInResource,
+  signIn: any,
   setActive: any,
   payload: LoginPayload,
 ): Promise<LoginResult> {
@@ -260,7 +253,7 @@ export type OAuthResult =
   | { success: false; message: string };
 
 export async function loginWithOAuth(
-  signIn: SignInResource,
+  signIn: any,
   provider: OAuthProvider,
 ): Promise<OAuthResult> {
   try {
@@ -305,7 +298,7 @@ type ChangePasswordResult =
  * Clerk requires the current password to update to a new one.
  */
 export async function changePasswordWithClerk(
-  user: UserResource,
+  user: any,
   newPassword: string,
   currentPassword: string,
 ): Promise<ChangePasswordResult> {
@@ -353,7 +346,7 @@ type ResetPasswordResult =
  * Request a password-reset email OTP from Clerk.
  */
 export async function requestPasswordReset(
-  signIn: SignInResource,
+  signIn: any,
   email: string,
 ): Promise<RequestPasswordResetResult> {
   try {
@@ -389,7 +382,7 @@ export async function requestPasswordReset(
  * Verify the OTP code sent to the user's email.
  */
 export async function verifyPasswordResetOTP(
-  signIn: SignInResource,
+  signIn: any,
   code: string,
 ): Promise<VerifyPasswordResetOTPResult> {
   try {
@@ -443,7 +436,7 @@ export async function verifyPasswordResetOTP(
  * and would trigger the "already signed in" guard on the login page.
  */
 export async function resetPasswordWithClerk(
-  signIn: SignInResource,
+  signIn: any,
   newPassword: string,
 ): Promise<ResetPasswordResult> {
   try {
