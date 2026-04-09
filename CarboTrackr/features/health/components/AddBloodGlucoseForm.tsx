@@ -5,9 +5,11 @@ import { formatPhilippinesTime } from "../../../shared/utils/formatters";
 import { Button } from "../../../shared/components/Button";
 import { GradientTextInput } from "../../../shared/components/GradientTextInput";
 import { GradientTextDisplay } from "../../../shared/components/GradientTextDisplay";
+import { Dropdown } from "../../../shared/components/Dropdown";
 
 type BloodGlucoseInput = {
   level: string;
+  meal_context: "PRE" | "POST";
 };
 
 type Props = {
@@ -22,16 +24,18 @@ export default function AddBloodGlucoseForm({
   timestamp,
 }: Props) {
   const [level, setLevel] = useState("");
+  const [mealContext, setMealContext] = useState<"PRE" | "POST" | null>("PRE");
   const [error, setError] = useState<string | null>(null);
 
   const canSubmit = useMemo(() => {
     const l = Number(level);
-    return Number.isFinite(l) && l > 0 && !submitting;
-  }, [level, submitting]);
+    return Number.isFinite(l) && l > 0 && !!mealContext && !submitting;
+  }, [level, mealContext, submitting]);
 
   const handleSubmit = async () => {
     setError(null);
-    await onSubmit({ level });
+    if (!mealContext) return;
+    await onSubmit({ level, meal_context: mealContext });
   };
 
   const recordedText = timestamp ? formatPhilippinesTime(timestamp) : "—";
@@ -44,6 +48,17 @@ export default function AddBloodGlucoseForm({
         onChangeText={(t) => setLevel(t.replace(/[^\d.]/g, ""))}
         placeholder="100"
         keyboardType="numeric"
+      />
+
+      <Text style={styles.label}>Meal Context</Text>
+      <Dropdown
+        options={[
+          { label: "Before meal", value: "PRE" },
+          { label: "After meal", value: "POST" },
+        ]}
+        selectedValue={mealContext}
+        onSelect={(value) => setMealContext(value as "PRE" | "POST" | null)}
+        placeholder="Select meal context"
       />
 
       <Text style={styles.label}>Recorded Date and Time</Text>
