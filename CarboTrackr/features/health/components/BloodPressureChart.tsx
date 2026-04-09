@@ -33,7 +33,7 @@ const Y_TICKS = [200, 160, 120, 80, 40, 20];
 const GROUP_WIDTH = 64;
 const GROUP_GAP = 14;
 const GROUP_PITCH = GROUP_WIDTH + GROUP_GAP;
-const Y_AXIS_WIDTH = 34;
+const Y_AXIS_WIDTH = 26;
 const CARD_BORDER_WIDTH = 2.5;
 const CARD_RADIUS = 12;
 
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   },
   yAxis: {
     width: Y_AXIS_WIDTH,
-    marginRight: 8,
+    marginRight: 4,
   },
   yAxisPlot: {
     height: PLOT_HEIGHT,
