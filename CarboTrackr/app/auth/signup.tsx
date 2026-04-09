@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useSignUp, useOAuth } from "@clerk/clerk-expo";
+import { useSignUp, useOAuth, useUser } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
-import * as Linking from "expo-linking";
 import * as AuthSession from "expo-auth-session";
 import SignupForm from "../../features/auth/components/SignupForm";
 import { signUpWithClerk } from "../../features/auth/api/auth.api";
@@ -17,6 +16,7 @@ WebBrowser.maybeCompleteAuthSession();
 export default function SignupScreen() {
   const router = useRouter();
   const { signUp, setActive, isLoaded } = useSignUp();
+  const { user } = useUser();
   const { startOAuthFlow: startGoogleOAuth } = useOAuth({
     strategy: "oauth_google",
   });
@@ -45,7 +45,9 @@ export default function SignupScreen() {
     setSubmitting(false);
 
     if (result.success) {
-      console.log("✅ [Signup Screen] Sign-up successful! Navigating to profile setup.");
+      console.log(
+        "✅ [Signup Screen] Sign-up successful! Navigating to profile setup.",
+      );
       router.replace("/auth/setup-profile");
     } else if ("needsVerification" in result && result.needsVerification) {
       console.log(
@@ -71,8 +73,7 @@ export default function SignupScreen() {
       const startOAuthFlow =
         provider === "oauth_google" ? startGoogleOAuth : startFacebookOAuth;
       const redirectUrl = AuthSession.makeRedirectUri({
-        useProxy: true,
-        projectNameForProxy: "@eenvees-inc/carbotrackrtester",
+        scheme: "carbotrackr",
         path: "auth/oauth-native-callback",
       });
       console.log("🔗 [Signup Screen] OAuth redirectUrl:", redirectUrl);
@@ -90,16 +91,19 @@ export default function SignupScreen() {
         );
 
         // Resolve userId — new signups have it on signUp, returning users on signIn
+        // Fall back to the Clerk user object which is populated after setActive
         const userId =
           oAuthSignUp?.createdUserId ??
           (oAuthSignIn as any)?.createdUserId ??
+          user?.id ??
           null;
         const email =
           oAuthSignUp?.emailAddress ??
           (oAuthSignIn as any)?.identifier ??
+          user?.primaryEmailAddress?.emailAddress ??
           null;
         // A brand-new OAuth signup will have createdUserId on oAuthSignUp
-        const isNewUser = !!oAuthSignUp?.createdUserId;
+        let isNewUser = !!oAuthSignUp?.createdUserId;
 
         // Always save the session locally
         if (userId) {
@@ -113,10 +117,13 @@ export default function SignupScreen() {
             email,
           });
           try {
-            await api.post("/auth/account", { userId, email });
+            const response = await api.post("/auth/account", { userId, email });
             console.log(
               "✅ [Signup Screen] Backend account created/confirmed.",
             );
+            if (response.status === 201) {
+              isNewUser = true; // DB just created it, route to setup
+            }
           } catch (backendErr: any) {
             if (backendErr?.response?.status === 409) {
               console.warn(
@@ -136,10 +143,16 @@ export default function SignupScreen() {
           );
         }
 
+        // Navigate to setup-profile for new users, or directly to tabs for returning users
         if (isNewUser) {
-          console.log("📝 [Signup Screen] New OAuth user — redirecting to profile setup");
+          console.log(
+            "🆕 [Signup Screen] New OAuth user — navigating to profile setup.",
+          );
           router.replace("/auth/setup-profile");
         } else {
+          console.log(
+            "🔄 [Signup Screen] Returning OAuth user — navigating to tabs.",
+          );
           router.replace("/(tabs)");
         }
       } else {

@@ -49,7 +49,7 @@ import {
   type GlucoseMeasurement,
 } from "../../../features/health/api/get-blood-glucose";
 
-import { getClerkUserId } from "../../../features/auth/auth.utils";
+import { useAuth } from "@clerk/clerk-expo";
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 const toYMDLocal = (d: Date) => {
@@ -78,6 +78,7 @@ const syncLog = (msg: string) => console.log(`[WatchSync] ${msg}`);
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function HealthIndexScreen() {
+  const { userId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [measurements, setMeasurements] = useState<BpMeasurement[]>([]);
@@ -110,7 +111,7 @@ export default function HealthIndexScreen() {
   const fetchMeasurements = useCallback(async () => {
     try {
       setMeasurements([]);
-      const accountId = await getClerkUserId();
+      const accountId = userId;
       if (!accountId) throw new Error("User ID from Clerk Auth API not found");
       const { measurements: cleaned } = await getBloodPressureReport({
         accountId,
@@ -122,12 +123,12 @@ export default function HealthIndexScreen() {
       console.warn("[Health] Failed to fetch BP measurements:", err?.message);
       Alert.alert("Could not load blood pressure history", "Please try again.");
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, userId]);
 
   const fetchGlucoseMeasurements = useCallback(async () => {
     try {
       setGlucoseMeasurements([]);
-      const accountId = await getClerkUserId();
+      const accountId = userId;
       if (!accountId) throw new Error("User ID from Clerk Auth API not found");
       const { measurements: cleaned } = await getBloodGlucoseReport({
         accountId,
@@ -142,7 +143,7 @@ export default function HealthIndexScreen() {
       );
       Alert.alert("Could not load blood glucose history", "Please try again.");
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, userId]);
 
   // ─── Health Connect setup ────────────────────────────────────────────────────
 
@@ -247,7 +248,7 @@ export default function HealthIndexScreen() {
   const fetchWatchData = useCallback(async () => {
     try {
       setWatchDataLoading(true);
-      const accountId = await getClerkUserId();
+      const accountId = userId;
       if (!accountId) throw new Error("User ID from Clerk Auth API not found");
 
       const res = await getWatchMetrics({
@@ -285,7 +286,7 @@ export default function HealthIndexScreen() {
     } finally {
       setWatchDataLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, userId]);
 
   // ─── Sync all metrics ────────────────────────────────────────────────────────
 
@@ -312,7 +313,7 @@ export default function HealthIndexScreen() {
         return;
       }
 
-      const accountId = await getClerkUserId();
+      const accountId = userId;
       if (!accountId) throw new Error("User ID not found");
 
       // Always read from start-of-today → now for the absolute latest data
@@ -441,13 +442,13 @@ export default function HealthIndexScreen() {
       await Promise.all([fetchMeasurements(), fetchGlucoseMeasurements()]);
       setLoading(false);
     })();
-  }, [fetchMeasurements, fetchGlucoseMeasurements]);
+  }, [fetchMeasurements, fetchGlucoseMeasurements, userId]);
 
   // Reload BP/glucose when screen is focused
   useFocusEffect(
     useCallback(() => {
       Promise.all([fetchMeasurements(), fetchGlucoseMeasurements()]);
-    }, [fetchMeasurements, fetchGlucoseMeasurements]),
+    }, [fetchMeasurements, fetchGlucoseMeasurements, userId]),
   );
 
   // Load watch chart data from backend whenever section or date range changes
@@ -455,7 +456,7 @@ export default function HealthIndexScreen() {
     if (activeSection === "watch") {
       fetchWatchData();
     }
-  }, [activeSection, startDate, endDate]);
+  }, [activeSection, startDate, endDate, fetchWatchData, userId]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
