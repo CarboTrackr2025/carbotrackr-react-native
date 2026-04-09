@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { color, gradient } from "../../../shared/constants/colors";
 
@@ -88,6 +88,7 @@ const LegendItem = ({ color: bg, label }: { color: string; label: string }) => (
 
 export default function BloodPressureChart({ measurements }: Props) {
   const source = measurements ?? [];
+  const [legendCollapsed, setLegendCollapsed] = useState(false);
 
   const sorted = useMemo(() => {
     return [...source]
@@ -130,102 +131,124 @@ export default function BloodPressureChart({ measurements }: Props) {
         style={styles.cardBorder}
       >
         <View style={styles.card}>
-        <View style={styles.chartRow}>
-          <View style={styles.yAxis}>
-            <View style={styles.yAxisPlot}>
-              {Y_TICKS.map((tick) => (
-                <View
-                  key={tick}
-                  style={[styles.yAxisTick, { bottom: toHeight(tick) - 8 }]}
-                >
-                  <Text style={styles.yAxisText}>{tick}</Text>
-                </View>
-              ))}
-            </View>
-            <View style={styles.yAxisLabelSpacer} />
-          </View>
-
-          <ScrollView
-            ref={scrollRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-            snapToInterval={GROUP_PITCH}
-            decelerationRate="fast"
-          >
-            <View style={styles.chart}>
-              <View style={styles.gridArea}>
-                {Y_TICKS.map((tick) => (
-                  <View
-                    key={tick}
-                    style={[styles.gridLine, { bottom: toHeight(tick) }]}
-                  />
-                ))}
-              </View>
-
-              <View style={[styles.plotRow, { width: contentWidth }]}>
-                {sorted.map((measurement) => {
-                  const status = evaluateBloodPressure(
-                    measurement.systolic_mmHg,
-                    measurement.diastolic_mmHg,
-                  );
-                  const { solid, light } = BP_COLORS[status];
-
-                  return (
-                    <View key={measurement.id} style={styles.group}>
-                      <View style={styles.plotArea}>
-                        <View style={styles.barPair}>
-                          <View
-                            style={[
-                              styles.bar,
-                              {
-                                height: toHeight(measurement.systolic_mmHg),
-                                backgroundColor: solid,
-                              },
-                            ]}
-                          />
-                          <View
-                            style={[
-                              styles.bar,
-                              {
-                                height: toHeight(measurement.diastolic_mmHg),
-                                backgroundColor: light,
-                              },
-                            ]}
-                          />
-                        </View>
-                      </View>
-
-                      <View style={styles.labelArea}>
-                        <Text style={styles.xLabel} numberOfLines={1}>
-                          {formatLabelMMMdd(measurement.created_at)}{" "}
-                          {formatTimehhmm(measurement.created_at)}
-                        </Text>
-                        <Text style={styles.measurementLabel} numberOfLines={1}>
-                          {measurement.systolic_mmHg}/{measurement.diastolic_mmHg}
-                        </Text>
-                      </View>
+          <View style={styles.chartPressable}>
+            <View style={styles.chartRow}>
+              <View style={styles.yAxis}>
+                <View style={styles.yAxisPlot}>
+                  {Y_TICKS.map((tick) => (
+                    <View
+                      key={tick}
+                      style={[styles.yAxisTick, { bottom: toHeight(tick) - 8 }]}
+                    >
+                      <Text style={styles.yAxisText}>{tick}</Text>
                     </View>
-                  );
-                })}
+                  ))}
+                </View>
+                <View style={styles.yAxisLabelSpacer} />
               </View>
+
+              <ScrollView
+                ref={scrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                snapToInterval={GROUP_PITCH}
+                decelerationRate="fast"
+              >
+                <View style={styles.chart}>
+                  <View style={styles.gridArea}>
+                    {Y_TICKS.map((tick) => (
+                      <View
+                        key={tick}
+                        style={[styles.gridLine, { bottom: toHeight(tick) }]}
+                      />
+                    ))}
+                  </View>
+
+                  <View style={[styles.plotRow, { width: contentWidth }]}>
+                    {sorted.map((measurement) => {
+                      const status = evaluateBloodPressure(
+                        measurement.systolic_mmHg,
+                        measurement.diastolic_mmHg,
+                      );
+                      const { solid, light } = BP_COLORS[status];
+
+                      return (
+                        <View key={measurement.id} style={styles.group}>
+                          <View style={styles.plotArea}>
+                            <View style={styles.barPair}>
+                              <View
+                                style={[
+                                  styles.bar,
+                                  {
+                                    height: toHeight(measurement.systolic_mmHg),
+                                    backgroundColor: solid,
+                                  },
+                                ]}
+                              />
+                              <View
+                                style={[
+                                  styles.bar,
+                                  {
+                                    height: toHeight(measurement.diastolic_mmHg),
+                                    backgroundColor: light,
+                                  },
+                                ]}
+                              />
+                            </View>
+                          </View>
+
+                          <View style={styles.labelArea}>
+                            <Text style={styles.xLabel} numberOfLines={1}>
+                              {formatLabelMMMdd(measurement.created_at)}{" "}
+                              {formatTimehhmm(measurement.created_at)}
+                            </Text>
+                            <Text style={styles.measurementLabel} numberOfLines={1}>
+                              {measurement.systolic_mmHg}/{measurement.diastolic_mmHg}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              </ScrollView>
             </View>
-          </ScrollView>
-        </View>
-
-        <View style={styles.legend}>
-          <LegendItem color={color.fuschia} label="Severe (>180 or >120)" />
-          <LegendItem color={color.red} label="Stage 2 (>=140 or >=90)" />
-          <LegendItem color={color.orange} label="Stage 1 (130-139 or 80-89)" />
-          <LegendItem color={color.yellow} label="Elevated" />
-          <LegendItem color={color.green} label="Normal" />
-          <LegendItem color={color.blue} label="Low" />
-
-          <View style={styles.noteRow}>
-            <Text style={styles.noteText}>Darker = Systolic</Text>
-            <Text style={styles.noteText}>Lighter = Diastolic</Text>
           </View>
-        </View>
+
+          {!legendCollapsed && (
+            <>
+              <View style={styles.legend}>
+                <LegendItem color={color.fuschia} label="Severe (>180 or >120)" />
+                <LegendItem color={color.red} label="Stage 2 (>=140 or >=90)" />
+                <LegendItem color={color.orange} label="Stage 1 (130-139 or 80-89)" />
+                <LegendItem color={color.yellow} label="Elevated" />
+                <LegendItem color={color.green} label="Normal" />
+                <LegendItem color={color.blue} label="Low" />
+
+                <View style={styles.noteRow}>
+                  <Text style={styles.noteText}>Darker = Systolic</Text>
+                  <Text style={styles.noteText}>Lighter = Diastolic</Text>
+                </View>
+              </View>
+
+              <Pressable
+                style={styles.legendToggle}
+                onPress={() => setLegendCollapsed(true)}
+              >
+                <Text style={styles.legendToggleText}>See less</Text>
+              </Pressable>
+            </>
+          )}
+
+          {legendCollapsed && (
+            <Pressable
+              style={styles.legendToggle}
+              onPress={() => setLegendCollapsed(false)}
+            >
+              <Text style={styles.legendToggleText}>See more</Text>
+            </Pressable>
+          )}
         </View>
       </LinearGradient>
     </View>
@@ -249,6 +272,9 @@ const styles = StyleSheet.create({
     backgroundColor: color.white,
     borderRadius: CARD_RADIUS - CARD_BORDER_WIDTH,
     padding: 12,
+  },
+  chartPressable: {
+    width: "100%",
   },
   chartRow: {
     flexDirection: "row",
@@ -339,6 +365,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
+    justifyContent: "center",
+  },
+  legendToggle: {
+    marginTop: 8,
+    alignSelf: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  legendToggleText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: color.green,
   },
   legendItem: {
     flexDirection: "row",
