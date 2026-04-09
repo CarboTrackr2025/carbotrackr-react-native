@@ -14,7 +14,13 @@ type Props = {
   measurements?: BpMeasurement[];
 };
 
-type BPStatus = "LOW" | "NORMAL" | "ELEVATED" | "HYPERTENSION" | "CRISIS";
+type BPStatus =
+  | "LOW"
+  | "NORMAL"
+  | "ELEVATED"
+  | "STAGE_1"
+  | "STAGE_2"
+  | "SEVERE";
 
 const PLOT_HEIGHT = 140;
 const LABEL_HEIGHT = 42;
@@ -54,10 +60,13 @@ const evaluateBloodPressure = (systolic: number, diastolic: number): BPStatus =>
   if (systolic < 90 || diastolic < 60) return "LOW";
   if (systolic < 120 && diastolic < 80) return "NORMAL";
   if (systolic >= 120 && systolic < 130 && diastolic < 80) return "ELEVATED";
-  if ((systolic >= 130 && systolic < 180) || (diastolic >= 80 && diastolic < 120)) {
-    return "HYPERTENSION";
+  if ((systolic >= 130 && systolic <= 139) || (diastolic >= 80 && diastolic <= 89)) {
+    return "STAGE_1";
   }
-  if (systolic >= 180 || diastolic >= 120) return "CRISIS";
+  if (systolic >= 140 || diastolic >= 90) {
+    if (systolic > 180 || diastolic > 120) return "SEVERE";
+    return "STAGE_2";
+  }
   return "NORMAL";
 };
 
@@ -65,8 +74,9 @@ const BP_COLORS: Record<BPStatus, { solid: string; light: string }> = {
   LOW: { solid: color.blue, light: color["light-blue"] },
   NORMAL: { solid: color.green, light: color["light-green"] },
   ELEVATED: { solid: color.yellow, light: color["light-yellow"] },
-  HYPERTENSION: { solid: color.red, light: color["light-red"] },
-  CRISIS: { solid: color.red, light: color["light-red"] },
+  STAGE_1: { solid: color.orange, light: color["light-orange"] },
+  STAGE_2: { solid: color.red, light: color["light-red"] },
+  SEVERE: { solid: color.fuschia, light: color["light-fuschia"] },
 };
 
 const LegendItem = ({ color: bg, label }: { color: string; label: string }) => (
@@ -204,7 +214,9 @@ export default function BloodPressureChart({ measurements }: Props) {
         </View>
 
         <View style={styles.legend}>
-          <LegendItem color={color.red} label="Hypertension / Crisis" />
+          <LegendItem color={color.fuschia} label="Severe (>180 or >120)" />
+          <LegendItem color={color.red} label="Stage 2 (>=140 or >=90)" />
+          <LegendItem color={color.orange} label="Stage 1 (130-139 or 80-89)" />
           <LegendItem color={color.yellow} label="Elevated" />
           <LegendItem color={color.green} label="Normal" />
           <LegendItem color={color.blue} label="Low" />
