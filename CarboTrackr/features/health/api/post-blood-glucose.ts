@@ -3,6 +3,7 @@ import { API_BASE_URL } from "../../../shared/api";
 
 export type BloodGlucoseInput = {
   level: string;
+  meal_context: "PRE" | "POST";
 };
 
 export type CreateBloodGlucosePayload = BloodGlucoseInput & {
