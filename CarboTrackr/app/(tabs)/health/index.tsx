@@ -497,13 +497,6 @@ export default function HealthIndexScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <View style={styles.headerRow}>
-        <Text style={styles.headerTitle}>Health</Text>
-        <Text style={styles.subTitle}>
-          {toYMDLocal(startDate)} → {toYMDLocal(endDate)}
-        </Text>
-      </View>
-
       <DateRangePicker
         startDate={startDate}
         endDate={endDate}
@@ -587,7 +580,6 @@ export default function HealthIndexScreen() {
         </View>
       ) : (
         <>
-          <Text style={styles.sectionTitle}>Blood Pressure</Text>
           <BloodPressureChart measurements={measurements} />
 
           {measurements.length === 0 && (
@@ -599,7 +591,6 @@ export default function HealthIndexScreen() {
             </View>
           )}
 
-          <Text style={styles.sectionTitle}>Blood Glucose</Text>
           <BloodGlucoseChart measurements={glucoseMeasurements} />
 
           {glucoseMeasurements.length === 0 && (
