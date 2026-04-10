@@ -5,6 +5,7 @@ export type GlucoseMeasurement = {
   id: string;
   level: number;
   created_at: string;
+  meal_context: "PRE" | "POST" | null;
 };
 
 export type GetBloodGlucoseResponse =
@@ -38,6 +39,10 @@ const normalizeMeasurement = (m: any): GlucoseMeasurement | null => {
     id: String(m?.id ?? m?._id ?? `${t}-${level}`),
     level,
     created_at: createdAt,
+    meal_context:
+      m?.meal_context === "PRE" || m?.meal_context === "POST"
+        ? m.meal_context
+        : null,
   };
 };
 

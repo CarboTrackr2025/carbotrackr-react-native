@@ -117,12 +117,6 @@ export default function FoodLogsIndexScreen() {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                 ListHeaderComponent={
                     <View>
-                        <View style={styles.headerRow}>
-                            <Text style={styles.headerTitle}>Food Logs</Text>
-                            <Text style={styles.subTitle}>
-                                {toYMDLocal(startDate)} to {toYMDLocal(endDate)}
-                            </Text>
-                        </View>
 
                         <DateRangePicker
                             startDate={startDate}
