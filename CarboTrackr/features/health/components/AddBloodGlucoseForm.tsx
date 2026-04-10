@@ -6,6 +6,7 @@ import { Button } from "../../../shared/components/Button";
 import { GradientTextInput } from "../../../shared/components/GradientTextInput";
 import { GradientTextDisplay } from "../../../shared/components/GradientTextDisplay";
 import { Dropdown } from "../../../shared/components/Dropdown";
+import { Reading } from "../../../shared/components/Reading";
 
 type BloodGlucoseInput = {
   level: string;
@@ -42,6 +43,15 @@ export default function AddBloodGlucoseForm({
 
   return (
     <View style={styles.container}>
+      <Reading
+        text={level || "—"}
+        unit="mgDl"
+        iconName="water"
+        size={236}
+        containerStyle={{ alignSelf: "center", marginBottom: 12 }}
+        textStyle={{ fontSize: 24, lineHeight: 25 }}
+      />
+
       <Text style={styles.label}>Blood Glucose Level (mg/dL)</Text>
       <GradientTextInput
         value={level}
@@ -62,7 +72,9 @@ export default function AddBloodGlucoseForm({
       />
 
       <Text style={styles.label}>Recorded Date and Time</Text>
-      <GradientTextDisplay text={recordedText} />
+      <View style={styles.recordedDisplayWrap}>
+        <GradientTextDisplay text={recordedText} />
+      </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -92,5 +104,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 8,
     fontSize: 12,
+  },
+  recordedDisplayWrap: {
+    marginBottom: 14,
   },
 });

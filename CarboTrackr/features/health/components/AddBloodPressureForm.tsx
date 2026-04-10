@@ -41,7 +41,14 @@ export default function AddBloodPressureForm({submitting = false, onSubmit, time
 
     return (
         <View style={styles.container}>
-            <Reading text={`${systolic || "—"}/${diastolic || "—"}`} unit="mmHg" containerStyle={{alignSelf: "center"}} textStyle={{fontSize: 32}}/>
+            <Reading
+                text={`${systolic || "—"}/${diastolic || "—"}`}
+                unit="mmHg"
+                iconName="pulse"
+                size={236}
+                containerStyle={{alignSelf: "center", marginBottom: 12}}
+                textStyle={{ fontSize: 24, lineHeight: 25 }}
+            />
 
             <View style={styles.entryContainer}>
                 <Text style={styles.label}> Systolic</Text>
@@ -62,7 +69,9 @@ export default function AddBloodPressureForm({submitting = false, onSubmit, time
     />
 
     <Text style={styles.label}>Recorded Date and Time</Text>
-    <GradientTextDisplay text={recordedText}/>
+    <View style={styles.recordedDisplayWrap}>
+        <GradientTextDisplay text={recordedText}/>
+    </View>
 
     {
         error ? <Text style={styles.error}>{error}</Text> : null
@@ -118,6 +127,9 @@ const styles = StyleSheet.create({
         color: "#111827",
         fontSize: 14,
         opacity: 0.8,
+    },
+    recordedDisplayWrap: {
+        marginBottom: 14,
     },
     error: {
         color: "red",
