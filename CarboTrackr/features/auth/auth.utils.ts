@@ -1,86 +1,80 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 
 const TOKEN_KEY = "auth_token";
-const CLERK_SESSION_KEY = "clerk_session";
-const CLERK_USER_ID_KEY = "clerk_user_id";
+const SESSION_KEY = "clerk_session_id";
+const USER_ID_KEY = "clerk_user_id";
 
-// ── Clerk TokenCache for AsyncStorage (required by ClerkProvider) ──
+// ── Clerk TokenCache using SecureStore (recommended for @clerk/clerk-expo) ──
 export const tokenCache = {
   async getToken(key: string) {
     try {
-      return await AsyncStorage.getItem(key);
+      return await SecureStore.getItemAsync(key);
     } catch {
       return null;
     }
   },
   async saveToken(key: string, value: string) {
     try {
-      await AsyncStorage.setItem(key, value);
+      await SecureStore.setItemAsync(key, value);
+    } catch {
+      // Ignore errors
+    }
+  },
+  async clearToken(key: string) {
+    try {
+      await SecureStore.deleteItemAsync(key);
     } catch {
       // Ignore errors
     }
   },
 };
 
-// ── Legacy token management (for backend tokens if needed) ──
-export async function saveToken(token: string): Promise<void> {
-  await AsyncStorage.setItem(TOKEN_KEY, token);
-}
+// ── Session persistence (used after OAuth / email login) ──
 
-export async function getToken(): Promise<string | null> {
-  return await AsyncStorage.getItem(TOKEN_KEY);
-}
-
-export async function removeToken(): Promise<void> {
-  await AsyncStorage.removeItem(TOKEN_KEY);
-}
-
-// ── Clerk session management ──
-type ClerkSession = {
+export async function saveClerkSession({
+  sessionId,
+  userId,
+}: {
   sessionId: string;
   userId: string;
-};
-
-export async function saveClerkSession(session: ClerkSession): Promise<void> {
-  await AsyncStorage.multiSet([
-    [CLERK_SESSION_KEY, session.sessionId],
-    [CLERK_USER_ID_KEY, session.userId],
-  ]);
-}
-
-export async function getClerkSession(): Promise<ClerkSession | null> {
+}): Promise<void> {
   try {
-    const [[, sessionId], [, userId]] = await AsyncStorage.multiGet([
-      CLERK_SESSION_KEY,
-      CLERK_USER_ID_KEY,
-    ]);
-    if (sessionId && userId) {
-      return { sessionId, userId };
-    }
-    return null;
+    await AsyncStorage.setItem(SESSION_KEY, sessionId);
+    await AsyncStorage.setItem(USER_ID_KEY, userId);
   } catch {
-    return null;
+    // Non-fatal
   }
 }
 
+export async function getClerkSession(): Promise<{
+  sessionId: string | null;
+  userId: string | null;
+}> {
+  try {
+    const sessionId = await AsyncStorage.getItem(SESSION_KEY);
+    const userId = await AsyncStorage.getItem(USER_ID_KEY);
+    return { sessionId, userId };
+  } catch {
+    return { sessionId: null, userId: null };
+  }
+}
+
+/**
+ * Convenience helper: returns just the stored Clerk userId from AsyncStorage.
+ * Prefer using useAuth().userId in components — only use this in non-hook contexts.
+ */
 export async function getClerkUserId(): Promise<string | null> {
-  return await AsyncStorage.getItem(CLERK_USER_ID_KEY);
+  const { userId } = await getClerkSession();
+  return userId;
 }
 
-export async function updateClerkUserId(userId: string): Promise<void> {
-  await AsyncStorage.setItem(CLERK_USER_ID_KEY, userId);
-}
-
-export async function removeClerkSession(): Promise<void> {
-  await AsyncStorage.multiRemove([CLERK_SESSION_KEY, CLERK_USER_ID_KEY]);
-}
+// ── Legacy token management (for backend tokens if needed) ──
 
 export async function clearAllAuth(): Promise<void> {
-  await AsyncStorage.multiRemove([
-    TOKEN_KEY,
-    CLERK_SESSION_KEY,
-    CLERK_USER_ID_KEY,
-  ]);
+  await AsyncStorage.removeItem(TOKEN_KEY);
+  await AsyncStorage.removeItem(SESSION_KEY);
+  await AsyncStorage.removeItem(USER_ID_KEY);
 }
 
 export async function clearClerkTokenCache(): Promise<void> {
@@ -90,8 +84,8 @@ export async function clearClerkTokenCache(): Promise<void> {
     const keysToRemove = [
       ...clerkKeys,
       TOKEN_KEY,
-      CLERK_SESSION_KEY,
-      CLERK_USER_ID_KEY,
+      SESSION_KEY,
+      USER_ID_KEY,
     ];
     if (keysToRemove.length > 0) {
       await AsyncStorage.multiRemove(keysToRemove);
@@ -99,15 +93,4 @@ export async function clearClerkTokenCache(): Promise<void> {
   } catch {
     // Ignore errors
   }
-}
-
-// ── Login check ──
-export async function isLoggedIn(): Promise<boolean> {
-  // Check if Clerk session exists
-  const clerkSession = await getClerkSession();
-  if (clerkSession) return true;
-
-  // Fallback: check legacy token
-  const token = await getToken();
-  return token !== null;
 }

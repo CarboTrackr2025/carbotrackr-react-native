@@ -30,12 +30,18 @@ type Props = {
     initialValues: HealthSettingsData
     onSave: (values: SaveHealthSettingsInput) => Promise<void>
     saving: boolean
+    /** Label for the optional skip button shown during onboarding. */
+    skipLabel?: string
+    /** Called when the user taps the skip button. */
+    onSkip?: () => void
 }
 
 export default function HealthSettingsForm({
                                                initialValues,
                                                onSave,
                                                saving,
+                                               skipLabel,
+                                               onSkip,
                                            }: Props) {
     const [dailyCalorieGoal, setDailyCalorieGoal] = useState(
         initialValues.daily_calorie_goal_kcal != null
@@ -202,6 +208,13 @@ export default function HealthSettingsForm({
                     disabled={!canSave}
                     gradient={gradient.green as [string, string]}
                 />
+                {onSkip && skipLabel && (
+                    <Button
+                        title={skipLabel}
+                        onPress={onSkip}
+                        gradient={["#9E9E9E", "#757575"] as [string, string]}
+                    />
+                )}
             </View>
         </View>
     )

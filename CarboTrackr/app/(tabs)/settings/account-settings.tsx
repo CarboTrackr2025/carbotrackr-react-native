@@ -8,7 +8,6 @@ import { getAccountSettings } from "../../../features/settings/api/get-account-s
 import { putAccountSettings } from "../../../features/settings/api/put-account-settings";
 import { deleteAccountApi } from "../../../features/settings/api/delete-account";
 import {
-  getClerkUserId,
   clearClerkTokenCache,
   clearAllAuth,
 } from "../../../features/auth/auth.utils";
@@ -42,13 +41,13 @@ export default function AccountSettingsScreen() {
     useState<AccountSettingsState>(EMPTY_SETTINGS);
   const [reloadKey, setReloadKey] = useState(0);
   const [deleting, setDeleting] = useState(false);
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
 
   const handleDeleteAccount = async () => {
     try {
       setDeleting(true);
 
-      const accountId = await getClerkUserId();
+      const accountId = user?.id;
       if (!accountId) {
         throw new Error("Account ID not found");
       }
@@ -77,7 +76,7 @@ export default function AccountSettingsScreen() {
     try {
       setSaving(true);
 
-      const accountIdFromClerk = await getClerkUserId();
+      const accountIdFromClerk = user?.id;
       if (!accountIdFromClerk) {
         throw new Error("User ID from Clerk Auth API not found");
       }
@@ -105,13 +104,16 @@ export default function AccountSettingsScreen() {
 
     async function run() {
       try {
-        setLoading(true);
-
-        const accountIdFromClerk = await getClerkUserId();
+        if (!isLoaded) return;
+        
+        const accountIdFromClerk = user?.id;
         if (!accountIdFromClerk) {
-          throw new Error("User ID from Clerk Auth API not found");
+          // If loaded but no user, just stop loading
+          setLoading(false);
+          return;
         }
 
+        setLoading(true);
         const { data } = await getAccountSettings(accountIdFromClerk);
 
         if (!mounted) return;
@@ -129,7 +131,7 @@ export default function AccountSettingsScreen() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [user?.id, isLoaded]);
 
   if (loading) {
     return (
