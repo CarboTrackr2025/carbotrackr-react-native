@@ -88,7 +88,8 @@ const LegendItem = ({ color: bg, label }: { color: string; label: string }) => (
 
 export default function BloodGlucoseChart({ measurements }: Props) {
   const source = measurements ?? [];
-  const [legendCollapsed, setLegendCollapsed] = useState(false);
+  // Start collapsed so new users see 'See more' first
+  const [legendCollapsed, setLegendCollapsed] = useState(true);
 
   const chartData = useMemo(() => {
     return [...source]
@@ -168,7 +169,14 @@ export default function BloodGlucoseChart({ measurements }: Props) {
             </ScrollView>
           </View>
 
-          {!legendCollapsed && (
+          {legendCollapsed ? (
+            <Pressable
+              style={styles.legendToggle}
+              onPress={() => setLegendCollapsed(false)}
+            >
+              <Text style={styles.legendToggleText}>See more</Text>
+            </Pressable>
+          ) : (
             <>
               <View style={styles.legend}>
                 <LegendItem color={color.fuschia} label="Critical High (>= 300)" />
@@ -186,7 +194,6 @@ export default function BloodGlucoseChart({ measurements }: Props) {
                   </Text>
                 </View>
               </View>
-
               <Pressable
                 style={styles.legendToggle}
                 onPress={() => setLegendCollapsed(true)}
@@ -194,15 +201,6 @@ export default function BloodGlucoseChart({ measurements }: Props) {
                 <Text style={styles.legendToggleText}>See less</Text>
               </Pressable>
             </>
-          )}
-
-          {legendCollapsed && (
-            <Pressable
-              style={styles.legendToggle}
-              onPress={() => setLegendCollapsed(false)}
-            >
-              <Text style={styles.legendToggleText}>See more</Text>
-            </Pressable>
           )}
         </View>
       </LinearGradient>
