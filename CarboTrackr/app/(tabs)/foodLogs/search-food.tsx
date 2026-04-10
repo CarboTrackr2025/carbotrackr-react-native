@@ -56,12 +56,14 @@ export default function SearchFoodScreen() {
 
     return (
         <View style={styles.container}>
-            <SearchTextInput
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Search foods..."
-                containerStyle={styles.searchInput}
-            />
+            <View style={styles.searchContainer}>
+                <SearchTextInput
+                    value={query}
+                    onChangeText={setQuery}
+                    placeholder="Search foods..."
+                    containerStyle={styles.searchInput}
+                />
+            </View>
 
             {loading && (
                 <View style={styles.center}>
@@ -71,7 +73,7 @@ export default function SearchFoodScreen() {
 
             {!loading && !errorMsg && query.trim() === "" && (
                 <View style={styles.center}>
-                    <Text style={styles.hint}>Search what food you want.</Text>
+                    <Text style={styles.hint}>Start typing to search for foods</Text>
                 </View>
             )}
 
@@ -105,18 +107,23 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#FFFFFF",
-        paddingHorizontal: 16,
+        flexDirection: "column",
+    },
+    searchContainer: {
+        padding: 12,
     },
     listContent: {
+        padding: 12,
         paddingBottom: 24,
     },
     searchInput: {
-        marginBottom: 12,
+        marginBottom: 0,
     },
     center: {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
+        paddingHorizontal: 24,
     },
     error: {
         color: "#B91C1C",
@@ -125,5 +132,7 @@ const styles = StyleSheet.create({
     hint: {
         color: "#6B7280",
         fontSize: 14,
+        textAlign: "center",
+        lineHeight: 20,
     },
 });
