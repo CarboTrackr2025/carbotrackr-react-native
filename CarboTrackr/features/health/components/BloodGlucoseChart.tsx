@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 import { LinearGradient } from "expo-linear-gradient";
 import { color, gradient } from "../../../shared/constants/colors";
+import { Ionicons } from "@expo/vector-icons";
 
 type MealContext = "PRE" | "POST" | null;
 
@@ -207,7 +208,11 @@ export default function BloodGlucoseChart({ measurements }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Blood Glucose</Text>
+      <View style={styles.titleContainer}>
+        <Ionicons name="water" size={20} color="#111827" />
+        <Text style={styles.title}>Blood Glucose</Text>
+        <View style={{ width: 20 }} />
+      </View>
 
       <LinearGradient
         colors={gradient.green as [string, string]}
@@ -297,8 +302,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 10,
     color: "#111827",
+  },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    gap: 8,
   },
   cardBorder: {
     borderRadius: CARD_RADIUS,
