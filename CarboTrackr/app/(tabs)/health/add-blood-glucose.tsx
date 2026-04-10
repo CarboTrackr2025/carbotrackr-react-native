@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
 import { router } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 
 import AddBloodGlucoseForm from "../../../features/health/components/AddBloodGlucoseForm";
 import {
@@ -145,13 +146,27 @@ export default function AddBloodGlucoseScreen() {
     <View style={styles.container}>
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{modalTitle}</Text>
-            <Text style={styles.modalBody}>{modalBody}</Text>
-            <Pressable style={styles.modalButton} onPress={closeModal}>
-              <Text style={styles.modalButtonText}>OK</Text>
-            </Pressable>
-          </View>
+          <LinearGradient
+            colors={gradient.green as [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.modalGradientCard}
+          >
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>{modalTitle}</Text>
+              <Text style={styles.modalBody}>{modalBody}</Text>
+              <Pressable style={styles.modalButton} onPress={closeModal}>
+                <LinearGradient
+                  colors={gradient.green as [string, string]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.modalButtonGradient}
+                >
+                  <Text style={styles.modalButtonText}>OK</Text>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </LinearGradient>
         </View>
       </Modal>
 
@@ -174,11 +189,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
   },
-  modalCard: {
+  modalGradientCard: {
     width: "100%",
     maxWidth: 360,
+    borderRadius: 16,
+    padding: 4,
+    overflow: "hidden",
+  },
+  modalCard: {
+    width: "100%",
     backgroundColor: color.white,
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 20,
     alignItems: "center",
     gap: 8,
@@ -197,10 +218,15 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     marginTop: 8,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  modalButtonGradient: {
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 10,
-    backgroundColor: gradient.green[1],
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalButtonText: {
     color: color.white,
