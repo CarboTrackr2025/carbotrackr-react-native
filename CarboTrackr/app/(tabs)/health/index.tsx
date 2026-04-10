@@ -632,10 +632,8 @@ const styles = StyleSheet.create({
   },
 
   loadingBox: {
-    height: 180,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
+    flex: 1,
+    minHeight: 220,
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
