@@ -219,7 +219,7 @@ export default function BloodPressureChart({ measurements }: Props) {
               </View>
             ) : (
               <View style={styles.emptyChart}>
-                <Text style={styles.noDataText}>No data available</Text>
+                <Text style={styles.noDataText}>No recorded blood pressure available. Try a wider range, or add an entry.</Text>
               </View>
             )}
           </View>

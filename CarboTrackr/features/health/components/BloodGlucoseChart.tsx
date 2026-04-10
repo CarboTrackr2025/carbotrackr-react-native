@@ -222,7 +222,7 @@ export default function BloodGlucoseChart({ measurements }: Props) {
               </ScrollView>
             ) : (
               <View style={styles.emptyChart}>
-                <Text style={styles.noDataText}>No data available</Text>
+                <Text style={styles.noDataText}>No recorded blood glucose available. Try a wider range, or add an entry.</Text>
               </View>
             )}
           </View>
