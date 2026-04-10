@@ -19,7 +19,7 @@ import BloodGlucoseChart from "../../../features/health/components/BloodGlucoseC
 import DateRangePicker from "../../../shared/components/DateRangePicker";
 import { Button } from "../../../shared/components/Button";
 import { router } from "expo-router";
-import { color, gradient } from "../../../shared/constants/colors";
+import { gradient } from "../../../shared/constants/colors";
 
 import StepsChart, {
   type StepsPoint,
@@ -582,25 +582,7 @@ export default function HealthIndexScreen() {
         <>
           <BloodPressureChart measurements={measurements} />
 
-          {measurements.length === 0 && (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyTitle}>No readings found</Text>
-              <Text style={styles.emptySub}>
-                Try a wider date range, or add an entry.
-              </Text>
-            </View>
-          )}
-
           <BloodGlucoseChart measurements={glucoseMeasurements} />
-
-          {glucoseMeasurements.length === 0 && (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyTitle}>No readings found</Text>
-              <Text style={styles.emptySub}>
-                Try a wider date range, or add an entry.
-              </Text>
-            </View>
-          )}
 
           <View style={styles.buttonRow}>
             <View style={styles.buttonItem}>
@@ -660,21 +642,6 @@ const styles = StyleSheet.create({
   },
   loadingText: { color: "#6B7280", fontSize: 12 },
 
-  emptyBox: {
-    marginTop: 10,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: color.white,
-  },
-  emptyTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 4,
-  },
-  emptySub: { fontSize: 12, color: "#6B7280" },
 
   buttonRow: {
     flexDirection: "row",

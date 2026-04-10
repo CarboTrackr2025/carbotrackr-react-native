@@ -27,6 +27,18 @@ type GlucoseStatus =
 const LABEL_HEIGHT = 24;
 const CARD_BORDER_WIDTH = 2.5;
 const CARD_RADIUS = 12;
+const EMPTY_STATE_HEIGHT = 96;
+const Y_AXIS_SECTIONS = 4;
+const Y_AXIS_MIN_FLOOR = 40;
+const Y_AXIS_MAX_CEILING = 400;
+const Y_AXIS_MIN_SPAN = 80;
+const Y_AXIS_PADDING_RATIO = 0.15;
+const Y_AXIS_ROUND_TO = 10;
+
+const roundDownTo = (value: number, step: number) =>
+  Math.floor(value / step) * step;
+const roundUpTo = (value: number, step: number) =>
+  Math.ceil(value / step) * step;
 
 const formatLabelMMMdd = (iso: string) => {
   const d = new Date(iso);
@@ -129,6 +141,47 @@ export default function BloodGlucoseChart({ measurements }: Props) {
       });
   }, [source]);
 
+  const yAxisDomain = useMemo(() => {
+    if (chartData.length === 0) {
+      return { min: Y_AXIS_MIN_FLOOR, max: Y_AXIS_MIN_FLOOR + Y_AXIS_MIN_SPAN };
+    }
+
+    const values = chartData.map((point) => point.value);
+    const rawMin = Math.min(...values);
+    const rawMax = Math.max(...values);
+    const span = Math.max(1, rawMax - rawMin);
+    const padding = Math.max(8, Math.round(span * Y_AXIS_PADDING_RATIO));
+
+    let min = rawMin - padding;
+    let max = rawMax + padding;
+
+    if (max - min < Y_AXIS_MIN_SPAN) {
+      const center = (min + max) / 2;
+      min = center - Y_AXIS_MIN_SPAN / 2;
+      max = center + Y_AXIS_MIN_SPAN / 2;
+    }
+
+    min = Math.max(Y_AXIS_MIN_FLOOR, min);
+    max = Math.min(Y_AXIS_MAX_CEILING, max);
+
+    if (max - min < Y_AXIS_MIN_SPAN) {
+      if (min <= Y_AXIS_MIN_FLOOR) {
+        max = Math.min(Y_AXIS_MAX_CEILING, min + Y_AXIS_MIN_SPAN);
+      } else {
+        min = Math.max(Y_AXIS_MIN_FLOOR, max - Y_AXIS_MIN_SPAN);
+      }
+    }
+
+    min = roundDownTo(min, Y_AXIS_ROUND_TO);
+    max = roundUpTo(max, Y_AXIS_ROUND_TO);
+
+    if (max <= min) {
+      max = min + Y_AXIS_MIN_SPAN;
+    }
+
+    return { min, max };
+  }, [chartData]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Blood Glucose</Text>
@@ -141,16 +194,19 @@ export default function BloodGlucoseChart({ measurements }: Props) {
       >
         <View style={styles.card}>
           <View style={styles.chartWrap}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
-              {chartData.length > 0 ? (
+            {chartData.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+              >
                 <LineChart
                   data={chartData}
                   height={200}
                   width={Math.max(chartData.length * 80, 400)}
+                  maxValue={yAxisDomain.max}
+                  yAxisOffset={yAxisDomain.min}
+                  noOfSections={Y_AXIS_SECTIONS}
                   color={color.blue}
                   thickness={2}
                   dataPointsRadius={5}
@@ -163,10 +219,12 @@ export default function BloodGlucoseChart({ measurements }: Props) {
                   spacing={80}
                   curved
                 />
-              ) : (
+              </ScrollView>
+            ) : (
+              <View style={styles.emptyChart}>
                 <Text style={styles.noDataText}>No data available</Text>
-              )}
-            </ScrollView>
+              </View>
+            )}
           </View>
 
           {legendCollapsed ? (
@@ -236,7 +294,12 @@ const styles = StyleSheet.create({
   noDataText: {
     fontSize: 14,
     color: "#9CA3AF",
-    paddingVertical: 20,
+    textAlign: "center",
+  },
+  emptyChart: {
+    height: EMPTY_STATE_HEIGHT,
+    alignItems: "center",
+    justifyContent: "center",
   },
   yAxisText: {
     fontSize: 10,

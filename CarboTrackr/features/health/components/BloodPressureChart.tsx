@@ -36,6 +36,7 @@ const GROUP_PITCH = GROUP_WIDTH + GROUP_GAP;
 const Y_AXIS_WIDTH = 26;
 const CARD_BORDER_WIDTH = 2.5;
 const CARD_RADIUS = 12;
+const EMPTY_STATE_HEIGHT = 96;
 
 const formatLabelMMMdd = (iso: string) => {
   const d = new Date(iso);
@@ -133,88 +134,94 @@ export default function BloodPressureChart({ measurements }: Props) {
       >
         <View style={styles.card}>
           <View style={styles.chartPressable}>
-            <View style={styles.chartRow}>
-              <View style={styles.yAxis}>
-                <View style={styles.yAxisPlot}>
-                  {Y_TICKS.map((tick) => (
-                    <View
-                      key={tick}
-                      style={[styles.yAxisTick, { bottom: toHeight(tick) - 8 }]}
-                    >
-                      <Text style={styles.yAxisText}>{tick}</Text>
-                    </View>
-                  ))}
-                </View>
-                <View style={styles.yAxisLabelSpacer} />
-              </View>
-
-              <ScrollView
-                ref={scrollRef}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-                snapToInterval={GROUP_PITCH}
-                decelerationRate="fast"
-              >
-                <View style={styles.chart}>
-                  <View style={styles.gridArea}>
+            {sorted.length > 0 ? (
+              <View style={styles.chartRow}>
+                <View style={styles.yAxis}>
+                  <View style={styles.yAxisPlot}>
                     {Y_TICKS.map((tick) => (
                       <View
                         key={tick}
-                        style={[styles.gridLine, { bottom: toHeight(tick) }]}
-                      />
+                        style={[styles.yAxisTick, { bottom: toHeight(tick) - 8 }]}
+                      >
+                        <Text style={styles.yAxisText}>{tick}</Text>
+                      </View>
                     ))}
                   </View>
+                  <View style={styles.yAxisLabelSpacer} />
+                </View>
 
-                  <View style={[styles.plotRow, { width: contentWidth }]}>
-                    {sorted.map((measurement) => {
-                      const status = evaluateBloodPressure(
-                        measurement.systolic_mmHg,
-                        measurement.diastolic_mmHg,
-                      );
-                      const { solid, light } = BP_COLORS[status];
+                <ScrollView
+                  ref={scrollRef}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.scrollContent}
+                  snapToInterval={GROUP_PITCH}
+                  decelerationRate="fast"
+                >
+                  <View style={styles.chart}>
+                    <View style={styles.gridArea}>
+                      {Y_TICKS.map((tick) => (
+                        <View
+                          key={tick}
+                          style={[styles.gridLine, { bottom: toHeight(tick) }]}
+                        />
+                      ))}
+                    </View>
 
-                      return (
-                        <View key={measurement.id} style={styles.group}>
-                          <View style={styles.plotArea}>
-                            <View style={styles.barPair}>
-                              <View
-                                style={[
-                                  styles.bar,
-                                  {
-                                    height: toHeight(measurement.systolic_mmHg),
-                                    backgroundColor: solid,
-                                  },
-                                ]}
-                              />
-                              <View
-                                style={[
-                                  styles.bar,
-                                  {
-                                    height: toHeight(measurement.diastolic_mmHg),
-                                    backgroundColor: light,
-                                  },
-                                ]}
-                              />
+                    <View style={[styles.plotRow, { width: contentWidth }]}>
+                      {sorted.map((measurement) => {
+                        const status = evaluateBloodPressure(
+                          measurement.systolic_mmHg,
+                          measurement.diastolic_mmHg,
+                        );
+                        const { solid, light } = BP_COLORS[status];
+
+                        return (
+                          <View key={measurement.id} style={styles.group}>
+                            <View style={styles.plotArea}>
+                              <View style={styles.barPair}>
+                                <View
+                                  style={[
+                                    styles.bar,
+                                    {
+                                      height: toHeight(measurement.systolic_mmHg),
+                                      backgroundColor: solid,
+                                    },
+                                  ]}
+                                />
+                                <View
+                                  style={[
+                                    styles.bar,
+                                    {
+                                      height: toHeight(measurement.diastolic_mmHg),
+                                      backgroundColor: light,
+                                    },
+                                  ]}
+                                />
+                              </View>
+                            </View>
+
+                            <View style={styles.labelArea}>
+                              <Text style={styles.xLabel} numberOfLines={1}>
+                                {formatLabelMMMdd(measurement.created_at)}{" "}
+                                {formatTimehhmm(measurement.created_at)}
+                              </Text>
+                              <Text style={styles.measurementLabel} numberOfLines={1}>
+                                {measurement.systolic_mmHg}/{measurement.diastolic_mmHg}
+                              </Text>
                             </View>
                           </View>
-
-                          <View style={styles.labelArea}>
-                            <Text style={styles.xLabel} numberOfLines={1}>
-                              {formatLabelMMMdd(measurement.created_at)}{" "}
-                              {formatTimehhmm(measurement.created_at)}
-                            </Text>
-                            <Text style={styles.measurementLabel} numberOfLines={1}>
-                              {measurement.systolic_mmHg}/{measurement.diastolic_mmHg}
-                            </Text>
-                          </View>
-                        </View>
-                      );
-                    })}
+                        );
+                      })}
+                    </View>
                   </View>
-                </View>
-              </ScrollView>
-            </View>
+                </ScrollView>
+              </View>
+            ) : (
+              <View style={styles.emptyChart}>
+                <Text style={styles.noDataText}>No data available</Text>
+              </View>
+            )}
           </View>
 
           {legendCollapsed ? (
@@ -356,6 +363,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
     color: "#111827",
+    textAlign: "center",
+  },
+  emptyChart: {
+    height: EMPTY_STATE_HEIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noDataText: {
+    fontSize: 14,
+    color: "#9CA3AF",
     textAlign: "center",
   },
   legend: {
