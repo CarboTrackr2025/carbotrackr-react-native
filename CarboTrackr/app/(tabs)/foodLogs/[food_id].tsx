@@ -162,7 +162,11 @@ export default function FoodByServingScreen() {
     const servingText = `${servingAmount} ${servingUnit}${servingDesc ? ` (${servingDesc})` : ""}`;
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView
+            contentContainerStyle={styles.container}
+            scrollEnabled={false}
+            style={styles.scrollView}
+        >
             <View style={styles.ringWrap}>
                 <CalorieRing
                     nutrition={{
@@ -203,6 +207,7 @@ export default function FoodByServingScreen() {
                 text={recordedText}
             />
 
+            <View style={styles.buttonSpacing} />
             <Button title={submitting ? "Saving..." : "Save"} onPress={handleSubmit} disabled={!canSubmit}
                     gradient={gradient.green as [string, string]}/>
 
@@ -211,9 +216,14 @@ export default function FoodByServingScreen() {
 }
 
 const styles = StyleSheet.create({
-    // layout
+    scrollView: {
+        backgroundColor: color.white,
+    },
+
+    // ...existing code...
     container: {
         padding: 16,
+        paddingBottom: 40,
         backgroundColor: color.white,
     },
 
@@ -249,6 +259,11 @@ const styles = StyleSheet.create({
     labelMeta: {
         fontSize: 12,
         color: "#6B7280",
+    },
+
+    // spacing
+    buttonSpacing: {
+        height: 12,
     },
 
     // serving row
