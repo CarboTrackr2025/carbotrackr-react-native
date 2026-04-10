@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { color } from '../constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import { color, gradient } from '../constants/colors';
 
 type Props = {
     startDate: Date;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 type Which = 'start' | 'end';
+const INPUT_BORDER_WIDTH = 2.5;
 
 const startOfDay = (d: Date) =>
     new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
@@ -19,6 +21,7 @@ const endOfDay = (d: Date) =>
 
 export default function DateRangePicker({ startDate, endDate, onChange }: Props) {
     const [openWhich, setOpenWhich] = useState<Which | null>(null);
+    const focusedBorder = [color['light-green'], color['light-green']] as [string, string];
 
     const format = (d: Date) =>
         d.toLocaleDateString('en-US', {
@@ -71,24 +74,38 @@ export default function DateRangePicker({ startDate, endDate, onChange }: Props)
     return (
         <View style={styles.container}>
             {/* START */}
-            <TouchableOpacity
-                style={styles.input}
-                onPress={() => setOpenWhich('start')}
-                activeOpacity={0.8}
+            <LinearGradient
+                colors={openWhich === 'start' ? focusedBorder : (gradient.green as [string, string])}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.inputBorder}
             >
-                <Text style={styles.label}>Start</Text>
-                <Text style={styles.value}>{format(startDate)}</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.input}
+                    onPress={() => setOpenWhich('start')}
+                    activeOpacity={0.8}
+                >
+                    <Text style={styles.label}>Start</Text>
+                    <Text style={styles.value}>{format(startDate)}</Text>
+                </TouchableOpacity>
+            </LinearGradient>
 
             {/* END */}
-            <TouchableOpacity
-                style={styles.input}
-                onPress={() => setOpenWhich('end')}
-                activeOpacity={0.8}
+            <LinearGradient
+                colors={openWhich === 'end' ? focusedBorder : (gradient.green as [string, string])}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.inputBorder}
             >
-                <Text style={styles.label}>End</Text>
-                <Text style={styles.value}>{format(endDate)}</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.input}
+                    onPress={() => setOpenWhich('end')}
+                    activeOpacity={0.8}
+                >
+                    <Text style={styles.label}>End</Text>
+                    <Text style={styles.value}>{format(endDate)}</Text>
+                </TouchableOpacity>
+            </LinearGradient>
 
             {/* Picker UI */}
             {openWhich && (
@@ -130,12 +147,15 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
 
-    input: {
+    inputBorder: {
         flex: 1,
-        backgroundColor: color.white,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
         borderRadius: 10,
+        padding: INPUT_BORDER_WIDTH,
+    },
+
+    input: {
+        backgroundColor: color.white,
+        borderRadius: 10 - INPUT_BORDER_WIDTH,
         paddingVertical: 10,
         paddingHorizontal: 12,
     },

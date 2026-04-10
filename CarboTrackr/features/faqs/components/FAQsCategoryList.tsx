@@ -5,9 +5,11 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { color } from "../../../shared/constants/colors";
+import { LinearGradient } from "expo-linear-gradient";
+import { color, gradient } from "../../../shared/constants/colors";
 
 interface FAQsCategoryListProps {
   categories: Array<{
@@ -18,6 +20,9 @@ interface FAQsCategoryListProps {
   onSelectCategory: (category: any) => void;
   onContactPress: () => void;
 }
+
+const BORDER_W = 2.5;
+const RADIUS = 12;
 
 export default function FAQsCategoryList({
   categories,
@@ -35,19 +40,36 @@ export default function FAQsCategoryList({
 
       <View style={styles.categoriesContainer}>
         {categories.map((category) => (
-          <TouchableOpacity
+          <Pressable
             key={category.id}
-            style={styles.categoryButton}
+            style={styles.categoryPressable}
             onPress={() => onSelectCategory(category)}
-            activeOpacity={0.7}
           >
-            <Text style={styles.categoryText}>{category.displayName}</Text>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={24}
-              color={color.black}
-            />
-          </TouchableOpacity>
+            {({ pressed }) => (
+              <LinearGradient
+                colors={gradient.green as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.categoryButtonBorder}
+              >
+                <View
+                  style={[
+                    styles.categoryButtonInner,
+                    pressed
+                      ? styles.categoryButtonPressed
+                      : styles.categoryButtonDefault,
+                  ]}
+                >
+                  <Text style={styles.categoryText}>{category.displayName}</Text>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={24}
+                    color={color.black}
+                  />
+                </View>
+              </LinearGradient>
+            )}
+          </Pressable>
         ))}
 
         {/* Contact Section */}
@@ -99,17 +121,26 @@ const styles = StyleSheet.create({
   categoriesContainer: {
     marginBottom: 40,
   },
-  categoryButton: {
+  categoryPressable: {
+    marginBottom: 12,
+  },
+  categoryButtonBorder: {
+    borderRadius: RADIUS,
+    padding: BORDER_W,
+  },
+  categoryButtonInner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 14,
     paddingHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: color.green,
-    backgroundColor: "#fdf8f5",
+    borderRadius: RADIUS - BORDER_W,
+  },
+  categoryButtonDefault: {
+    backgroundColor: color.white,
+  },
+  categoryButtonPressed: {
+    backgroundColor: color["light-green-2"],
   },
   categoryText: {
     fontSize: 16,

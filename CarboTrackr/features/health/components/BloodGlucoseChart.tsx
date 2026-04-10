@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 import { LinearGradient } from "expo-linear-gradient";
 import { color, gradient } from "../../../shared/constants/colors";
+import { Ionicons } from "@expo/vector-icons";
 
 type MealContext = "PRE" | "POST" | null;
 
@@ -28,17 +29,29 @@ const LABEL_HEIGHT = 24;
 const CARD_BORDER_WIDTH = 2.5;
 const CARD_RADIUS = 12;
 const EMPTY_STATE_HEIGHT = 96;
+const CHART_HEIGHT = 240;
 const Y_AXIS_SECTIONS = 4;
-const Y_AXIS_MIN_FLOOR = 40;
+const Y_AXIS_MIN_FLOOR = 0;
 const Y_AXIS_MAX_CEILING = 400;
 const Y_AXIS_MIN_SPAN = 80;
 const Y_AXIS_PADDING_RATIO = 0.15;
 const Y_AXIS_ROUND_TO = 10;
+const Y_AXIS_LABEL_WIDTH = 38;
+const NICE_STEP_CANDIDATES = [10, 20, 25, 50];
 
 const roundDownTo = (value: number, step: number) =>
   Math.floor(value / step) * step;
 const roundUpTo = (value: number, step: number) =>
   Math.ceil(value / step) * step;
+
+const pickNiceStep = (roughStep: number) => {
+  const positiveStep = Math.max(1, roughStep);
+  const fromCandidates = NICE_STEP_CANDIDATES.find(
+    (step) => positiveStep <= step,
+  );
+  if (fromCandidates) return fromCandidates;
+  return roundUpTo(positiveStep, Y_AXIS_ROUND_TO);
+};
 
 const formatLabelMMMdd = (iso: string) => {
   const d = new Date(iso);
@@ -98,6 +111,54 @@ const LegendItem = ({ color: bg, label }: { color: string; label: string }) => (
   </View>
 );
 
+const computeYAxisDomain = (values: number[]) => {
+  if (values.length === 0) {
+    return {
+      min: Y_AXIS_MIN_FLOOR,
+      max: Y_AXIS_MIN_FLOOR + Y_AXIS_MIN_SPAN,
+      step: Y_AXIS_MIN_SPAN / Y_AXIS_SECTIONS,
+    };
+  }
+
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const span = Math.max(1, rawMax - rawMin);
+  const padding = Math.max(8, Math.round(span * Y_AXIS_PADDING_RATIO));
+
+  let desiredMin = Math.max(Y_AXIS_MIN_FLOOR, rawMin - padding);
+  let desiredMax = Math.min(Y_AXIS_MAX_CEILING, rawMax + padding);
+
+  if (desiredMax - desiredMin < Y_AXIS_MIN_SPAN) {
+    const center = (desiredMin + desiredMax) / 2;
+    desiredMin = Math.max(Y_AXIS_MIN_FLOOR, center - Y_AXIS_MIN_SPAN / 2);
+    desiredMax = Math.min(Y_AXIS_MAX_CEILING, center + Y_AXIS_MIN_SPAN / 2);
+  }
+
+  const step = pickNiceStep((desiredMax - desiredMin) / Y_AXIS_SECTIONS);
+
+  let min = roundDownTo(desiredMin, step);
+  min = Math.max(Y_AXIS_MIN_FLOOR, min);
+
+  let max = min + step * Y_AXIS_SECTIONS;
+
+  if (max < desiredMax) {
+    max = roundUpTo(desiredMax, step);
+    min = Math.max(Y_AXIS_MIN_FLOOR, max - step * Y_AXIS_SECTIONS);
+  }
+
+  if (min > desiredMin) {
+    min = Math.max(Y_AXIS_MIN_FLOOR, min - step);
+    max = min + step * Y_AXIS_SECTIONS;
+  }
+
+  if (max > Y_AXIS_MAX_CEILING) {
+    max = Y_AXIS_MAX_CEILING;
+    min = Math.max(Y_AXIS_MIN_FLOOR, max - step * Y_AXIS_SECTIONS);
+  }
+
+  return { min, max, step };
+};
+
 export default function BloodGlucoseChart({ measurements }: Props) {
   const source = measurements ?? [];
   // Start collapsed so new users see 'See more' first
@@ -142,49 +203,16 @@ export default function BloodGlucoseChart({ measurements }: Props) {
   }, [source]);
 
   const yAxisDomain = useMemo(() => {
-    if (chartData.length === 0) {
-      return { min: Y_AXIS_MIN_FLOOR, max: Y_AXIS_MIN_FLOOR + Y_AXIS_MIN_SPAN };
-    }
-
-    const values = chartData.map((point) => point.value);
-    const rawMin = Math.min(...values);
-    const rawMax = Math.max(...values);
-    const span = Math.max(1, rawMax - rawMin);
-    const padding = Math.max(8, Math.round(span * Y_AXIS_PADDING_RATIO));
-
-    let min = rawMin - padding;
-    let max = rawMax + padding;
-
-    if (max - min < Y_AXIS_MIN_SPAN) {
-      const center = (min + max) / 2;
-      min = center - Y_AXIS_MIN_SPAN / 2;
-      max = center + Y_AXIS_MIN_SPAN / 2;
-    }
-
-    min = Math.max(Y_AXIS_MIN_FLOOR, min);
-    max = Math.min(Y_AXIS_MAX_CEILING, max);
-
-    if (max - min < Y_AXIS_MIN_SPAN) {
-      if (min <= Y_AXIS_MIN_FLOOR) {
-        max = Math.min(Y_AXIS_MAX_CEILING, min + Y_AXIS_MIN_SPAN);
-      } else {
-        min = Math.max(Y_AXIS_MIN_FLOOR, max - Y_AXIS_MIN_SPAN);
-      }
-    }
-
-    min = roundDownTo(min, Y_AXIS_ROUND_TO);
-    max = roundUpTo(max, Y_AXIS_ROUND_TO);
-
-    if (max <= min) {
-      max = min + Y_AXIS_MIN_SPAN;
-    }
-
-    return { min, max };
+    return computeYAxisDomain(chartData.map((point) => point.value));
   }, [chartData]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Blood Glucose</Text>
+      <View style={styles.titleContainer}>
+        <Ionicons name="water" size={20} color="#111827" />
+        <Text style={styles.title}>Blood Glucose</Text>
+        <View style={{ width: 20 }} />
+      </View>
 
       <LinearGradient
         colors={gradient.green as [string, string]}
@@ -195,34 +223,37 @@ export default function BloodGlucoseChart({ measurements }: Props) {
         <View style={styles.card}>
           <View style={styles.chartWrap}>
             {chartData.length > 0 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-              >
-                <LineChart
-                  data={chartData}
-                  height={200}
-                  width={Math.max(chartData.length * 80, 400)}
-                  maxValue={yAxisDomain.max}
-                  yAxisOffset={yAxisDomain.min}
-                  noOfSections={Y_AXIS_SECTIONS}
-                  color={color.blue}
-                  thickness={2}
-                  dataPointsRadius={5}
-                  yAxisTextStyle={styles.yAxisText}
-                  yAxisThickness={0}
-                  xAxisThickness={0}
-                  xAxisLabelsHeight={LABEL_HEIGHT}
-                  rulesColor="#E5E7EB"
-                  rulesThickness={1}
-                  spacing={80}
-                  curved
-                />
-              </ScrollView>
+              <View style={styles.chartRow}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.scrollContent}
+                >
+                  <LineChart
+                    data={chartData}
+                    height={CHART_HEIGHT}
+                    width={Math.max(chartData.length * 80, 400)}
+                    maxValue={yAxisDomain.max - yAxisDomain.min}
+                    yAxisOffset={yAxisDomain.min}
+                    stepValue={yAxisDomain.step}
+                    noOfSections={Y_AXIS_SECTIONS}
+                     color="#000000"
+                    thickness={2}
+                    dataPointsRadius={5}
+                    yAxisTextStyle={styles.yAxisText}
+                    yAxisLabelWidth={Y_AXIS_LABEL_WIDTH}
+                    yAxisThickness={0}
+                    xAxisThickness={0}
+                    xAxisLabelsHeight={LABEL_HEIGHT}
+                    rulesColor="#E5E7EB"
+                    rulesThickness={1}
+                    spacing={80}
+                  />
+                </ScrollView>
+              </View>
             ) : (
               <View style={styles.emptyChart}>
-                <Text style={styles.noDataText}>No data available</Text>
+                <Text style={styles.noDataText}>No recorded blood glucose available. Try a wider range, or add an entry.</Text>
               </View>
             )}
           </View>
@@ -271,8 +302,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 10,
     color: "#111827",
+  },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    gap: 8,
   },
   cardBorder: {
     borderRadius: CARD_RADIUS,
@@ -286,10 +324,15 @@ const styles = StyleSheet.create({
   },
   chartWrap: {
     width: "100%",
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  chartRow: {
+    alignItems: "flex-start",
   },
   scrollContent: {
     paddingRight: 6,
-    paddingBottom: 4,
+    paddingBottom: 8,
   },
   noDataText: {
     fontSize: 14,

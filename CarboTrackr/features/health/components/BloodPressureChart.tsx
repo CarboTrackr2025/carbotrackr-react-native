@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { color, gradient } from "../../../shared/constants/colors";
+import { Ionicons } from "@expo/vector-icons";
 
 type BpMeasurement = {
   id: string;
@@ -124,7 +125,11 @@ export default function BloodPressureChart({ measurements }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Blood Pressure</Text>
+      <View style={styles.titleContainer}>
+        <Ionicons name="pulse" size={20} color="#111827" />
+        <Text style={styles.title}>Blood Pressure</Text>
+        <View style={{ width: 20 }} />
+      </View>
 
       <LinearGradient
         colors={gradient.green as [string, string]}
@@ -219,7 +224,7 @@ export default function BloodPressureChart({ measurements }: Props) {
               </View>
             ) : (
               <View style={styles.emptyChart}>
-                <Text style={styles.noDataText}>No data available</Text>
+                <Text style={styles.noDataText}>No recorded blood pressure available. Try a wider range, or add an entry.</Text>
               </View>
             )}
           </View>
@@ -265,8 +270,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 10,
     color: "#111827",
+  },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    gap: 8,
   },
   cardBorder: {
     borderRadius: CARD_RADIUS,

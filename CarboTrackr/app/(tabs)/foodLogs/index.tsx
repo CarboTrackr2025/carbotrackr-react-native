@@ -113,7 +113,10 @@ export default function FoodLogsIndexScreen() {
                 renderItem={({ item }) => (
                     <FoodLogCard item={item} onPress={() => {}} onDelete={onDelete} />
                 )}
-                contentContainerStyle={styles.content}
+                contentContainerStyle={[
+                    styles.content,
+                    !loading && !error && logs.length === 0 && styles.contentWhenEmpty,
+                ]}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                 ListHeaderComponent={
                     <View>
@@ -160,13 +163,16 @@ export default function FoodLogsIndexScreen() {
                             </View>
                         )}
 
-                        {!loading && !error && logs.length === 0 && (
-                            <View style={styles.emptyBox}>
-                                <Text style={styles.emptyTitle}>No food logs found</Text>
-                                <Text style={styles.emptySub}>Try a wider date range, or add an entry.</Text>
-                            </View>
-                        )}
                     </View>
+                }
+                ListEmptyComponent={
+                    !loading && !error ? (
+                        <View style={styles.noDataWrap}>
+                            <Text style={styles.noDataText}>
+                                No food logs found. Try a wide range, or search food to add an entry.
+                            </Text>
+                        </View>
+                    ) : null
                 }
             />
 
@@ -184,6 +190,7 @@ export default function FoodLogsIndexScreen() {
 const styles = StyleSheet.create({
     screen: { flex: 1, backgroundColor: color.white },
     content: { padding: 12, paddingBottom: 110 },
+    contentWhenEmpty: { flexGrow: 1 },
 
     headerRow: { marginBottom: 10 },
     headerTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
@@ -217,6 +224,19 @@ const styles = StyleSheet.create({
     },
     emptyTitle: { fontSize: 14, fontWeight: "700", color: "#111827", marginBottom: 4 },
     emptySub: { fontSize: 12, color: "#6B7280" },
+
+    noDataWrap: {
+        flex: 1,
+        minHeight: 220,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 16,
+    },
+    noDataText: {
+        fontSize: 14,
+        color: "#6B7280",
+        textAlign: "center",
+    },
 
     stickyButtonWrap: {
         position: "absolute",
