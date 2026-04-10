@@ -21,6 +21,9 @@ interface FAQsCategoryListProps {
   onContactPress: () => void;
 }
 
+const BORDER_W = 2.5;
+const RADIUS = 12;
+
 export default function FAQsCategoryList({
   categories,
   onSelectCategory,
@@ -122,8 +125,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   categoryButtonBorder: {
-    borderRadius: 12,
-    padding: 2,
+    borderRadius: RADIUS,
+    padding: BORDER_W,
   },
   categoryButtonInner: {
     flexDirection: "row",
@@ -131,7 +134,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: RADIUS - BORDER_W,
   },
   categoryButtonDefault: {
     backgroundColor: color.white,

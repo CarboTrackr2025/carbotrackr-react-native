@@ -2,13 +2,15 @@ import React, { useState } from "react";
 import {
   StyleSheet,
   ScrollView,
+  Pressable,
   TouchableOpacity,
   Text,
   View,
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { color } from "../../../shared/constants/colors";
+import { LinearGradient } from "expo-linear-gradient";
+import { color, gradient } from "../../../shared/constants/colors";
 import { FAQ } from "../api/faqs.api";
 
 interface FAQsDetailProps {
@@ -17,6 +19,9 @@ interface FAQsDetailProps {
   onBack: () => void;
   isLoading?: boolean;
 }
+
+const BORDER_W = 2.5;
+const RADIUS = 12;
 
 export default function FAQsDetail({
   faqs,
@@ -57,23 +62,44 @@ export default function FAQsDetail({
         <View style={styles.faqsContainer}>
           {faqs.map((faq) => (
             <View key={faq.id} style={styles.faqItem}>
-              <TouchableOpacity
-                style={styles.questionButton}
-                onPress={() => toggleExpand(faq.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.questionText}>{faq.question}</Text>
-                <MaterialCommunityIcons
-                  name={expandedId === faq.id ? "chevron-up" : "chevron-down"}
-                  size={24}
-                  color={color.green}
-                />
-              </TouchableOpacity>
+              <Pressable onPress={() => toggleExpand(faq.id)}>
+                {({ pressed }) => (
+                  <LinearGradient
+                    colors={gradient.green as [string, string]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.questionButtonBorder}
+                  >
+                    <View
+                      style={[
+                        styles.questionButtonInner,
+                        expandedId === faq.id || pressed
+                          ? styles.questionButtonActive
+                          : styles.questionButtonDefault,
+                      ]}
+                    >
+                      <Text style={styles.questionText}>{faq.question}</Text>
+                      <MaterialCommunityIcons
+                        name={expandedId === faq.id ? "chevron-up" : "chevron-down"}
+                        size={24}
+                        color={color.green}
+                      />
+                    </View>
+                  </LinearGradient>
+                )}
+              </Pressable>
 
               {expandedId === faq.id && (
-                <View style={styles.answerContainer}>
-                  <Text style={styles.answerText}>{faq.answer}</Text>
-                </View>
+                <LinearGradient
+                  colors={gradient.green as [string, string]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.answerBorder}
+                >
+                  <View style={styles.answerContainer}>
+                    <Text style={styles.answerText}>{faq.answer}</Text>
+                  </View>
+                </LinearGradient>
               )}
             </View>
           ))}
@@ -131,19 +157,26 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   faqItem: {
-    borderRadius: 12,
+    borderRadius: RADIUS,
     overflow: "hidden",
   },
-  questionButton: {
+  questionButtonBorder: {
+    borderRadius: RADIUS,
+    padding: BORDER_W,
+  },
+  questionButtonInner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: color.green,
-    backgroundColor: "#fdf8f5",
+    borderRadius: RADIUS - BORDER_W,
+  },
+  questionButtonDefault: {
+    backgroundColor: color.white,
+  },
+  questionButtonActive: {
+    backgroundColor: color["light-green-2"],
   },
   questionText: {
     fontSize: 15,
@@ -153,13 +186,15 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     lineHeight: 22,
   },
+  answerBorder: {
+    marginTop: 8,
+    borderRadius: RADIUS,
+    padding: BORDER_W,
+  },
   answerContainer: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    marginTop: 8,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#f0f0f0",
+    borderRadius: RADIUS - BORDER_W,
     backgroundColor: color.white,
   },
   answerText: {
