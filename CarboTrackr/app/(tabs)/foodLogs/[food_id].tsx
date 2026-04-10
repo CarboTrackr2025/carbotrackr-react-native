@@ -16,16 +16,18 @@ import { GradientTextDisplay } from "../../../shared/components/GradientTextDisp
 import { GradientTextInput } from "../../../shared/components/GradientTextInput";
 import { CalorieRing } from "../../../shared/components/CalorieRing";
 import { Dropdown} from "../../../shared/components/Dropdown";
-import {Button} from "../../../shared/components/Button";
+import { Button } from "../../../shared/components/Button";
 import { formatPhilippinesTime } from "../../../shared/utils/formatters";
 import { createFoodLog } from "../../../features/foodLogs/api/post-food"
-import { getClerkUserId } from "../../../features/auth/auth.utils";
+import { useAuth } from "@clerk/clerk-expo";
+import { router } from "expo-router";
 
 export default function FoodByServingScreen() {
     const { food_id, serving_id } = useLocalSearchParams<{
         food_id?: string;
         serving_id?: string;
     }>();
+    const { userId } = useAuth();
 
     const [data, setData] = useState<FoodNutritionForUI | null>(null);
     const [mealType, setMealType] = useState<string | number | null>(null);
@@ -59,7 +61,7 @@ export default function FoodByServingScreen() {
 
             setSaving(true);
 
-            const accountIdFromClerk = await getClerkUserId();
+            const accountIdFromClerk = userId;
             if (!accountIdFromClerk) {
                 throw new Error("User ID from Clerk Auth API not found");
             }
@@ -161,7 +163,11 @@ export default function FoodByServingScreen() {
     const servingText = `${servingAmount} ${servingUnit}${servingDesc ? ` (${servingDesc})` : ""}`;
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView
+            contentContainerStyle={styles.container}
+            scrollEnabled={false}
+            style={styles.scrollView}
+        >
             <View style={styles.ringWrap}>
                 <CalorieRing
                     nutrition={{
@@ -202,17 +208,38 @@ export default function FoodByServingScreen() {
                 text={recordedText}
             />
 
-            <Button title={submitting ? "Saving..." : "Save"} onPress={handleSubmit} disabled={!canSubmit}
-                    gradient={gradient.green as [string, string]}/>
+            <View style={styles.buttonSpacing} />
+            <View style={styles.buttonRow}>
+                <View style={styles.buttonItem}>
+                    <Button
+                        title="Cancel"
+                        onPress={() => router.back()}
+                        gradient={gradient.red as [string, string]}
+                    />
+                </View>
+                <View style={styles.buttonItem}>
+                    <Button
+                        title={submitting ? "Saving..." : "Save"}
+                        onPress={handleSubmit}
+                        disabled={!canSubmit}
+                        gradient={gradient.green as [string, string]}
+                    />
+                </View>
+            </View>
 
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
-    // layout
+    scrollView: {
+        backgroundColor: color.white,
+    },
+
+    // ...existing code...
     container: {
         padding: 16,
+        paddingBottom: 40,
         backgroundColor: color.white,
     },
 
@@ -248,6 +275,20 @@ const styles = StyleSheet.create({
     labelMeta: {
         fontSize: 12,
         color: "#6B7280",
+    },
+
+    // spacing
+    buttonSpacing: {
+        height: 12,
+    },
+
+    // buttons
+    buttonRow: {
+        flexDirection: "row",
+        gap: 12,
+    },
+    buttonItem: {
+        flex: 1,
     },
 
     // serving row

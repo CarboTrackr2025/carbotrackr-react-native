@@ -11,6 +11,7 @@ export type UpdateHealthSettingsPayload = {
     daily_calorie_goal_kcal: number
     daily_carbohydrate_goal_g: number
     reminder_frequency: number
+    reminder_time: string
     diagnosed_with: DiagnosedWith
 }
 
@@ -21,6 +22,7 @@ export type UpdateHealthSettingsResponse = {
         daily_calorie_goal_kcal?: number | null
         daily_carbohydrate_goal_g?: number | null
         reminder_frequency?: number | null
+        reminder_time?: string | null
         diagnosed_with?: DiagnosedWith | null
     }
 }

@@ -38,6 +38,40 @@
       "eas": {
         "projectId": "d9a9f624-620e-4ee9-a738-5b1185411db6"
       }
-    }
+    },
+    "owner": "athaina-carbotrackr-devs",
+    "slug": "CarboTrackr",
+    "name": "CarboTrackr",
+    "android": {
+      "package": "com.athaina.carbotrackr",
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.WRITE_STEPS",
+        "android.permission.health.WRITE_HEART_RATE"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.athaina.carbotrackr"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "minSdkVersion": 26
+          }
+        }
+      ],
+      [
+        "expo-health-connect",
+        {
+          "rationale": "We need access to your health data to track steps, heart rate, and calories burned.",
+          "permissions": ["Steps", "HeartRate", "TotalCaloriesBurned"]
+        }
+      ]
+    ]
   }
 }

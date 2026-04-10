@@ -19,7 +19,6 @@ export default function IndexScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Settings</Text>
       <View style={styles.settingsOuterContainer}>
         <View style={styles.settingsRow}>
           <ButtonVersion2

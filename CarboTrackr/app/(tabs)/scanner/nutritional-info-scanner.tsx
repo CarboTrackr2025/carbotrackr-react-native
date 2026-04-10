@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator
 import * as ImagePicker from "expo-image-picker"
 
 import { postLabelMacrosOnly, type LabelMacrosResult } from "../../../features/scanner/api/post-nutritional-label-photo"
-import { postScannedFoodLog } from "../../../features/scanner/api/post-food"
+import { postFoodLogFromNutritionalLabelScanner } from "../../../features/scanner/api/post-food"
 import { CalorieRing } from "../../../shared/components/CalorieRing"
 import { GradientTextDisplay } from "../../../shared/components/GradientTextDisplay"
 import { GradientTextInput } from "../../../shared/components/GradientTextInput"
@@ -11,9 +11,10 @@ import { Dropdown } from "../../../shared/components/Dropdown"
 import { Button } from "../../../shared/components/Button"
 import { color, gradient } from "../../../shared/constants/colors"
 import { formatPhilippinesTime } from "../../../shared/utils/formatters"
-import { getClerkUserId } from "../../../features/auth/auth.utils"
+import { useAuth } from "@clerk/clerk-expo"
 
 export default function NutritionalInfoScanner() {
+    const { userId } = useAuth()
     const [imageUri, setImageUri] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -158,7 +159,7 @@ export default function NutritionalInfoScanner() {
                 throw new Error("Serving size (g) is required to save this food")
             }
 
-            const accountId = await getClerkUserId()
+            const accountId = userId
             if (!accountId) throw new Error("User ID not found")
 
             const sourceId =
@@ -168,7 +169,7 @@ export default function NutritionalInfoScanner() {
                 throw new Error("Missing source_id from label scan response")
             }
 
-            const saveRes = await postScannedFoodLog({
+            const saveRes = await postFoodLogFromNutritionalLabelScanner({
                 account_id: accountId,
                 food_name: brandName.trim(),
                 meal_type: String(mealType) as any,

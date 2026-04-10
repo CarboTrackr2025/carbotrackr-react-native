@@ -14,7 +14,7 @@ import { router } from "expo-router";
 import DateRangePicker from "../../../shared/components/DateRangePicker";
 import { Button } from "../../../shared/components/Button";
 import { color, gradient } from "../../../shared/constants/colors";
-import { getClerkUserId } from "../../../features/auth/auth.utils";
+import { useAuth } from "@clerk/clerk-expo";
 import {
     getFoodLogsByAccountId,
     type FoodLogForUI,
@@ -34,6 +34,7 @@ export default function FoodLogsIndexScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState("");
     const [logs, setLogs] = useState<FoodLogForUI[]>([]);
+    const { userId } = useAuth();
 
     const [startDate, setStartDate] = useState(new Date());
     const [endDate, setEndDate] = useState(new Date());
@@ -41,7 +42,7 @@ export default function FoodLogsIndexScreen() {
     const fetchLogs = useCallback(async () => {
         try {
             setError("");
-            const accountIdFromClerk = await getClerkUserId();
+            const accountIdFromClerk = userId;
             if (!accountIdFromClerk) throw new Error("User ID from Clerk Auth API not found");
 
             const data = await getFoodLogsByAccountId(
@@ -53,7 +54,7 @@ export default function FoodLogsIndexScreen() {
         } catch (err: any) {
             setError(err?.message ?? "Failed to fetch food logs.");
         }
-    }, [startDate, endDate]);
+    }, [startDate, endDate, userId]);
 
     useEffect(() => {
         (async () => {
@@ -112,16 +113,13 @@ export default function FoodLogsIndexScreen() {
                 renderItem={({ item }) => (
                     <FoodLogCard item={item} onPress={() => {}} onDelete={onDelete} />
                 )}
-                contentContainerStyle={styles.content}
+                contentContainerStyle={[
+                    styles.content,
+                    !loading && !error && logs.length === 0 && styles.contentWhenEmpty,
+                ]}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                 ListHeaderComponent={
                     <View>
-                        <View style={styles.headerRow}>
-                            <Text style={styles.headerTitle}>Food Logs</Text>
-                            <Text style={styles.subTitle}>
-                                {toYMDLocal(startDate)} to {toYMDLocal(endDate)}
-                            </Text>
-                        </View>
 
                         <DateRangePicker
                             startDate={startDate}
@@ -165,13 +163,16 @@ export default function FoodLogsIndexScreen() {
                             </View>
                         )}
 
-                        {!loading && !error && logs.length === 0 && (
-                            <View style={styles.emptyBox}>
-                                <Text style={styles.emptyTitle}>No food logs found</Text>
-                                <Text style={styles.emptySub}>Try a wider date range, or add an entry.</Text>
-                            </View>
-                        )}
                     </View>
+                }
+                ListEmptyComponent={
+                    !loading && !error ? (
+                        <View style={styles.noDataWrap}>
+                            <Text style={styles.noDataText}>
+                                No food logs found. Try a wide range, or search food to add an entry.
+                            </Text>
+                        </View>
+                    ) : null
                 }
             />
 
@@ -189,6 +190,7 @@ export default function FoodLogsIndexScreen() {
 const styles = StyleSheet.create({
     screen: { flex: 1, backgroundColor: color.white },
     content: { padding: 12, paddingBottom: 110 },
+    contentWhenEmpty: { flexGrow: 1 },
 
     headerRow: { marginBottom: 10 },
     headerTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
@@ -222,6 +224,19 @@ const styles = StyleSheet.create({
     },
     emptyTitle: { fontSize: 14, fontWeight: "700", color: "#111827", marginBottom: 4 },
     emptySub: { fontSize: 12, color: "#6B7280" },
+
+    noDataWrap: {
+        flex: 1,
+        minHeight: 220,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 16,
+    },
+    noDataText: {
+        fontSize: 14,
+        color: "#6B7280",
+        textAlign: "center",
+    },
 
     stickyButtonWrap: {
         position: "absolute",

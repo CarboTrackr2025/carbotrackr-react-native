@@ -7,7 +7,6 @@ import { ButtonVersion2 } from "../../../shared/components/ButtonVersion2";
 export default function IndexScreen() {
     return (
         <SafeAreaView style={styles.container}>
-            <Text style={styles.title}>Scanners</Text>
             <View style={styles.outerContainer}>
                 <View style={styles.stylesRow}>
                     <ButtonVersion2
@@ -18,7 +17,7 @@ export default function IndexScreen() {
                     <ButtonVersion2
                         label="Solid Food Scanner"
                         iconName="fast-food"
-                        onPress={() => router.push("/settings/health-settings")}
+                        onPress={() => router.push("/(tabs)/scanner/solid-food-scanner")}
                     />
                 </View>
             </View>
@@ -33,11 +32,6 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         alignItems: "center",
         justifyContent: "center",
-    },
-    title: {
-        fontSize: 22,
-        fontWeight: "700",
-        marginBottom: 16,
     },
     outerContainer: {
         flex: 1,

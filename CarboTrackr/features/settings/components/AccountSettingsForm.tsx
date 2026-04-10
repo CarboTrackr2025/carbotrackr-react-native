@@ -29,16 +29,47 @@ type Props = {
     initialValues: AccountSettingsData
     onSave: (values: SaveAccountSettingsInput) => Promise<void>
     saving: boolean
+    onDeleteAccount?: () => void | Promise<void>
+    deleting?: boolean
+    /** If true, hides the Change Password and Delete Account buttons (for onboarding). */
+    hideDelete?: boolean
+    /** Label for the optional skip button shown during onboarding. */
+    skipLabel?: string
+    /** Called when the user taps the skip button. */
+    onSkip?: () => void
+}
+
+/** Parse an ISO/date string as LOCAL midnight to avoid UTC timezone shift. */
+function parseDateLocal(value: string | null): Date | null {
+    if (!value) return null
+    // "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss.sssZ" — grab just the date part
+    const datePart = value.slice(0, 10) // "YYYY-MM-DD"
+    const [year, month, day] = datePart.split("-").map(Number)
+    if (!year || !month || !day) return null
+    return new Date(year, month - 1, day) // local midnight
+}
+
+/** Serialize a Date as "YYYY-MM-DD" in local time (no UTC conversion). */
+function toLocalDateString(date: Date): string {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, "0")
+    const d = String(date.getDate()).padStart(2, "0")
+    return `${y}-${m}-${d}`
 }
 
 export default function AccountSettingsForm({
                                                 initialValues,
                                                 onSave,
                                                 saving,
+                                                onDeleteAccount,
+                                                deleting,
+                                                hideDelete = false,
+                                                skipLabel,
+                                                onSkip,
                                             }: Props) {
     const [gender, setGender] = useState<string | number | null>(initialValues.gender)
     const [dateOfBirth, setDateOfBirth] = useState<Date | null>(
-        initialValues.date_of_birth ? new Date(initialValues.date_of_birth) : null
+        parseDateLocal(initialValues.date_of_birth)
     )
     const [showDobPicker, setShowDobPicker] = useState(false)
     const [height, setHeight] = useState(
@@ -96,7 +127,7 @@ export default function AccountSettingsForm({
 
         await onSave({
             gender: gender === "MALE" || gender === "FEMALE" ? gender : null,
-            date_of_birth: dateOfBirth.toISOString(),
+            date_of_birth: toLocalDateString(dateOfBirth),
             height_cm: Number(height),
             weight_kg: Number(weight),
         })
@@ -168,16 +199,28 @@ export default function AccountSettingsForm({
                     disabled={!canSave}
                     gradient={gradient.green as [string, string]}
                 />
-                <Button
-                    title="Change Password"
-                    onPress={() => router.push("/auth/change-password")}
-                    gradient={gradient.green as [string, string]}
-                />
-                <Button
-                    title="Delete my Account"
-                    onPress={() => router.push("/auth/login")}
-                    gradient={gradient.red as [string, string]}
-                />
+                {!hideDelete && (
+                    <>
+                        <Button
+                            title="Change Password"
+                            onPress={() => router.push("/auth/change-password")}
+                            gradient={gradient.green as [string, string]}
+                        />
+                        <Button
+                            title={deleting ? "Deleting..." : "Delete my Account"}
+                            onPress={onDeleteAccount ?? (() => router.push("/auth/login"))}
+                            disabled={deleting}
+                            gradient={gradient.red as [string, string]}
+                        />
+                    </>
+                )}
+                {onSkip && skipLabel && (
+                    <Button
+                        title={skipLabel}
+                        onPress={onSkip}
+                        gradient={["#9E9E9E", "#757575"] as [string, string]}
+                    />
+                )}
             </View>
         </View>
     )

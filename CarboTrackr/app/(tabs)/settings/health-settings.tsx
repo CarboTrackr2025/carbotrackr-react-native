@@ -10,12 +10,14 @@ import {
     HealthSettingsData,
 } from "../../../features/settings/api/get-health-settings"
 import { putHealthSettings } from "../../../features/settings/api/put-health-settings"
-import { getClerkUserId } from "../../../features/auth/auth.utils"
+import { useUser } from "@clerk/clerk-expo"
+import { scheduleHealthReminders } from "../../../shared/utils/reminders"
 
 const EMPTY_SETTINGS: HealthSettingsData = {
     daily_calorie_goal_kcal: null,
     daily_carbohydrate_goal_g: null,
     reminder_frequency: null,
+    reminder_time: null,
     diagnosed_with: null,
 }
 
@@ -34,12 +36,13 @@ export default function HealthSettingsScreen() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [initialValues, setInitialValues] = useState<HealthSettingsData>(EMPTY_SETTINGS)
+    const { user, isLoaded } = useUser()
 
     const handleSave = async (values: SaveHealthSettingsInput) => {
         try {
             setSaving(true)
 
-            const accountIdFromClerk = await getClerkUserId()
+            const accountIdFromClerk = user?.id
             if (!accountIdFromClerk) {
                 throw new Error("User ID from Clerk Auth API not found")
             }
@@ -49,6 +52,7 @@ export default function HealthSettingsScreen() {
                 daily_calorie_goal_kcal: values.daily_calorie_goal_kcal,
                 daily_carbohydrate_goal_g: values.daily_carbohydrate_goal_g,
                 reminder_frequency: values.reminder_frequency,
+                reminder_time: values.reminder_time,
                 diagnosed_with: values.diagnosed_with,
             })
 
@@ -59,9 +63,35 @@ export default function HealthSettingsScreen() {
             setInitialValues((prev) => ({
                 ...prev,
                 ...values,
+                reminder_time:
+                    typeof result?.data?.reminder_time === "string"
+                        ? result.data.reminder_time
+                        : prev.reminder_time,
             }))
 
-            Alert.alert("Success", result?.message ?? "Health settings updated successfully.")
+            let reminderMessage = ""
+            try {
+                const reminderResult = await scheduleHealthReminders({
+                    frequency: values.reminder_frequency,
+                    timeOfDay: values.reminder_time,
+                })
+
+                if (reminderResult.permission === "denied") {
+                    reminderMessage =
+                        "Notifications are disabled. Enable them in system settings to receive reminders."
+                }
+            } catch (reminderError) {
+                console.log("Reminder scheduling error:", reminderError)
+                reminderMessage = "Unable to schedule reminders on this device."
+            }
+
+            const baseMessage =
+                result?.message ?? "Health settings updated successfully."
+            const message = reminderMessage
+                ? `${baseMessage}\n\n${reminderMessage}`
+                : baseMessage
+
+            Alert.alert("Success", message)
         } catch (err) {
             console.log("Health settings save error:", err)
             Alert.alert("Error", getErrorMessage(err))
@@ -75,12 +105,15 @@ export default function HealthSettingsScreen() {
 
         async function run() {
             try {
-                setLoading(true)
-
-                const accountIdFromClerk = await getClerkUserId()
+                if (!isLoaded) return
+                
+                const accountIdFromClerk = user?.id
                 if (!accountIdFromClerk) {
-                    throw new Error("User ID from Clerk Auth API not found")
+                    setLoading(false)
+                    return
                 }
+                
+                setLoading(true)
 
                 const { data } = await getHealthSettings(accountIdFromClerk)
 
@@ -99,7 +132,7 @@ export default function HealthSettingsScreen() {
         return () => {
             mounted = false
         }
-    }, [])
+    }, [user?.id, isLoaded])
 
     if (loading) {
         return (
