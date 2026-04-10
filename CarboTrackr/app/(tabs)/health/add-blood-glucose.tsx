@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
+import { router } from "expo-router";
 
 import AddBloodGlucoseForm from "../../../features/health/components/AddBloodGlucoseForm";
 import {
@@ -158,6 +159,7 @@ export default function AddBloodGlucoseScreen() {
         submitting={submitting}
         onSubmit={handleSubmit}
         timestamp={recordedTimestamp}
+        onCancel={() => router.back()}
       />
     </View>
   );

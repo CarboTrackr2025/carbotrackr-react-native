@@ -17,9 +17,10 @@ type Props = {
     submitting?: boolean
     onSubmit: (values: BloodPressureInput) => void | Promise<void>
     timestamp?: string | null
+    onCancel: () => void
 }
 
-export default function AddBloodPressureForm({submitting = false, onSubmit, timestamp}: Props) {
+export default function AddBloodPressureForm({submitting = false, onSubmit, timestamp, onCancel}: Props) {
     const [systolic, setSystolic] = useState("")
     const [diastolic, setDiastolic] = useState("")
     const [error, setError] = useState<string | null>(null)
@@ -77,8 +78,15 @@ export default function AddBloodPressureForm({submitting = false, onSubmit, time
         error ? <Text style={styles.error}>{error}</Text> : null
     }
 
-    <Button title={submitting ? "Saving..." : "Save"} onPress={handleSubmit} disabled={!canSubmit}
-            gradient={gradient.green as [string, string]}/>
+    <View style={styles.buttonRow}>
+        <View style={styles.buttonItem}>
+            <Button title="Cancel" onPress={onCancel} gradient={gradient.red as [string, string]}/>
+        </View>
+        <View style={styles.buttonItem}>
+            <Button title={submitting ? "Saving..." : "Save"} onPress={handleSubmit} disabled={!canSubmit}
+                    gradient={gradient.green as [string, string]}/>
+        </View>
+    </View>
 </View>
 )
 }
@@ -136,5 +144,13 @@ const styles = StyleSheet.create({
         marginTop: 8,
         marginBottom: 8,
         fontSize: 12,
+    },
+    buttonRow: {
+        flexDirection: "row",
+        gap: 12,
+        marginTop: 12,
+    },
+    buttonItem: {
+        flex: 1,
     },
 })

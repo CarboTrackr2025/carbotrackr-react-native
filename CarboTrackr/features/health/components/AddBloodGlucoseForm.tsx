@@ -17,12 +17,14 @@ type Props = {
   submitting?: boolean;
   onSubmit: (values: BloodGlucoseInput) => void | Promise<void>;
   timestamp?: string | null;
+  onCancel: () => void;
 };
 
 export default function AddBloodGlucoseForm({
   submitting = false,
   onSubmit,
   timestamp,
+  onCancel,
 }: Props) {
   const [level, setLevel] = useState("");
   const [mealContext, setMealContext] = useState<"PRE" | "POST" | null>("PRE");
@@ -78,12 +80,23 @@ export default function AddBloodGlucoseForm({
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Button
-        title={submitting ? "Saving..." : "Save"}
-        onPress={handleSubmit}
-        disabled={!canSubmit}
-        gradient={gradient.green as [string, string]}
-      />
+      <View style={styles.buttonRow}>
+        <View style={styles.buttonItem}>
+          <Button
+            title="Cancel"
+            onPress={onCancel}
+            gradient={gradient.red as [string, string]}
+          />
+        </View>
+        <View style={styles.buttonItem}>
+          <Button
+            title={submitting ? "Saving..." : "Save"}
+            onPress={handleSubmit}
+            disabled={!canSubmit}
+            gradient={gradient.green as [string, string]}
+          />
+        </View>
+      </View>
     </View>
   );
 }
@@ -107,5 +120,13 @@ const styles = StyleSheet.create({
   },
   recordedDisplayWrap: {
     marginBottom: 14,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
+  buttonItem: {
+    flex: 1,
   },
 });

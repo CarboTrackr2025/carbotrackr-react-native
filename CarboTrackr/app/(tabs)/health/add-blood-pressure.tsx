@@ -9,6 +9,7 @@ import {
 } from "../../../features/health/api/post-blood-pressure";
 import { useAuth } from "@clerk/clerk-expo";
 import { color, gradient } from "../../../shared/constants/colors";
+import { router } from "expo-router";
 import {
   DiagnosedWith,
   getLatestDiagnosis,
@@ -150,6 +151,7 @@ export default function AddBloodPressureScreen() {
         submitting={submitting}
         onSubmit={handleSubmit}
         timestamp={recordedTimestamp}
+        onCancel={() => router.back()}
       />
     </View>
   );
