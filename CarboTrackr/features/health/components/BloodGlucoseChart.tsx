@@ -237,7 +237,7 @@ export default function BloodGlucoseChart({ measurements }: Props) {
                     yAxisOffset={yAxisDomain.min}
                     stepValue={yAxisDomain.step}
                     noOfSections={Y_AXIS_SECTIONS}
-                    color={color.blue}
+                     color="#000000"
                     thickness={2}
                     dataPointsRadius={5}
                     yAxisTextStyle={styles.yAxisText}
