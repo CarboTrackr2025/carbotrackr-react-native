@@ -203,9 +203,6 @@ const styles = StyleSheet.create({
 
     loadingBox: {
         minHeight: 180,
-        borderWidth: 1,
-        borderColor: "#E5E7EB",
-        borderRadius: 12,
         alignItems: "center",
         justifyContent: "center",
         gap: 10,
