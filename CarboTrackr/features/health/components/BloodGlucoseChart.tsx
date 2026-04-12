@@ -38,6 +38,7 @@ type GlucoseChartPoint = {
 };
 
 const LABEL_HEIGHT = 20;
+const Y_AXIS_WIDTH = 36;
 const CARD_BORDER_WIDTH = 2.5;
 const CARD_RADIUS = 12;
 const EMPTY_STATE_HEIGHT = 96;
@@ -63,6 +64,8 @@ const pickNiceStep = (roughStep: number) => {
   if (fromCandidates) return fromCandidates;
   return roundUpTo(positiveStep, Y_AXIS_ROUND_TO);
 };
+
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
 const formatLabelMMMdd = (iso: string) => {
   const d = new Date(iso);
@@ -213,6 +216,17 @@ export default function BloodGlucoseChart({ measurements }: Props) {
     return computeYAxisDomain(chartData.map((point) => point.value));
   }, [chartData]);
 
+  const yAxisTicks = useMemo(() => {
+    return Array.from({ length: Y_AXIS_SECTIONS + 1 }, (_, i) =>
+      yAxisDomain.max - i * yAxisDomain.step,
+    );
+  }, [yAxisDomain]);
+
+  const toTickOffset = (value: number) => {
+    const ratio = clamp01((value - yAxisDomain.min) / (yAxisDomain.max - yAxisDomain.min));
+    return Math.round(ratio * CHART_HEIGHT);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.titleContainer}>
@@ -231,6 +245,17 @@ export default function BloodGlucoseChart({ measurements }: Props) {
           <View style={styles.chartWrap}>
             {chartData.length > 0 ? (
               <View style={styles.chartRow}>
+                <View style={styles.yAxis}>
+                  <View style={styles.yAxisPlot}>
+                    {yAxisTicks.map((tick) => (
+                      <View key={tick} style={[styles.yAxisTick, { bottom: toTickOffset(tick) - 7 }]}>
+                        <Text style={styles.yAxisText}>{tick}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={styles.yAxisLabelSpacer} />
+                </View>
+
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -251,8 +276,7 @@ export default function BloodGlucoseChart({ measurements }: Props) {
                     xAxisLabelsHeight={LABEL_HEIGHT}
                     xAxisLabelTextStyle={styles.xLabel}
                     showValuesAsDataPointsText
-                    yAxisLabelWidth={36}
-                    yAxisTextStyle={styles.yAxisText}
+                    hideYAxisText
                     yAxisThickness={0}
                     xAxisThickness={0}
                     rulesColor="#E5E7EB"
@@ -338,6 +362,21 @@ const styles = StyleSheet.create({
   chartRow: {
     flexDirection: "row",
     alignItems: "flex-start",
+  },
+  yAxis: {
+    width: Y_AXIS_WIDTH,
+    marginRight: 4,
+  },
+  yAxisPlot: {
+    height: CHART_HEIGHT,
+    position: "relative",
+  },
+  yAxisTick: {
+    position: "absolute",
+    right: 0,
+  },
+  yAxisLabelSpacer: {
+    height: LABEL_HEIGHT,
   },
   scrollContent: {
     paddingRight: 6,
