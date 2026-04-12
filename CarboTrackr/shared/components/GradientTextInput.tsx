@@ -4,6 +4,7 @@ import {
     StyleSheet,
     TextInput,
     TextInputProps,
+    TextStyle,
     View,
     ViewStyle,
 } from "react-native"
@@ -16,7 +17,10 @@ type IoniconName = React.ComponentProps<typeof Ionicons>["name"]
 type Props = Omit<TextInputProps, "style"> & {
     colors?: [string, string]
     containerStyle?: StyleProp<ViewStyle>
-    iconName?: IoniconName
+    inputInnerStyle?: StyleProp<ViewStyle>
+    textInputStyle?: StyleProp<TextStyle>
+    iconStyle?: StyleProp<TextStyle>
+    iconName?: IoniconName | null
     iconSize?: number
     iconColor?: string
 }
@@ -24,6 +28,9 @@ type Props = Omit<TextInputProps, "style"> & {
 export function GradientTextInput({
                                   colors = gradient.green as [string, string],
                                   containerStyle,
+                                  inputInnerStyle,
+                                  textInputStyle,
+                                  iconStyle,
                                   iconName = "pencil",
                                   iconSize = 32,
                                   iconColor = color.black,
@@ -32,6 +39,7 @@ export function GradientTextInput({
                                   ...textInputProps
                               }: Props) {
     const [isFocused, setIsFocused] = React.useState(false)
+    const isMultiline = Boolean(textInputProps.multiline)
 
     const focusedBg = color["light-green-2"]
 
@@ -45,12 +53,18 @@ export function GradientTextInput({
             <View
                 style={[
                     styles.inputInner,
+                    isMultiline && styles.inputInnerMultiline,
+                    inputInnerStyle,
                     isFocused && {backgroundColor: focusedBg},
                 ]}
             >
                 <TextInput
                     {...textInputProps}
-                    style={styles.textInput}
+                    style={[
+                        styles.textInput,
+                        isMultiline && styles.textInputMultiline,
+                        textInputStyle,
+                    ]}
                     placeholderTextColor={textInputProps.placeholderTextColor ?? "#9CA3AF"}
                     onFocus={(e) => {
                         setIsFocused(true)
@@ -61,7 +75,14 @@ export function GradientTextInput({
                         onBlur?.(e)
                     }}
                 />
-                <Ionicons name={iconName} size={iconSize} color={iconColor}/>
+                {iconName ? (
+                    <Ionicons
+                        name={iconName}
+                        size={iconSize}
+                        color={iconColor}
+                        style={iconStyle}
+                    />
+                ) : null}
             </View>
         </LinearGradient>
     )
@@ -73,7 +94,7 @@ const RADIUS = 12
 const styles = StyleSheet.create({
     inputBorder: {
         width: "100%",
-        height: 54,
+        minHeight: 54,
         borderRadius: RADIUS,
         padding: BORDER_W,
         justifyContent: "center",
@@ -89,10 +110,17 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
+    inputInnerMultiline: {
+        alignItems: "flex-start",
+    },
     textInput: {
         flex: 1,
         paddingVertical: 0,
         color: color.black,
         fontSize: 14,
+    },
+    textInputMultiline: {
+        paddingTop: 8,
+        textAlignVertical: "top",
     },
 })
