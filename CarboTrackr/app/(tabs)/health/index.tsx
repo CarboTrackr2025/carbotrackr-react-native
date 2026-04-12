@@ -121,7 +121,6 @@ export default function HealthIndexScreen() {
       setMeasurements(cleaned);
     } catch (err: any) {
       console.warn("[Health] Failed to fetch BP measurements:", err?.message);
-      Alert.alert("Could not load blood pressure history", "Please try again.");
     }
   }, [startDate, endDate, userId]);
 
@@ -141,7 +140,6 @@ export default function HealthIndexScreen() {
         "[Health] Failed to fetch glucose measurements:",
         err?.message,
       );
-      Alert.alert("Could not load blood glucose history", "Please try again.");
     }
   }, [startDate, endDate, userId]);
 
