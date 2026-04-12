@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useMemo } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 import { LinearGradient } from "expo-linear-gradient";
 import { color, gradient } from "../../../shared/constants/colors";
@@ -28,6 +28,8 @@ type GlucoseStatus =
 type GlucoseChartPoint = {
   value: number;
   label: string;
+  tooltipDate: string;
+  tooltipTime: string;
   color: string;
   dataPointColor: string;
   dataPointText: string;
@@ -37,35 +39,11 @@ type GlucoseChartPoint = {
   textShiftY: number;
 };
 
-const LABEL_HEIGHT = 20;
-const Y_AXIS_WIDTH = 36;
+const LABEL_HEIGHT = 0;
 const CARD_BORDER_WIDTH = 2.5;
 const CARD_RADIUS = 12;
 const EMPTY_STATE_HEIGHT = 96;
 const CHART_HEIGHT = 200;
-const Y_AXIS_SECTIONS = 4;
-const Y_AXIS_MIN_FLOOR = 0;
-const Y_AXIS_MAX_CEILING = 400;
-const Y_AXIS_MIN_SPAN = 80;
-const Y_AXIS_PADDING_RATIO = 0.15;
-const Y_AXIS_ROUND_TO = 10;
-const NICE_STEP_CANDIDATES = [10, 20, 25, 50];
-
-const roundDownTo = (value: number, step: number) =>
-  Math.floor(value / step) * step;
-const roundUpTo = (value: number, step: number) =>
-  Math.ceil(value / step) * step;
-
-const pickNiceStep = (roughStep: number) => {
-  const positiveStep = Math.max(1, roughStep);
-  const fromCandidates = NICE_STEP_CANDIDATES.find(
-    (step) => positiveStep <= step,
-  );
-  if (fromCandidates) return fromCandidates;
-  return roundUpTo(positiveStep, Y_AXIS_ROUND_TO);
-};
-
-const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
 const formatLabelMMMdd = (iso: string) => {
   const d = new Date(iso);
@@ -125,58 +103,8 @@ const LegendItem = ({ color: bg, label }: { color: string; label: string }) => (
   </View>
 );
 
-const computeYAxisDomain = (values: number[]) => {
-  if (values.length === 0) {
-    return {
-      min: Y_AXIS_MIN_FLOOR,
-      max: Y_AXIS_MIN_FLOOR + Y_AXIS_MIN_SPAN,
-      step: Y_AXIS_MIN_SPAN / Y_AXIS_SECTIONS,
-    };
-  }
-
-  const rawMin = Math.min(...values);
-  const rawMax = Math.max(...values);
-  const span = Math.max(1, rawMax - rawMin);
-  const padding = Math.max(8, Math.round(span * Y_AXIS_PADDING_RATIO));
-
-  let desiredMin = Math.max(Y_AXIS_MIN_FLOOR, rawMin - padding);
-  let desiredMax = Math.min(Y_AXIS_MAX_CEILING, rawMax + padding);
-
-  if (desiredMax - desiredMin < Y_AXIS_MIN_SPAN) {
-    const center = (desiredMin + desiredMax) / 2;
-    desiredMin = Math.max(Y_AXIS_MIN_FLOOR, center - Y_AXIS_MIN_SPAN / 2);
-    desiredMax = Math.min(Y_AXIS_MAX_CEILING, center + Y_AXIS_MIN_SPAN / 2);
-  }
-
-  const step = pickNiceStep((desiredMax - desiredMin) / Y_AXIS_SECTIONS);
-
-  let min = roundDownTo(desiredMin, step);
-  min = Math.max(Y_AXIS_MIN_FLOOR, min);
-
-  let max = min + step * Y_AXIS_SECTIONS;
-
-  if (max < desiredMax) {
-    max = roundUpTo(desiredMax, step);
-    min = Math.max(Y_AXIS_MIN_FLOOR, max - step * Y_AXIS_SECTIONS);
-  }
-
-  if (min > desiredMin) {
-    min = Math.max(Y_AXIS_MIN_FLOOR, min - step);
-    max = min + step * Y_AXIS_SECTIONS;
-  }
-
-  if (max > Y_AXIS_MAX_CEILING) {
-    max = Y_AXIS_MAX_CEILING;
-    min = Math.max(Y_AXIS_MIN_FLOOR, max - step * Y_AXIS_SECTIONS);
-  }
-
-  return { min, max, step };
-};
-
 export default function BloodGlucoseChart({ measurements }: Props) {
   const source = measurements ?? [];
-  // Start collapsed so new users see 'See more' first
-  const [legendCollapsed, setLegendCollapsed] = useState(true);
 
   const chartData = useMemo<GlucoseChartPoint[]>(() => {
     return [...source]
@@ -201,6 +129,8 @@ export default function BloodGlucoseChart({ measurements }: Props) {
           label: `${formatLabelMMMdd(measurement.created_at)} ${formatTimehhmm(
             measurement.created_at,
           )}`,
+          tooltipDate: formatLabelMMMdd(measurement.created_at),
+          tooltipTime: formatTimehhmm(measurement.created_at),
           color: "#000000",
           dataPointColor: pointColor,
           dataPointText: String(measurement.level),
@@ -211,21 +141,6 @@ export default function BloodGlucoseChart({ measurements }: Props) {
         };
       });
   }, [source]);
-
-  const yAxisDomain = useMemo(() => {
-    return computeYAxisDomain(chartData.map((point) => point.value));
-  }, [chartData]);
-
-  const yAxisTicks = useMemo(() => {
-    return Array.from({ length: Y_AXIS_SECTIONS + 1 }, (_, i) =>
-      yAxisDomain.max - i * yAxisDomain.step,
-    );
-  }, [yAxisDomain]);
-
-  const toTickOffset = (value: number) => {
-    const ratio = clamp01((value - yAxisDomain.min) / (yAxisDomain.max - yAxisDomain.min));
-    return Math.round(ratio * CHART_HEIGHT);
-  };
 
   return (
     <View style={styles.container}>
@@ -245,86 +160,88 @@ export default function BloodGlucoseChart({ measurements }: Props) {
           <View style={styles.chartWrap}>
             {chartData.length > 0 ? (
               <View style={styles.chartRow}>
-                <View style={styles.yAxis}>
-                  <View style={styles.yAxisPlot}>
-                    {yAxisTicks.map((tick) => (
-                      <View key={tick} style={[styles.yAxisTick, { bottom: toTickOffset(tick) - 7 }]}>
-                        <Text style={styles.yAxisText}>{tick}</Text>
-                      </View>
-                    ))}
-                  </View>
-                  <View style={styles.yAxisLabelSpacer} />
-                </View>
-
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.scrollContent}
                 >
                   <LineChart
+                    initialSpacing={0}
                     data={chartData}
                     height={CHART_HEIGHT}
-                    width={Math.max(chartData.length * 120, 400)}
-                    maxValue={yAxisDomain.max}
-                    yAxisOffset={yAxisDomain.min}
-                    stepValue={yAxisDomain.step}
-                    noOfSections={Y_AXIS_SECTIONS}
+                    width={Math.max(chartData.length * 130, 360)}
+                    spacing={90}
                     color="#000000"
                     thickness={2}
                     dataPointsRadius={5}
-                    dataPointsColor="#000000"
                     xAxisLabelsHeight={LABEL_HEIGHT}
-                    xAxisLabelTextStyle={styles.xLabel}
-                    showValuesAsDataPointsText
-                    hideYAxisText
-                    yAxisThickness={0}
+                    textColor1="#111827"
+                    textShiftY={-10}
+                    textShiftX={-8}
+                    textFontSize={10}
+                    yAxisColor="#E5E7EB"
+                    yAxisTextStyle={styles.yAxisText}
+                    yAxisThickness={1}
                     xAxisThickness={0}
                     rulesColor="#E5E7EB"
                     rulesThickness={1}
-                    spacing={80}
+                    focusEnabled
+                    pointerConfig={{
+                      activatePointersOnLongPress: true,
+                      autoAdjustPointerLabelPosition: true,
+                      pointerStripHeight: CHART_HEIGHT,
+                      pointerStripColor: "#D1D5DB",
+                      pointerColor: "#6B7280",
+                      radius: 4,
+                      pointerLabelWidth: 150,
+                      pointerLabelHeight: 34,
+                      pointerLabelComponent: (items: any[]) => {
+                        const selected = items?.[0];
+                        const dateText = selected?.tooltipDate ?? "";
+                        const timeText = selected?.tooltipTime ?? "";
+                        return (
+                          <View style={styles.tooltip}>
+                            {dateText ? (
+                              <Text style={styles.tooltipText}>{dateText}</Text>
+                            ) : null}
+                            {timeText ? (
+                              <Text style={styles.tooltipText}>{timeText}</Text>
+                            ) : (
+                              <Text style={styles.tooltipText}>{selected?.label ?? ""}</Text>
+                            )}
+                          </View>
+                        );
+                      },
+                    }}
                   />
                 </ScrollView>
               </View>
             ) : (
               <View style={styles.emptyChart}>
-                <Text style={styles.noDataText}>No recorded blood glucose available. Try a wider range, or add an entry.</Text>
+                <Text style={styles.noDataText}>
+                  No recorded blood glucose available. Try a wider range, or add an
+                  entry.
+                </Text>
               </View>
             )}
           </View>
 
-          {legendCollapsed ? (
-            <Pressable
-              style={styles.legendToggle}
-              onPress={() => setLegendCollapsed(false)}
-            >
-              <Text style={styles.legendToggleText}>See more</Text>
-            </Pressable>
-          ) : (
-            <>
-              <View style={styles.legend}>
-                <LegendItem color={color.fuschia} label="Critical High (>= 300)" />
-                <LegendItem color={color.red} label="Diabetes" />
-                <LegendItem color={color.yellow} label="Prediabetes" />
-                <LegendItem color={color.green} label="Normal" />
-                <LegendItem color={color.blue} label="Low (< 70)" />
-
-                <View style={styles.noteBlock}>
-                  <Text style={styles.noteText}>
-                    {"Pre-meal: 70-99 normal, 100-125 prediabetes, >=126 diabetes"}
-                  </Text>
-                  <Text style={styles.noteText}>
-                    {"Post-meal: 70-139 normal, 140-199 prediabetes, >=200 diabetes"}
-                  </Text>
-                </View>
-              </View>
-              <Pressable
-                style={styles.legendToggle}
-                onPress={() => setLegendCollapsed(true)}
-              >
-                <Text style={styles.legendToggleText}>See less</Text>
-              </Pressable>
-            </>
-          )}
+          <View style={styles.legend}>
+            <LegendItem color={color.fuschia} label="Critical High (>= 300)" />
+            <LegendItem
+              color={color.red}
+              label="Diabetes (PRE: 126-299 | POST: 200-299)"
+            />
+            <LegendItem
+              color={color.yellow}
+              label="Prediabetes (PRE: 100-125 | POST: 140-199)"
+            />
+            <LegendItem
+              color={color.green}
+              label="Normal (PRE: 70-99 | POST: 70-139)"
+            />
+            <LegendItem color={color.blue} label="Low (< 70)" />
+          </View>
         </View>
       </LinearGradient>
     </View>
@@ -363,21 +280,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
   },
-  yAxis: {
-    width: Y_AXIS_WIDTH,
-    marginRight: 4,
-  },
-  yAxisPlot: {
-    height: CHART_HEIGHT,
-    position: "relative",
-  },
-  yAxisTick: {
-    position: "absolute",
-    right: 0,
-  },
-  yAxisLabelSpacer: {
-    height: LABEL_HEIGHT,
-  },
   scrollContent: {
     paddingRight: 6,
     paddingBottom: 12,
@@ -396,16 +298,20 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#6B7280",
   },
-  xLabel: {
-    fontSize: 10,
-    color: "#6B7280",
-    textAlign: "center",
+  tooltip: {
+    backgroundColor: color.white,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 120,
   },
-  measurementLabel: {
-    marginTop: 2,
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#111827",
+  tooltipText: {
+    fontSize: 11,
+    color: "#374151",
     textAlign: "center",
   },
   legend: {
@@ -413,18 +319,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 12,
     justifyContent: "center",
-    marginTop: 2,
-  },
-  legendToggle: {
-    alignSelf: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    marginBottom: -4,
-  },
-  legendToggleText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: color.green,
+    marginTop: 8,
   },
   legendItem: {
     flexDirection: "row",
@@ -439,16 +334,5 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 12,
     color: color.black,
-  },
-  noteBlock: {
-    width: "100%",
-    marginTop: 6,
-    gap: 4,
-    alignItems: "center",
-  },
-  noteText: {
-    fontSize: 12,
-    color: "#6B7280",
-    textAlign: "center",
   },
 });
