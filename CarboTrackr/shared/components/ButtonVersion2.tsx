@@ -1,8 +1,8 @@
 import React from "react";
-import {Pressable, Text, View, StyleSheet} from "react-native";
-import {LinearGradient} from "expo-linear-gradient";
+import { Pressable, Text, View, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { color, gradient } from "../constants/colors";
-import {Ionicons} from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 
 
 type Props = {
@@ -11,6 +11,7 @@ type Props = {
     iconName?: keyof typeof Ionicons.glyphMap;
     disabled?: boolean;
     size?: number;
+    gradientColors?: [string, string];
 };
 
 const BORDER_W = 2.5;
@@ -23,7 +24,9 @@ export function ButtonVersion2({
                                    iconName = "camera",
                                    disabled = false,
                                    size = BUTTON_SIZE,
+                                   gradientColors,
                                }: Props) {
+    const buttonGradient = gradientColors || (gradient.green as [string, string]);
     return (
         <View style={styles.wrapper}>
             <Pressable
@@ -33,7 +36,7 @@ export function ButtonVersion2({
             >
                 {({pressed}) => (
                     <LinearGradient
-                        colors={gradient.green as [string, string]}
+                        colors={buttonGradient}
                         start={{x: 0, y: 0}}
                         end={{x: 1, y: 1}}
                         style={[
@@ -53,7 +56,7 @@ export function ButtonVersion2({
                         >
                             {pressed ? (
                                 <LinearGradient
-                                    colors={gradient.green as [string, string]}
+                                    colors={buttonGradient}
                                     start={{x: 0, y: 0}}
                                     end={{x: 1, y: 1}}
                                     style={styles.fill}
