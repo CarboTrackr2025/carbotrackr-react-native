@@ -63,6 +63,9 @@ export default function SearchFoodScreen() {
                     placeholder="Search foods..."
                     containerStyle={styles.searchInput}
                 />
+                <Text style={styles.disclaimer}>
+                    Disclaimer: Some foods may not be searchable due to the food database’s limitations, and it may not fully capture every food accurately.
+                </Text>
             </View>
 
             {loading && (
@@ -134,5 +137,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         textAlign: "center",
         lineHeight: 20,
+    },
+    disclaimer: {
+        marginTop: 8,
+        color: "#6B7280",
+        fontSize: 12,
+        lineHeight: 16,
+        textAlign: "center",
     },
 });
