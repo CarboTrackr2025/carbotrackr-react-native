@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   legend: {
-    marginTop: 10,
+    marginTop: 2,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
@@ -396,6 +396,7 @@ const styles = StyleSheet.create({
   },
   legendToggle: {
     marginTop: 8,
+    marginBottom: -4,
     alignSelf: "center",
     paddingVertical: 4,
     paddingHorizontal: 8,

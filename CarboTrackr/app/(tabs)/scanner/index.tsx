@@ -20,6 +20,9 @@ export default function IndexScreen() {
                         onPress={() => router.push("/(tabs)/scanner/solid-food-scanner")}
                     />
                 </View>
+                <Text style={styles.disclaimer}>
+                    Disclaimer: The accuracy of the Nutritional Info Scanner and Solid Food Scanner may not be 100% accurate. Please verify results with reliable nutritional sources or measured it with a food laboratory services.
+                </Text>
             </View>
             <StatusBar style="auto" />
         </SafeAreaView>
@@ -42,5 +45,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         gap: 20,
         justifyContent: "flex-start",
+    },
+    disclaimer: {
+        fontSize: 12,
+        color: "#999999",
+        textAlign: "center",
+        paddingHorizontal: 12,
     },
 });

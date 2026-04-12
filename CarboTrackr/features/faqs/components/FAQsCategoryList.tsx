@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Pressable,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -78,17 +77,32 @@ export default function FAQsCategoryList({
           <Text style={styles.contactLabel}>
             Can't find the answer to your question?
           </Text>
-          <TouchableOpacity
-            style={styles.contactButton}
-            onPress={onContactPress}
-          >
-            <Text style={styles.contactText}>Contact us</Text>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={24}
-              color={color.green}
-            />
-          </TouchableOpacity>
+          <Pressable style={styles.contactPressable} onPress={onContactPress}>
+            {({ pressed }) => (
+              <LinearGradient
+                colors={gradient.green as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.contactButtonBorder}
+              >
+                <View
+                  style={[
+                    styles.contactButtonInner,
+                    pressed
+                      ? styles.contactButtonPressed
+                      : styles.contactButtonDefault,
+                  ]}
+                >
+                  <Text style={styles.contactText}>Contact us</Text>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={24}
+                    color={color.green}
+                  />
+                </View>
+              </LinearGradient>
+            )}
+          </Pressable>
         </View>
       </View>
     </ScrollView>
@@ -155,6 +169,7 @@ const styles = StyleSheet.create({
   },
   contactSection: {
     alignItems: "center",
+    width: "100%",
   },
   contactLabel: {
     fontSize: 14,
@@ -162,21 +177,31 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: "center",
   },
-  contactButton: {
+  contactPressable: {
+    width: "100%",
+  },
+  contactButtonBorder: {
+    borderRadius: RADIUS,
+    padding: BORDER_W,
+  },
+  contactButtonInner: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
+    justifyContent: "space-between",
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: color.green,
+    borderRadius: RADIUS - BORDER_W,
+  },
+  contactButtonDefault: {
     backgroundColor: color.white,
+  },
+  contactButtonPressed: {
+    backgroundColor: color["light-green-2"],
   },
   contactText: {
     fontSize: 16,
     fontWeight: "500",
     color: color.green,
-    marginRight: 8,
+    flex: 1,
   },
 });

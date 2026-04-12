@@ -69,14 +69,6 @@ export default function FAQsScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>CarboTrackr</Text>
-        <MaterialCommunityIcons
-          name="help-circle"
-          size={28}
-          color={color.green}
-        />
-      </View>
 
       {selectedCategory ? (
         <FAQsDetail

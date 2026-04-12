@@ -25,18 +25,29 @@ type GlucoseStatus =
   | "DIABETES"
   | "CRITICAL_HIGH";
 
-const LABEL_HEIGHT = 24;
+type GlucoseChartPoint = {
+  value: number;
+  label: string;
+  color: string;
+  dataPointColor: string;
+  dataPointText: string;
+  textColor: string;
+  textFontSize: number;
+  textShiftX: number;
+  textShiftY: number;
+};
+
+const LABEL_HEIGHT = 20;
 const CARD_BORDER_WIDTH = 2.5;
 const CARD_RADIUS = 12;
 const EMPTY_STATE_HEIGHT = 96;
-const CHART_HEIGHT = 240;
+const CHART_HEIGHT = 200;
 const Y_AXIS_SECTIONS = 4;
 const Y_AXIS_MIN_FLOOR = 0;
 const Y_AXIS_MAX_CEILING = 400;
 const Y_AXIS_MIN_SPAN = 80;
 const Y_AXIS_PADDING_RATIO = 0.15;
 const Y_AXIS_ROUND_TO = 10;
-const Y_AXIS_LABEL_WIDTH = 38;
 const NICE_STEP_CANDIDATES = [10, 20, 25, 50];
 
 const roundDownTo = (value: number, step: number) =>
@@ -164,7 +175,7 @@ export default function BloodGlucoseChart({ measurements }: Props) {
   // Start collapsed so new users see 'See more' first
   const [legendCollapsed, setLegendCollapsed] = useState(true);
 
-  const chartData = useMemo(() => {
+  const chartData = useMemo<GlucoseChartPoint[]>(() => {
     return [...source]
       .filter(
         (measurement) =>
@@ -184,20 +195,16 @@ export default function BloodGlucoseChart({ measurements }: Props) {
 
         return {
           value: measurement.level,
-          label: "",
-          color: pointColor,
+          label: `${formatLabelMMMdd(measurement.created_at)} ${formatTimehhmm(
+            measurement.created_at,
+          )}`,
+          color: "#000000",
           dataPointColor: pointColor,
-          labelComponent: () => (
-            <View style={styles.pointLabelArea}>
-              <Text style={styles.xLabel} numberOfLines={1}>
-                {formatLabelMMMdd(measurement.created_at)}{" "}
-                {formatTimehhmm(measurement.created_at)}
-              </Text>
-              <Text style={styles.measurementLabel} numberOfLines={1}>
-                {measurement.level}
-              </Text>
-            </View>
-          ),
+          dataPointText: String(measurement.level),
+          textColor: "#111827",
+          textFontSize: 10,
+          textShiftX: -8,
+          textShiftY: -10,
         };
       });
   }, [source]);
@@ -232,19 +239,22 @@ export default function BloodGlucoseChart({ measurements }: Props) {
                   <LineChart
                     data={chartData}
                     height={CHART_HEIGHT}
-                    width={Math.max(chartData.length * 80, 400)}
-                    maxValue={yAxisDomain.max - yAxisDomain.min}
+                    width={Math.max(chartData.length * 120, 400)}
+                    maxValue={yAxisDomain.max}
                     yAxisOffset={yAxisDomain.min}
                     stepValue={yAxisDomain.step}
                     noOfSections={Y_AXIS_SECTIONS}
-                     color="#000000"
+                    color="#000000"
                     thickness={2}
                     dataPointsRadius={5}
+                    dataPointsColor="#000000"
+                    xAxisLabelsHeight={LABEL_HEIGHT}
+                    xAxisLabelTextStyle={styles.xLabel}
+                    showValuesAsDataPointsText
+                    yAxisLabelWidth={36}
                     yAxisTextStyle={styles.yAxisText}
-                    yAxisLabelWidth={Y_AXIS_LABEL_WIDTH}
                     yAxisThickness={0}
                     xAxisThickness={0}
-                    xAxisLabelsHeight={LABEL_HEIGHT}
                     rulesColor="#E5E7EB"
                     rulesThickness={1}
                     spacing={80}
@@ -320,19 +330,18 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: color.white,
     borderRadius: CARD_RADIUS - CARD_BORDER_WIDTH,
-    padding: 12,
+    padding: 8,
   },
   chartWrap: {
     width: "100%",
-    overflow: "hidden",
-    marginBottom: 8,
   },
   chartRow: {
+    flexDirection: "row",
     alignItems: "flex-start",
   },
   scrollContent: {
     paddingRight: 6,
-    paddingBottom: 8,
+    paddingBottom: 12,
   },
   noDataText: {
     fontSize: 14,
@@ -348,12 +357,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#6B7280",
   },
-  pointLabelArea: {
-    height: LABEL_HEIGHT,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: -8,
-  },
   xLabel: {
     fontSize: 10,
     color: "#6B7280",
@@ -367,17 +370,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   legend: {
-    marginTop: 10,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
     justifyContent: "center",
+    marginTop: 2,
   },
   legendToggle: {
-    marginTop: 8,
     alignSelf: "center",
-    paddingVertical: 4,
+    paddingVertical: 8,
     paddingHorizontal: 8,
+    marginBottom: -4,
   },
   legendToggleText: {
     fontSize: 12,
