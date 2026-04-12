@@ -4,8 +4,10 @@ import {Tabs} from "expo-router";
 import {Ionicons} from "@expo/vector-icons";
 import {LinearGradient} from "expo-linear-gradient";
 import {color, gradient} from "../../shared/constants/colors";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 export default function Layout() {
+    const insets = useSafeAreaInsets();
     type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
     const TabIcon: React.FC<{
@@ -48,7 +50,13 @@ export default function Layout() {
                 headerShown: false,
                 tabBarShowLabel: false,
                 tabBarInactiveTintColor: color.black,
-                tabBarStyle: styles.tabBar,
+                tabBarStyle: [
+                    styles.tabBar,
+                    {
+                        paddingBottom: insets.bottom + 4,
+                        height: 50 + insets.bottom,
+                    },
+                ],
                 tabBarItemStyle: styles.tabBarItem,
             }}
         >
@@ -146,9 +154,9 @@ export default function Layout() {
 
 const styles = StyleSheet.create({
     tabBar: {
-        height: 100,
-        paddingTop: 8,
-        paddingBottom: 8,
+        height: 70,
+        paddingTop: 4,
+        paddingBottom: 4,
         borderTopWidth: 0,
         elevation: 0,
         backgroundColor: color.white,
