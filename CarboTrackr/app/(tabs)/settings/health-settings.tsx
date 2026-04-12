@@ -1,7 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react"
 import axios from "axios"
-import { ActivityIndicator, Alert, StyleSheet, View } from "react-native"
+import {
+    ActivityIndicator,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native"
 import { StatusBar } from "expo-status-bar"
+import { LinearGradient } from "expo-linear-gradient"
 import HealthSettingsForm, {
     SaveHealthSettingsInput,
 } from "../../../features/settings/components/HealthSettingsForm"
@@ -16,6 +24,7 @@ import {
 import { putHealthSettings } from "../../../features/settings/api/put-health-settings"
 import { useUser } from "@clerk/clerk-expo"
 import { scheduleHealthReminders } from "../../../shared/utils/reminders"
+import { color, gradient } from "../../../shared/constants/colors"
 import {
     calculateAgeFromDateOfBirth,
     computeBmr,
@@ -55,7 +64,12 @@ export default function HealthSettingsScreen() {
     const [initialValues, setInitialValues] = useState<HealthSettingsData>(EMPTY_SETTINGS)
     const [accountSettings, setAccountSettings] =
         useState<AccountSettingsData>(EMPTY_ACCOUNT_SETTINGS)
+    const [modalVisible, setModalVisible] = useState(false)
+    const [modalTitle, setModalTitle] = useState("")
+    const [modalBody, setModalBody] = useState("")
     const { user, isLoaded } = useUser()
+
+    const closeModal = () => setModalVisible(false)
 
     const recommendedDailyCalories = useMemo(() => {
         const sex =
@@ -136,10 +150,14 @@ export default function HealthSettingsScreen() {
                 ? `${baseMessage}\n\n${reminderMessage}`
                 : baseMessage
 
-            Alert.alert("Success", message)
+            setModalTitle("Success")
+            setModalBody(message)
+            setModalVisible(true)
         } catch (err) {
             console.log("Health settings save error:", err)
-            Alert.alert("Error", getErrorMessage(err))
+            setModalTitle("Error")
+            setModalBody(getErrorMessage(err))
+            setModalVisible(true)
         } finally {
             setSaving(false)
         }
@@ -194,6 +212,31 @@ export default function HealthSettingsScreen() {
 
     return (
         <View style={styles.container}>
+            <Modal visible={modalVisible} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <LinearGradient
+                        colors={gradient.green as [string, string]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.modalGradientCard}
+                    >
+                        <View style={styles.modalCard}>
+                            <Text style={styles.modalTitle}>{modalTitle}</Text>
+                            <Text style={styles.modalBody}>{modalBody}</Text>
+                            <Pressable style={styles.modalButton} onPress={closeModal}>
+                                <LinearGradient
+                                    colors={gradient.green as [string, string]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.modalButtonGradient}
+                                >
+                                    <Text style={styles.modalButtonText}>OK</Text>
+                                </LinearGradient>
+                            </Pressable>
+                        </View>
+                    </LinearGradient>
+                </View>
+            </Modal>
             <HealthSettingsForm
                 initialValues={initialValues}
                 onSave={handleSave}
@@ -216,5 +259,55 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         alignItems: "center",
         justifyContent: "center",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.45)",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+    },
+    modalGradientCard: {
+        width: "100%",
+        maxWidth: 360,
+        borderRadius: 16,
+        padding: 4,
+        overflow: "hidden",
+    },
+    modalCard: {
+        width: "100%",
+        backgroundColor: color.white,
+        borderRadius: 12,
+        padding: 20,
+        alignItems: "center",
+        gap: 8,
+    },
+    modalTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: color.black,
+        textAlign: "center",
+    },
+    modalBody: {
+        fontSize: 14,
+        color: "#444",
+        textAlign: "center",
+        lineHeight: 20,
+    },
+    modalButton: {
+        marginTop: 8,
+        borderRadius: 10,
+        overflow: "hidden",
+    },
+    modalButtonGradient: {
+        paddingVertical: 10,
+        paddingHorizontal: 18,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    modalButtonText: {
+        color: color.white,
+        fontWeight: "600",
     },
 })
