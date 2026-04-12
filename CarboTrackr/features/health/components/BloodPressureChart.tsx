@@ -31,7 +31,7 @@ const Y_MIN = 20;
 const Y_MAX = 200;
 const Y_TICKS = [200, 160, 120, 80, 40, 20];
 
-const GROUP_WIDTH = 64;
+const GROUP_WIDTH = 86;
 const GROUP_GAP = 14;
 const GROUP_PITCH = GROUP_WIDTH + GROUP_GAP;
 const Y_AXIS_WIDTH = 26;
@@ -208,8 +208,7 @@ export default function BloodPressureChart({ measurements }: Props) {
 
                             <View style={styles.labelArea}>
                               <Text style={styles.xLabel} numberOfLines={1}>
-                                {formatLabelMMMdd(measurement.created_at)}{" "}
-                                {formatTimehhmm(measurement.created_at)}
+                                {formatLabelMMMdd(measurement.created_at)} {formatTimehhmm(measurement.created_at)}
                               </Text>
                               <Text style={styles.measurementLabel} numberOfLines={1}>
                                 {measurement.systolic_mmHg}/{measurement.diastolic_mmHg}
