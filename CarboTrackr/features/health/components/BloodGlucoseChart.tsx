@@ -29,7 +29,8 @@ const LABEL_HEIGHT = 24;
 const CARD_BORDER_WIDTH = 2.5;
 const CARD_RADIUS = 12;
 const EMPTY_STATE_HEIGHT = 96;
-const CHART_HEIGHT = 240;
+const CHART_HEIGHT = 180;
+const PLOT_HEIGHT = CHART_HEIGHT - LABEL_HEIGHT;
 const Y_AXIS_SECTIONS = 4;
 const Y_AXIS_MIN_FLOOR = 0;
 const Y_AXIS_MAX_CEILING = 400;
@@ -206,6 +207,12 @@ export default function BloodGlucoseChart({ measurements }: Props) {
     return computeYAxisDomain(chartData.map((point) => point.value));
   }, [chartData]);
 
+  const yAxisTicks = useMemo(() => {
+    return Array.from({ length: Y_AXIS_SECTIONS + 1 }, (_, index) =>
+      yAxisDomain.max - index * yAxisDomain.step,
+    );
+  }, [yAxisDomain]);
+
   return (
     <View style={styles.container}>
       <View style={styles.titleContainer}>
@@ -224,6 +231,17 @@ export default function BloodGlucoseChart({ measurements }: Props) {
           <View style={styles.chartWrap}>
             {chartData.length > 0 ? (
               <View style={styles.chartRow}>
+                <View style={styles.yAxis}>
+                  <View style={styles.yAxisPlot}>
+                    {yAxisTicks.map((tick) => (
+                      <View key={tick} style={styles.yAxisTickRow}>
+                        <Text style={styles.yAxisText}>{tick}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={styles.yAxisLabelSpacer} />
+                </View>
+
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -237,11 +255,11 @@ export default function BloodGlucoseChart({ measurements }: Props) {
                     yAxisOffset={yAxisDomain.min}
                     stepValue={yAxisDomain.step}
                     noOfSections={Y_AXIS_SECTIONS}
-                     color="#000000"
+                    color="#000000"
                     thickness={2}
                     dataPointsRadius={5}
-                    yAxisTextStyle={styles.yAxisText}
-                    yAxisLabelWidth={Y_AXIS_LABEL_WIDTH}
+                    yAxisTextStyle={styles.hiddenYAxisText}
+                    yAxisLabelWidth={0}
                     yAxisThickness={0}
                     xAxisThickness={0}
                     xAxisLabelsHeight={LABEL_HEIGHT}
@@ -320,15 +338,30 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: color.white,
     borderRadius: CARD_RADIUS - CARD_BORDER_WIDTH,
-    padding: 12,
+    padding: 8,
   },
   chartWrap: {
     width: "100%",
     overflow: "hidden",
-    marginBottom: 8,
   },
   chartRow: {
+    flexDirection: "row",
     alignItems: "flex-start",
+  },
+  yAxis: {
+    width: Y_AXIS_LABEL_WIDTH,
+  },
+  yAxisPlot: {
+    height: PLOT_HEIGHT,
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+  },
+  yAxisTickRow: {
+    width: "100%",
+    alignItems: "flex-end",
+  },
+  yAxisLabelSpacer: {
+    height: LABEL_HEIGHT,
   },
   scrollContent: {
     paddingRight: 6,
@@ -347,6 +380,10 @@ const styles = StyleSheet.create({
   yAxisText: {
     fontSize: 10,
     color: "#6B7280",
+  },
+  hiddenYAxisText: {
+    fontSize: 10,
+    color: "transparent",
   },
   pointLabelArea: {
     height: LABEL_HEIGHT,
@@ -374,9 +411,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   legendToggle: {
-    marginTop: 8,
     alignSelf: "center",
-    paddingVertical: 4,
     paddingHorizontal: 8,
   },
   legendToggleText: {
