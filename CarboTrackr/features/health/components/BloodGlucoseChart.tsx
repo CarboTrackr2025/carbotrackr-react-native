@@ -37,7 +37,7 @@ type GlucoseChartPoint = {
   textShiftY: number;
 };
 
-const LABEL_HEIGHT = 30;
+const LABEL_HEIGHT = 20;
 const CARD_BORDER_WIDTH = 2.5;
 const CARD_RADIUS = 12;
 const EMPTY_STATE_HEIGHT = 96;
@@ -374,11 +374,13 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 12,
     justifyContent: "center",
+    marginTop: 2,
   },
   legendToggle: {
     alignSelf: "center",
     paddingVertical: 8,
     paddingHorizontal: 8,
+    marginBottom: -4,
   },
   legendToggleText: {
     fontSize: 12,
