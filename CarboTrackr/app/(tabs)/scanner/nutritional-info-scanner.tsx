@@ -31,7 +31,7 @@ export default function NutritionalInfoScanner() {
     const [savedTimestamp, setSavedTimestamp] = useState<string | null>(null)
 
     const recordedTimestamp = useMemo(() => new Date().toISOString(), [])
-    const recordedText = savedTimestamp ? formatPhilippinesTime(savedTimestamp) : "-”"
+    const recordedText = savedTimestamp ? formatPhilippinesTime(savedTimestamp) : "-"
 
     const servings = Number(servingsText) || 1
 
