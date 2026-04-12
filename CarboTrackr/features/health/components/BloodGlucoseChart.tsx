@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 import { LinearGradient } from "expo-linear-gradient";
 import { color, gradient } from "../../../shared/constants/colors";
@@ -105,6 +105,7 @@ const LegendItem = ({ color: bg, label }: { color: string; label: string }) => (
 
 export default function BloodGlucoseChart({ measurements }: Props) {
   const source = measurements ?? [];
+  const [legendCollapsed, setLegendCollapsed] = useState(true);
 
   const chartData = useMemo<GlucoseChartPoint[]>(() => {
     return [...source]
@@ -226,22 +227,39 @@ export default function BloodGlucoseChart({ measurements }: Props) {
             )}
           </View>
 
-          <View style={styles.legend}>
-            <LegendItem color={color.fuschia} label="Critical High (>= 300)" />
-            <LegendItem
-              color={color.red}
-              label="Diabetes (PRE: 126-299 | POST: 200-299)"
-            />
-            <LegendItem
-              color={color.yellow}
-              label="Prediabetes (PRE: 100-125 | POST: 140-199)"
-            />
-            <LegendItem
-              color={color.green}
-              label="Normal (PRE: 70-99 | POST: 70-139)"
-            />
-            <LegendItem color={color.blue} label="Low (< 70)" />
-          </View>
+          {legendCollapsed ? (
+            <Pressable
+              style={styles.legendToggle}
+              onPress={() => setLegendCollapsed(false)}
+            >
+              <Text style={styles.legendToggleText}>See more</Text>
+            </Pressable>
+          ) : (
+            <>
+              <View style={styles.legend}>
+                <LegendItem color={color.fuschia} label="Critical High (>= 300)" />
+                <LegendItem
+                  color={color.red}
+                  label="Diabetes (PRE: 126-299 | POST: 200-299)"
+                />
+                <LegendItem
+                  color={color.yellow}
+                  label="Prediabetes (PRE: 100-125 | POST: 140-199)"
+                />
+                <LegendItem
+                  color={color.green}
+                  label="Normal (PRE: 70-99 | POST: 70-139)"
+                />
+                <LegendItem color={color.blue} label="Low (< 70)" />
+              </View>
+              <Pressable
+                style={styles.legendToggle}
+                onPress={() => setLegendCollapsed(true)}
+              >
+                <Text style={styles.legendToggleText}>See less</Text>
+              </Pressable>
+            </>
+          )}
         </View>
       </LinearGradient>
     </View>
@@ -319,7 +337,19 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 12,
     justifyContent: "center",
+    marginTop: 2,
+  },
+  legendToggle: {
     marginTop: 8,
+    marginBottom: -4,
+    alignSelf: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  legendToggleText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: color.green,
   },
   legendItem: {
     flexDirection: "row",
