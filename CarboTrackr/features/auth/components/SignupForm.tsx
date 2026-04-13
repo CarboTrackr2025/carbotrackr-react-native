@@ -144,12 +144,14 @@ export default function SignupForm({
             ) : null}
 
             {/* ── SIGN UP BUTTON ── */}
-            <Button
-                title={submitting ? "Signing up..." : "Sign Up"}
-                onPress={handleSignUp}
-                gradient={gradient.green as [string, string]}
-                disabled={!canSubmit}
-            />
+            <View style={{ marginTop: 20 }}>
+                <Button
+                    title={submitting ? "Signing up..." : "Sign Up"}
+                    onPress={handleSignUp}
+                    gradient={gradient.green as [string, string]}
+                    disabled={!canSubmit}
+                />
+            </View>
 
             {/* ── DIVIDER ── */}
             <View style={styles.dividerRow}>
