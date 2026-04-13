@@ -1,7 +1,9 @@
 import React, { useMemo, useRef, useEffect } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 
-import { color } from "../../../shared/constants/colors";
+import { color, gradient } from "../../../shared/constants/colors";
 
 export type StepsPoint = {
   label: string;
@@ -25,13 +27,22 @@ const formatSteps = (n: number): string => {
   return String(n);
 };
 
-export default function StepsChart({ points }: { points: StepsPoint[] }) {
+export default function StepsChart({
+  points,
+  error,
+}: {
+  points: StepsPoint[];
+  error?: string | null;
+}) {
   const scrollRef = useRef<ScrollView>(null);
 
-  const cleaned = useMemo(
-    () => (points ?? []).map((p) => ({ ...p, value: Number(p.value) || 0 })),
-    [points],
-  );
+  const cleaned = useMemo(() => {
+    const data =
+      Array.isArray(points) && points.length > 0
+        ? points.map((p) => ({ ...p, value: Number(p.value) || 0 }))
+        : [];
+    return data;
+  }, [points]);
 
   const maxValue = useMemo(
     () => maxOr1(cleaned.map((p) => p.value)),
@@ -55,56 +66,64 @@ export default function StepsChart({ points }: { points: StepsPoint[] }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Step Count Graph</Text>
-
-      <View style={styles.card}>
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          snapToInterval={BAR_WIDTH + GROUP_GAP}
-          decelerationRate="fast"
-        >
-          <View style={[styles.chart, { height: CHART_HEIGHT }]}>
-            <View style={[styles.plotRow, { width: contentWidth }]}>
-              {cleaned.length > 0 ? (
-                cleaned.map((p, idx) => (
-                  <View key={`${p.label}-${idx}`} style={styles.group}>
-                    {/* Value legend above bar */}
-                    <View style={styles.valueLabelArea}>
-                      <Text style={styles.valueLabel} numberOfLines={1}>
-                        {formatSteps(p.value)}
-                      </Text>
-                    </View>
-
-                    {/* Bar */}
-                    <View style={styles.plotArea}>
-                      <View
-                        style={[
-                          styles.bar,
-                          { height: toHeight(p.value) },
-                        ]}
-                      />
-                    </View>
-
-                    {/* Time label */}
-                    <View style={styles.labelArea}>
-                      <Text style={styles.xLabel} numberOfLines={1}>
-                        {p.label}
-                      </Text>
-                    </View>
-                  </View>
-                ))
-              ) : (
-                <View style={styles.noData}>
-                  <Text style={styles.noDataText}>No data available</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </ScrollView>
+      <View style={styles.titleContainer}>
+        <Ionicons name="footsteps" size={20} color="#111827" />
+        <Text style={styles.title}>Step Count</Text>
+        <View style={{ width: 20 }} />
       </View>
+
+      <LinearGradient
+        colors={gradient.green as [string, string]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.cardBorder}
+      >
+        <View style={styles.card}>
+          {cleaned.length > 0 ? (
+            <ScrollView
+              ref={scrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+              snapToInterval={BAR_WIDTH + GROUP_GAP}
+              decelerationRate="fast"
+            >
+              <View style={[styles.chart, { height: CHART_HEIGHT }]}>
+                <View style={[styles.plotRow, { width: contentWidth }]}>
+                  {cleaned.map((p, idx) => (
+                    <View key={`${p.label}-${idx}`} style={styles.group}>
+                      <View style={styles.valueLabelArea}>
+                        <Text style={styles.valueLabel} numberOfLines={1}>
+                          {formatSteps(p.value)}
+                        </Text>
+                      </View>
+
+                      <View style={styles.plotArea}>
+                        <View
+                          style={[styles.bar, { height: toHeight(p.value) }]}
+                        />
+                      </View>
+
+                      <View style={styles.labelArea}>
+                        <Text style={styles.xLabel} numberOfLines={1}>
+                          {p.label}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
+          ) : (
+            <View style={styles.emptyChart}>
+              <Text style={styles.noDataText}>
+                {error ??
+                  "No recorded step count available. Try a wider range, or sync metrics."}
+              </Text>
+            </View>
+          )}
+        </View>
+      </LinearGradient>
     </View>
   );
 }
@@ -114,15 +133,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 10,
     color: "#111827",
+  },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  cardBorder: {
+    borderRadius: 12,
+    padding: 2.5,
+    overflow: "hidden",
   },
   card: {
     backgroundColor: color.white,
-    borderRadius: 12,
+    borderRadius: 9.5,
     padding: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
   },
 
   scrollContent: { paddingRight: 6, paddingBottom: 4 },
@@ -155,11 +184,16 @@ const styles = StyleSheet.create({
   labelArea: { height: TIME_LABEL_HEIGHT, justifyContent: "center" },
   xLabel: { fontSize: 10, color: "#6B7280", textAlign: "center" },
 
-  noData: {
-    width: 200,
-    height: CHART_HEIGHT,
-    alignItems: "center",
+  emptyChart: {
+    minHeight: 96,
     justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 12,
   },
-  noDataText: { fontSize: 14, color: "#9CA3AF", paddingVertical: 20 },
+  noDataText: {
+    fontSize: 13,
+    color: "#4B5563",
+    lineHeight: 19,
+    textAlign: "center",
+  },
 });
