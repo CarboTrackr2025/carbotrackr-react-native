@@ -29,11 +29,11 @@ const treeImages: Record<TreeLevel, any> = {
 
 // ─── Streak badge labels ────────────────────────────────────────────────────────
 const stageLabels: Record<TreeLevel, string> = {
-  "0": "Just planted 🌱",
-  "1": "Sprouting 🌿",
-  "2": "Growing 🌳",
-  "3": "Thriving 🌲",
-  "4": "Ancient Tree 🌴",
+  "0": "Just planted",
+  "1": "Sprouting",
+  "2": "Growing",
+  "3": "Thriving",
+  "4": "Ancient Tree",
 };
 
 export default function Dashboard() {
@@ -207,11 +207,11 @@ export default function Dashboard() {
 // ─── Helper ────────────────────────────────────────────────────────────────────
 function getNextMilestone(streak: number): string {
   if (streak < 5)
-    return `${5 - streak} more day${5 - streak !== 1 ? "s" : ""} to grow your tree 🌿`;
+    return `${5 - streak} more day${5 - streak !== 1 ? "s" : ""} to grow your tree`;
   if (streak < 10)
-    return `${10 - streak} more day${10 - streak !== 1 ? "s" : ""} until your tree thrives 🌳`;
+    return `${10 - streak} more day${10 - streak !== 1 ? "s" : ""} until your tree thrives`;
   if (streak < 15)
-    return `${15 - streak} more day${15 - streak !== 1 ? "s" : ""} to reach ancient status 🌲`;
+    return `${15 - streak} more day${15 - streak !== 1 ? "s" : ""} to reach ancient status`;
   return "You've reached the top! 🌴";
 }
 
@@ -359,6 +359,5 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     textAlign: "center",
     fontStyle: "italic",
-    marginTop: 4,
   },
 });
