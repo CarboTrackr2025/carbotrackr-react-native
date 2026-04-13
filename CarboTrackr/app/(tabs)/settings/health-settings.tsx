@@ -1,7 +1,15 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import axios from "axios"
-import { ActivityIndicator, Alert, StyleSheet, View } from "react-native"
+import {
+    ActivityIndicator,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native"
 import { StatusBar } from "expo-status-bar"
+import { LinearGradient } from "expo-linear-gradient"
 import HealthSettingsForm, {
     SaveHealthSettingsInput,
 } from "../../../features/settings/components/HealthSettingsForm"
@@ -9,9 +17,19 @@ import {
     getHealthSettings,
     HealthSettingsData,
 } from "../../../features/settings/api/get-health-settings"
+import {
+    AccountSettingsData,
+    getAccountSettings,
+} from "../../../features/settings/api/get-account-settings"
 import { putHealthSettings } from "../../../features/settings/api/put-health-settings"
 import { useUser } from "@clerk/clerk-expo"
 import { scheduleHealthReminders } from "../../../shared/utils/reminders"
+import { color, gradient } from "../../../shared/constants/colors"
+import {
+    calculateAgeFromDateOfBirth,
+    computeBmr,
+    Sex,
+} from "../../../features/settings/settings.utils"
 
 const EMPTY_SETTINGS: HealthSettingsData = {
     daily_calorie_goal_kcal: null,
@@ -19,6 +37,14 @@ const EMPTY_SETTINGS: HealthSettingsData = {
     reminder_frequency: null,
     reminder_time: null,
     diagnosed_with: null,
+}
+
+const EMPTY_ACCOUNT_SETTINGS: AccountSettingsData = {
+    email: "",
+    gender: null,
+    date_of_birth: null,
+    height_cm: null,
+    weight_kg: null,
 }
 
 const getErrorMessage = (err: unknown) => {
@@ -36,7 +62,40 @@ export default function HealthSettingsScreen() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [initialValues, setInitialValues] = useState<HealthSettingsData>(EMPTY_SETTINGS)
+    const [accountSettings, setAccountSettings] =
+        useState<AccountSettingsData>(EMPTY_ACCOUNT_SETTINGS)
+    const [modalVisible, setModalVisible] = useState(false)
+    const [modalTitle, setModalTitle] = useState("")
+    const [modalBody, setModalBody] = useState("")
     const { user, isLoaded } = useUser()
+
+    const closeModal = () => setModalVisible(false)
+
+    const recommendedDailyCalories = useMemo(() => {
+        const sex =
+            accountSettings.gender === "MALE" || accountSettings.gender === "FEMALE"
+                ? (accountSettings.gender as Sex)
+                : null
+
+        if (!sex) return null
+        if (!accountSettings.date_of_birth) return null
+        if (accountSettings.height_cm == null || accountSettings.weight_kg == null) return null
+
+        const dateOfBirth = new Date(accountSettings.date_of_birth)
+        if (Number.isNaN(dateOfBirth.getTime())) return null
+
+        const ageYears = calculateAgeFromDateOfBirth(dateOfBirth)
+        if (!Number.isFinite(ageYears) || ageYears <= 0) return null
+
+        return Math.round(
+            computeBmr({
+                sex,
+                weight_kg: accountSettings.weight_kg,
+                height_cm: accountSettings.height_cm,
+                age_years: ageYears,
+            })
+        )
+    }, [accountSettings])
 
     const handleSave = async (values: SaveHealthSettingsInput) => {
         try {
@@ -91,10 +150,14 @@ export default function HealthSettingsScreen() {
                 ? `${baseMessage}\n\n${reminderMessage}`
                 : baseMessage
 
-            Alert.alert("Success", message)
+            setModalTitle("Success")
+            setModalBody(message)
+            setModalVisible(true)
         } catch (err) {
             console.log("Health settings save error:", err)
-            Alert.alert("Error", getErrorMessage(err))
+            setModalTitle("Error")
+            setModalBody(getErrorMessage(err))
+            setModalVisible(true)
         } finally {
             setSaving(false)
         }
@@ -106,19 +169,23 @@ export default function HealthSettingsScreen() {
         async function run() {
             try {
                 if (!isLoaded) return
-                
+
                 const accountIdFromClerk = user?.id
                 if (!accountIdFromClerk) {
                     setLoading(false)
                     return
                 }
-                
+
                 setLoading(true)
 
-                const { data } = await getHealthSettings(accountIdFromClerk)
+                const [{ data: healthData }, { data: accountData }] = await Promise.all([
+                    getHealthSettings(accountIdFromClerk),
+                    getAccountSettings(accountIdFromClerk),
+                ])
 
                 if (!mounted) return
-                setInitialValues(data)
+                setInitialValues(healthData)
+                setAccountSettings(accountData)
             } catch (err) {
                 console.log("Health settings fetch error:", err)
             } finally {
@@ -145,10 +212,36 @@ export default function HealthSettingsScreen() {
 
     return (
         <View style={styles.container}>
+            <Modal visible={modalVisible} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <LinearGradient
+                        colors={gradient.green as [string, string]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.modalGradientCard}
+                    >
+                        <View style={styles.modalCard}>
+                            <Text style={styles.modalTitle}>{modalTitle}</Text>
+                            <Text style={styles.modalBody}>{modalBody}</Text>
+                            <Pressable style={styles.modalButton} onPress={closeModal}>
+                                <LinearGradient
+                                    colors={gradient.green as [string, string]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.modalButtonGradient}
+                                >
+                                    <Text style={styles.modalButtonText}>OK</Text>
+                                </LinearGradient>
+                            </Pressable>
+                        </View>
+                    </LinearGradient>
+                </View>
+            </Modal>
             <HealthSettingsForm
                 initialValues={initialValues}
                 onSave={handleSave}
                 saving={saving}
+                recommendedDailyCalories={recommendedDailyCalories}
             />
             <StatusBar style="auto" />
         </View>
@@ -166,5 +259,55 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         alignItems: "center",
         justifyContent: "center",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.45)",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+    },
+    modalGradientCard: {
+        width: "100%",
+        maxWidth: 360,
+        borderRadius: 16,
+        padding: 4,
+        overflow: "hidden",
+    },
+    modalCard: {
+        width: "100%",
+        backgroundColor: color.white,
+        borderRadius: 12,
+        padding: 20,
+        alignItems: "center",
+        gap: 8,
+    },
+    modalTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: color.black,
+        textAlign: "center",
+    },
+    modalBody: {
+        fontSize: 14,
+        color: "#444",
+        textAlign: "center",
+        lineHeight: 20,
+    },
+    modalButton: {
+        marginTop: 8,
+        borderRadius: 10,
+        overflow: "hidden",
+    },
+    modalButtonGradient: {
+        paddingVertical: 10,
+        paddingHorizontal: 18,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    modalButtonText: {
+        color: color.white,
+        fontWeight: "600",
     },
 })
