@@ -1,10 +1,13 @@
 import React, { useCallback, useState } from "react";
 import { View, Text, StyleSheet, Image, ActivityIndicator } from "react-native";
 import { Dimensions } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@clerk/clerk-expo";
 import { useFocusEffect } from "@react-navigation/native";
-import { color } from "../../shared/constants/colors";
-import { Reading } from "../../shared/components/Reading";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import { PieChart } from "react-native-gifted-charts";
+import { color, gradient } from "../../shared/constants/colors";
 import {
   loadAndUpdateStreak,
   getTreeStageFromStreak,
@@ -32,9 +35,6 @@ const stageLabels: Record<TreeLevel, string> = {
   "3": "Thriving 🌲",
   "4": "Ancient Tree 🌴",
 };
-
-// A fire emoji array for streak display
-const flameColors = ["#FF6900", "#FDC700", "#FF6467"];
 
 export default function Dashboard() {
   const { userId } = useAuth();
@@ -86,7 +86,8 @@ export default function Dashboard() {
       : "0";
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeAreaContainer}>
+      <View style={styles.container}>
       {/* ── Title ─────────────────────────────────────────────────────────── */}
       <Text style={styles.title}>Daily Carbohydrate</Text>
 
@@ -98,11 +99,38 @@ export default function Dashboard() {
           style={{ marginTop: 8 }}
         />
       ) : (
-        <Reading
-          text={remainingValue.toString() + " / " + carbohydrateGoal.toString()}
-          textStyle={styles.readingText}
-          unit="g"
-        />
+        <View style={styles.chartContainer}>
+          <PieChart
+            data={[
+              {
+                value: currentCarbohydrates,
+                color: gradient.green[1],
+                text: `${Math.round(
+                  (currentCarbohydrates / carbohydrateGoal) * 100,
+                )}%`,
+              },
+              {
+                value: remainingValue,
+                color: "#E5E7EB",
+              },
+            ]}
+            radius={70}
+            innerRadius={50}
+            centerLabelComponent={() => (
+              <View style={styles.centerLabel}>
+                <Text style={styles.centerLabelValue}>
+                  {remainingValue.toFixed(1)}
+                </Text>
+                <Text style={styles.centerLabelUnit}>g left</Text>
+              </View>
+            )}
+          />
+          <View style={styles.chartLegend}>
+            <Text style={styles.chartLegendText}>
+              {currentCarbohydrates.toFixed(1)} / {carbohydrateGoal.toFixed(1)}g
+            </Text>
+          </View>
+        </View>
       )}
 
       {/* ── Tree image ────────────────────────────────────────────────────── */}
@@ -120,7 +148,13 @@ export default function Dashboard() {
           style={{ marginTop: 8 }}
         />
       ) : (
-        <View style={styles.streakCard}>
+        <LinearGradient
+          colors={gradient.green as [string, string]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.streakCardBorder}
+        >
+          <View style={styles.streakCard}>
           {/* Stage label */}
           <Text style={styles.stageLabel}>{stageLabels[treeStage]}</Text>
 
@@ -128,7 +162,7 @@ export default function Dashboard() {
           <View style={styles.streakRow}>
             {/* Current streak */}
             <View style={styles.streakBadge}>
-              <Text style={styles.flameIcon}>🔥</Text>
+              <Ionicons name="flame" size={24} style={styles.flameIcon} />
               <Text style={styles.streakCount}>
                 {streak?.currentStreak ?? 0}
               </Text>
@@ -139,7 +173,7 @@ export default function Dashboard() {
 
             {/* Total days */}
             <View style={styles.streakBadge}>
-              <Text style={styles.flameIcon}>📅</Text>
+              <Ionicons name="calendar" size={24} style={styles.flameIcon} />
               <Text style={styles.streakCount}>{streak?.totalDays ?? 0}</Text>
               <Text style={styles.streakSubLabel}>total days</Text>
             </View>
@@ -148,7 +182,7 @@ export default function Dashboard() {
 
             {/* Longest streak */}
             <View style={styles.streakBadge}>
-              <Text style={styles.flameIcon}>🏆</Text>
+              <Ionicons name="trophy" size={24} style={styles.flameIcon} />
               <Text style={styles.streakCount}>
                 {streak?.longestStreak ?? 0}
               </Text>
@@ -162,9 +196,11 @@ export default function Dashboard() {
               {getNextMilestone(streak?.currentStreak ?? 0)}
             </Text>
           )}
-        </View>
+          </View>
+        </LinearGradient>
       )}
     </View>
+    </SafeAreaView>
   );
 }
 
@@ -181,13 +217,19 @@ function getNextMilestone(streak: number): string {
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  safeAreaContainer: {
+    flex: 1,
+    backgroundColor: color.white,
+  },
+
   container: {
     flex: 1,
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 60,
-    backgroundColor: "#F7FEE7",
+    paddingVertical: 20,
+    paddingBottom: 0,
+    backgroundColor: color.white,
   },
 
   title: {
@@ -204,12 +246,58 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+  chartContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 16,
+  },
+
+  centerLabel: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  centerLabelValue: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: gradient.green[1],
+  },
+
+  centerLabelUnit: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+
+  chartLegend: {
+    marginTop: 12,
+    alignItems: "center",
+  },
+
+  chartLegendText: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+
   tree: {
-    width: width * 0.72,
-    height: width * 0.72,
+    width: width * 0.5,
+    height: width * 0.5,
   },
 
   // ── Streak card ──────────────────────────────────────────────────────────
+  streakCardBorder: {
+    width: "100%",
+    borderRadius: 22,
+    padding: 2.5,
+    marginBottom: -30,
+    shadowColor: "#000",
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+
   streakCard: {
     width: "100%",
     backgroundColor: "#FFFFFF",
@@ -217,11 +305,6 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 20,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.07,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
     gap: 10,
   },
 
@@ -237,6 +320,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-around",
     width: "100%",
+    marginBottom: 10,
   },
 
   streakBadge: {
@@ -246,7 +330,7 @@ const styles = StyleSheet.create({
   },
 
   flameIcon: {
-    fontSize: 22,
+    color: color["green"],
   },
 
   streakCount: {
