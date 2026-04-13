@@ -49,6 +49,7 @@ const Y_AXIS_MIN_SPAN = 80;
 const Y_AXIS_PADDING_RATIO = 0.15;
 const Y_AXIS_ROUND_TO = 10;
 const NICE_STEP_CANDIDATES = [10, 20, 25, 50];
+const FIRST_POINT_SPACING = 36;
 
 const roundDownTo = (value: number, step: number) =>
   Math.floor(value / step) * step;
@@ -240,6 +241,7 @@ export default function BloodGlucoseChart({ measurements }: Props) {
                     data={chartData}
                     height={CHART_HEIGHT}
                     width={Math.max(chartData.length * 120, 400)}
+                    initialSpacing={FIRST_POINT_SPACING}
                     maxValue={yAxisDomain.max}
                     yAxisOffset={yAxisDomain.min}
                     stepValue={yAxisDomain.step}
@@ -340,6 +342,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   scrollContent: {
+    paddingLeft: 6,
     paddingRight: 6,
     paddingBottom: 12,
   },
