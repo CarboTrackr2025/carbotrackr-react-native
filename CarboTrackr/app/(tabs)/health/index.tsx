@@ -37,6 +37,7 @@ import {
 } from "../../../features/health/healthConnect";
 
 import { createWatchMetric } from "../../../features/health/api/post-watch-data";
+import type { WatchMetric } from "../../../features/health/api/post-watch-data";
 import { getWatchMetrics } from "../../../features/health/api/get-watch-data";
 
 import {
@@ -74,7 +75,12 @@ const endOfDay = (d: Date) =>
 const isAndroid = Platform.OS === "android";
 
 // ─── Sync logger ─────────────────────────────────────────────────────────────
-const syncLog = (msg: string) => console.log(`[WatchSync] ${msg}`);
+const ENABLE_WATCH_SYNC_LOGS = false;
+const syncLog = (msg: string) => {
+  if (ENABLE_WATCH_SYNC_LOGS) {
+    console.log(`[WatchSync] ${msg}`);
+  }
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function HealthIndexScreen() {
@@ -94,6 +100,7 @@ export default function HealthIndexScreen() {
   );
 
   const [watchDataLoading, setWatchDataLoading] = useState(false);
+  const [watchDataError, setWatchDataError] = useState<string | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
 
   const [stepsPoints, setStepsPoints] = useState<StepsPoint[]>([]);
@@ -173,8 +180,7 @@ export default function HealthIndexScreen() {
   const openHealthConnect = async () => {
     const runtimePackage =
       Application.applicationId || Application.applicationName || "unknown";
-    const marketUrl =
-      "market://details?id=com.google.android.apps.healthdata";
+    const marketUrl = "market://details?id=com.google.android.apps.healthdata";
     const webUrl =
       "https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata";
     const hcPermissionUrl = `healthconnect://permissions?packageName=${encodeURIComponent(runtimePackage)}`;
@@ -196,8 +202,14 @@ export default function HealthIndexScreen() {
       const canPerm = await Linking.canOpenURL(hcPermissionUrl);
       const canMain = await Linking.canOpenURL(hcMainUrl);
       const canMarket = await Linking.canOpenURL(marketUrl);
-      if (canPerm) { await Linking.openURL(hcPermissionUrl); return; }
-      if (canMain) { await Linking.openURL(hcMainUrl); return; }
+      if (canPerm) {
+        await Linking.openURL(hcPermissionUrl);
+        return;
+      }
+      if (canMain) {
+        await Linking.openURL(hcMainUrl);
+        return;
+      }
       await Linking.openURL(canMarket ? marketUrl : webUrl);
     } catch (_) {
       await Linking.openURL(webUrl);
@@ -248,40 +260,81 @@ export default function HealthIndexScreen() {
   const fetchWatchData = useCallback(async () => {
     try {
       setWatchDataLoading(true);
+      setWatchDataError(null);
       const accountId = userId;
       if (!accountId) throw new Error("User ID from Clerk Auth API not found");
 
       const res = await getWatchMetrics({
         profile_id: accountId,
+        account_id: accountId,
         from: startOfDay(startDate).toISOString(),
         to: endOfDay(endDate).toISOString(),
         limit: 500,
       });
 
-      const rows = (res.data ?? [])
+      const rows = (res.rows ?? [])
         .slice()
         .sort(
-          (a, b) =>
-            new Date(a.measured_at).getTime() -
-            new Date(b.measured_at).getTime(),
+          (a: WatchMetric, b: WatchMetric) =>
+            new Date(
+              (a as any).measured_at ??
+                (a as any).measuredAt ??
+                (a as any).created_at ??
+                (a as any).createdAt,
+            ).getTime() -
+            new Date(
+              (b as any).measured_at ??
+                (b as any).measuredAt ??
+                (b as any).created_at ??
+                (b as any).createdAt,
+            ).getTime(),
         );
 
-      setStepsPoints(
-        rows.map((r) => ({
-          label: toHHmm(new Date(r.measured_at)),
-          value: Number(r.steps_count) || 0,
-        })),
-      );
-      setHeartRatePoints(
-        rows.map((r) => ({
-          label: toHHmm(new Date(r.measured_at)),
-          value: Number(r.heart_rate_bpm) || 0,
-        })),
-      );
+      const stepsData = rows.map((r: WatchMetric) => {
+        const measuredAt =
+          (r as any).measured_at ??
+          (r as any).measuredAt ??
+          (r as any).created_at ??
+          (r as any).createdAt ??
+          new Date().toISOString();
+
+        return {
+          label: toHHmm(new Date(measuredAt)),
+          value:
+            Number((r as any).steps_count ?? (r as any).stepsCount ?? 0) || 0,
+        };
+      });
+
+      const heartRateData = rows.map((r: WatchMetric) => {
+        const measuredAt =
+          (r as any).measured_at ??
+          (r as any).measuredAt ??
+          (r as any).created_at ??
+          (r as any).createdAt ??
+          new Date().toISOString();
+
+        return {
+          label: toHHmm(new Date(measuredAt)),
+          value:
+            Number((r as any).heart_rate_bpm ?? (r as any).heartRateBpm ?? 0) ||
+            0,
+        };
+      });
+
+      setStepsPoints(stepsData);
+      setHeartRatePoints(heartRateData);
     } catch (err: any) {
-      console.warn(
+      setStepsPoints([]);
+      setHeartRatePoints([]);
+      setWatchDataError(
+        err?.response?.data?.message ??
+          err?.message ??
+          "Could not load watch metrics. Please try again.",
+      );
+      console.error(
         "[Health] Failed to fetch watch data from backend:",
         err?.message,
+        err?.response?.data,
       );
     } finally {
       setWatchDataLoading(false);
@@ -417,7 +470,7 @@ export default function HealthIndexScreen() {
       const httpStatus = err?.response?.status;
       const detail = httpBody
         ? `HTTP ${httpStatus}: ${JSON.stringify(httpBody)}`
-        : err?.message ?? "Unknown error";
+        : (err?.message ?? "Unknown error");
       syncLog(`ERROR: ${detail}`);
       console.error("[WatchSync] Full error:", httpBody ?? err?.message, err);
       Alert.alert("Sync failed", detail);
@@ -465,7 +518,12 @@ export default function HealthIndexScreen() {
       await fetchWatchData();
     }
     setRefreshing(false);
-  }, [fetchMeasurements, fetchGlucoseMeasurements, activeSection, fetchWatchData]);
+  }, [
+    fetchMeasurements,
+    fetchGlucoseMeasurements,
+    activeSection,
+    fetchWatchData,
+  ]);
 
   const handleWatchSectionPress = async () => {
     if (!isAndroid) {
@@ -508,14 +566,6 @@ export default function HealthIndexScreen() {
 
       {activeSection === "watch" ? (
         <>
-          <View style={styles.watchBackRow}>
-            <Button
-              title="← Check my blood pressure/glucose"
-              onPress={() => setActiveSection("readings")}
-              gradient={gradient.green as [string, string]}
-            />
-          </View>
-
           {!isAndroid ? (
             <View style={styles.platformWarning}>
               <Text style={styles.warningTitle}>Android Only</Text>
@@ -534,9 +584,9 @@ export default function HealthIndexScreen() {
                   "Health Connect is not available on this device."}
               </Text>
               <Text style={styles.warningSubtext}>
-                • Android 14+: Health Connect is built-in. Check Settings →
-                Apps → Health Connect.{"\n"}• Android 13 and below: Install
-                from Play Store.
+                • Android 14+: Health Connect is built-in. Check Settings → Apps
+                → Health Connect.{"\n"}• Android 13 and below: Install from Play
+                Store.
               </Text>
             </View>
           ) : (
@@ -556,8 +606,11 @@ export default function HealthIndexScreen() {
                 </View>
               ) : (
                 <>
-                  <HeartRateChart points={heartRatePoints} />
-                  <StepsChart points={stepsPoints} />
+                  <HeartRateChart
+                    points={heartRatePoints}
+                    error={watchDataError}
+                  />
+                  <StepsChart points={stepsPoints} error={watchDataError} />
                 </>
               )}
 
@@ -572,6 +625,14 @@ export default function HealthIndexScreen() {
               </View>
             </>
           )}
+
+          <View style={styles.watchBackRow}>
+            <Button
+              title="← Check my blood pressure/glucose"
+              onPress={() => setActiveSection("readings")}
+              gradient={gradient.green as [string, string]}
+            />
+          </View>
         </>
       ) : loading ? (
         <View style={styles.loadingBox}>
@@ -639,7 +700,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   loadingText: { color: "#6B7280", fontSize: 12 },
-
 
   buttonRow: {
     flexDirection: "row",

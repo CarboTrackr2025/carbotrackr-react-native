@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, StyleSheet, Image, ActivityIndicator } from "react-native";
 import { Dimensions } from "react-native";
-import { useUser } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/clerk-expo";
+import { useFocusEffect } from "@react-navigation/native";
 import { color } from "../../shared/constants/colors";
 import { Reading } from "../../shared/components/Reading";
 import {
@@ -9,12 +10,9 @@ import {
   getTreeStageFromStreak,
   type StreakData,
 } from "../../shared/utils/streaks";
+import { getDashboardCarbohydrateGoal } from "../../features/dashboard/api/get-carbohydrate-goal";
 
 const { width } = Dimensions.get("window");
-
-// ─── Carbohydrate logic (unchanged) ────────────────────────────────────────────
-const carboGoalValue = 5000;
-const carboValue = 5000; // TODO: replace with real value
 
 type TreeLevel = "0" | "1" | "2" | "3" | "4";
 
@@ -39,22 +37,48 @@ const stageLabels: Record<TreeLevel, string> = {
 const flameColors = ["#FF6900", "#FDC700", "#FF6467"];
 
 export default function Dashboard() {
-  const { user } = useUser();
-  const userId = user?.id;
-
-  const remainingValue = carboGoalValue - carboValue;
+  const { userId } = useAuth();
 
   const [streak, setStreak] = useState<StreakData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [streakLoading, setStreakLoading] = useState(true);
+  const [carbohydrateGoal, setCarbohydrateGoal] = useState(0);
+  const [currentCarbohydrates, setCurrentCarbohydrates] = useState(0);
+  const [carbohydrateLoading, setCarbohydrateLoading] = useState(true);
 
-  useEffect(() => {
-    if (!userId) return; // wait until Clerk has loaded the user
-    setLoading(true);
-    loadAndUpdateStreak(userId).then((data) => {
-      setStreak(data);
-      setLoading(false);
-    });
-  }, [userId]); // re-runs whenever the logged-in user changes
+  const remainingValue = Math.max(carbohydrateGoal - currentCarbohydrates, 0);
+
+  const fetchStreak = useCallback(async () => {
+    if (!userId) return;
+
+    setStreakLoading(true);
+    const data = await loadAndUpdateStreak(userId);
+    setStreak(data);
+    setStreakLoading(false);
+  }, [userId]);
+
+  const fetchCarbohydrateGoal = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      setCarbohydrateLoading(true);
+      const result = await getDashboardCarbohydrateGoal(userId);
+      setCarbohydrateGoal(result.dailyCarbohydrateGoalG);
+      setCurrentCarbohydrates(result.currentCarbohydratesG);
+    } catch {
+      setCarbohydrateGoal(0);
+      setCurrentCarbohydrates(0);
+    } finally {
+      setCarbohydrateLoading(false);
+    }
+  }, [userId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      fetchStreak();
+      fetchCarbohydrateGoal();
+    }, [fetchCarbohydrateGoal, fetchStreak, userId]),
+  );
 
   const treeStage: TreeLevel =
     streak != null
@@ -67,11 +91,19 @@ export default function Dashboard() {
       <Text style={styles.title}>Daily Carbohydrate</Text>
 
       {/* ── Carbo reading ─────────────────────────────────────────────────── */}
-      <Reading
-        text={remainingValue.toString() + " / " + carboGoalValue.toString()}
-        textStyle={styles.readingText}
-        unit="g"
-      />
+      {carbohydrateLoading ? (
+        <ActivityIndicator
+          size="small"
+          color={color["light-green"]}
+          style={{ marginTop: 8 }}
+        />
+      ) : (
+        <Reading
+          text={remainingValue.toString() + " / " + carbohydrateGoal.toString()}
+          textStyle={styles.readingText}
+          unit="g"
+        />
+      )}
 
       {/* ── Tree image ────────────────────────────────────────────────────── */}
       <Image
@@ -81,8 +113,12 @@ export default function Dashboard() {
       />
 
       {/* ── Streak section ────────────────────────────────────────────────── */}
-      {loading ? (
-        <ActivityIndicator size="small" color={color["light-green"]} style={{ marginTop: 8 }} />
+      {streakLoading ? (
+        <ActivityIndicator
+          size="small"
+          color={color["light-green"]}
+          style={{ marginTop: 8 }}
+        />
       ) : (
         <View style={styles.streakCard}>
           {/* Stage label */}
@@ -93,7 +129,9 @@ export default function Dashboard() {
             {/* Current streak */}
             <View style={styles.streakBadge}>
               <Text style={styles.flameIcon}>🔥</Text>
-              <Text style={styles.streakCount}>{streak?.currentStreak ?? 0}</Text>
+              <Text style={styles.streakCount}>
+                {streak?.currentStreak ?? 0}
+              </Text>
               <Text style={styles.streakSubLabel}>day streak</Text>
             </View>
 
@@ -111,7 +149,9 @@ export default function Dashboard() {
             {/* Longest streak */}
             <View style={styles.streakBadge}>
               <Text style={styles.flameIcon}>🏆</Text>
-              <Text style={styles.streakCount}>{streak?.longestStreak ?? 0}</Text>
+              <Text style={styles.streakCount}>
+                {streak?.longestStreak ?? 0}
+              </Text>
               <Text style={styles.streakSubLabel}>best streak</Text>
             </View>
           </View>
@@ -130,9 +170,12 @@ export default function Dashboard() {
 
 // ─── Helper ────────────────────────────────────────────────────────────────────
 function getNextMilestone(streak: number): string {
-  if (streak < 5) return `${5 - streak} more day${5 - streak !== 1 ? "s" : ""} to grow your tree 🌿`;
-  if (streak < 10) return `${10 - streak} more day${10 - streak !== 1 ? "s" : ""} until your tree thrives 🌳`;
-  if (streak < 15) return `${15 - streak} more day${15 - streak !== 1 ? "s" : ""} to reach ancient status 🌲`;
+  if (streak < 5)
+    return `${5 - streak} more day${5 - streak !== 1 ? "s" : ""} to grow your tree 🌿`;
+  if (streak < 10)
+    return `${10 - streak} more day${10 - streak !== 1 ? "s" : ""} until your tree thrives 🌳`;
+  if (streak < 15)
+    return `${15 - streak} more day${15 - streak !== 1 ? "s" : ""} to reach ancient status 🌲`;
   return "You've reached the top! 🌴";
 }
 
