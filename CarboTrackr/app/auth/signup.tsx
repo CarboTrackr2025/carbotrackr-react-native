@@ -2,27 +2,17 @@ import React, { useState } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useSignUp, useOAuth, useUser } from "@clerk/clerk-expo";
+import { useSignUp } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
-import * as AuthSession from "expo-auth-session";
 import SignupForm from "../../features/auth/components/SignupForm";
 import { signUpWithClerk } from "../../features/auth/api/auth.api";
-import { saveClerkSession } from "../../features/auth/auth.utils";
 import { color } from "../../shared/constants/colors";
-import { api } from "../../shared/api";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SignupScreen() {
   const router = useRouter();
   const { signUp, setActive, isLoaded } = useSignUp();
-  const { user } = useUser();
-  const { startOAuthFlow: startGoogleOAuth } = useOAuth({
-    strategy: "oauth_google",
-  });
-  const { startOAuthFlow: startFacebookOAuth } = useOAuth({
-    strategy: "oauth_facebook",
-  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,113 +53,17 @@ export default function SignupScreen() {
     }
   };
 
-  const handleOAuth = async (provider: "oauth_google" | "oauth_facebook") => {
-    console.log("📱 [Signup Screen] OAuth button pressed:", provider);
-
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      const startOAuthFlow =
-        provider === "oauth_google" ? startGoogleOAuth : startFacebookOAuth;
-      const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: "carbotrackr",
-        path: "auth/oauth-native-callback",
-      });
-      console.log("🔗 [Signup Screen] OAuth redirectUrl:", redirectUrl);
-      const {
-        createdSessionId,
-        setActive: oAuthSetActive,
-        signUp: oAuthSignUp,
-        signIn: oAuthSignIn,
-      } = await startOAuthFlow({ redirectUrl });
-
-      if (createdSessionId && oAuthSetActive) {
-        await oAuthSetActive({ session: createdSessionId });
-        console.log(
-          "✅ [Signup Screen] OAuth sign-up successful, persisting to backend...",
-        );
-
-        // Resolve userId — new signups have it on signUp, returning users on signIn
-        // Fall back to the Clerk user object which is populated after setActive
-        const userId =
-          oAuthSignUp?.createdUserId ??
-          (oAuthSignIn as any)?.createdUserId ??
-          user?.id ??
-          null;
-        const email =
-          oAuthSignUp?.emailAddress ??
-          (oAuthSignIn as any)?.identifier ??
-          user?.primaryEmailAddress?.emailAddress ??
-          null;
-        // A brand-new OAuth signup will have createdUserId on oAuthSignUp
-        let isNewUser = !!oAuthSignUp?.createdUserId;
-
-        // Always save the session locally
-        if (userId) {
-          await saveClerkSession({ sessionId: createdSessionId, userId });
-          console.log("💾 [Signup Screen] Session saved to AsyncStorage");
-        }
-
-        if (userId && email) {
-          console.log("🌐 [Signup Screen] Persisting OAuth user:", {
-            userId,
-            email,
-          });
-          try {
-            const response = await api.post("/auth/account", { userId, email });
-            console.log(
-              "✅ [Signup Screen] Backend account created/confirmed.",
-            );
-            if (response.status === 201) {
-              isNewUser = true; // DB just created it, route to setup
-            }
-          } catch (backendErr: any) {
-            if (backendErr?.response?.status === 409) {
-              console.warn(
-                "⚠️ [Signup Screen] Backend account already exists (409). Continuing.",
-              );
-            } else {
-              console.error(
-                "❌ [Signup Screen] Failed to persist backend account:",
-                backendErr?.message,
-              );
-            }
-          }
-        } else {
-          console.warn(
-            "⚠️ [Signup Screen] signUp resource missing userId or email — skipping backend persist.",
-            { userId, email },
-          );
-        }
-
-        // Navigate to setup-profile for new users, or directly to tabs for returning users
-        if (isNewUser) {
-          console.log(
-            "🆕 [Signup Screen] New OAuth user — navigating to profile setup.",
-          );
-          router.replace("/auth/setup-profile");
-        } else {
-          console.log(
-            "🔄 [Signup Screen] Returning OAuth user — navigating to tabs.",
-          );
-          router.replace("/(tabs)");
-        }
-      } else {
-        console.log("✅ [Signup Screen] OAuth flow initiated");
-      }
-    } catch (err: any) {
-      console.error("❌ [Signup Screen] OAuth failed:", err);
-      const message =
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        "OAuth sign-in failed.";
-      setError(message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  // OAuth temporarily disabled
+  // const handleOAuth = async (provider: "oauth_google" | "oauth_facebook") => {
+  //   console.log("📱 [Signup Screen] OAuth button pressed:", provider);
+  //   setSubmitting(true);
+  //   setError(null);
+  //   try {
+  //     // OAuth flow intentionally disabled for now.
+  //   } finally {
+  //     setSubmitting(false);
+  //   }
+  // };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -178,8 +72,8 @@ export default function SignupScreen() {
         error={error}
         onSignUp={handleSignUp}
         onLogin={() => router.replace("/auth/login")}
-        onFacebook={() => handleOAuth("oauth_facebook")}
-        onGoogle={() => handleOAuth("oauth_google")}
+        onFacebook={() => setError("OAuth is temporarily disabled.")}
+        onGoogle={() => setError("OAuth is temporarily disabled.")}
         onFAQ={() => router.push("/faqs")}
       />
     </SafeAreaView>
