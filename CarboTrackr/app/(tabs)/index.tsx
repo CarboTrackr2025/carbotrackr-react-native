@@ -127,7 +127,7 @@ export default function Dashboard() {
           />
           <View style={styles.chartLegend}>
             <Text style={styles.chartLegendText}>
-              {currentCarbohydrates.toFixed(1)} / {carbohydrateGoal.toFixed(1)}g
+              {currentCarbohydrates.toFixed(1)}g consumed / {carbohydrateGoal.toFixed(1)}g goal
             </Text>
           </View>
         </View>
