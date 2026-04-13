@@ -69,6 +69,7 @@ export default function HeartRateChart({
                 dataPointsRadius={4}
                 yAxisThickness={0}
                 xAxisThickness={0}
+                xAxisLabelsHeight={34}
                 xAxisLabelTextStyle={styles.xLabel}
                 rulesColor="#E5E7EB"
                 rulesThickness={1}
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   scrollContent: { paddingRight: 6, paddingBottom: 4 },
-  xLabel: { fontSize: 10, color: "#6B7280" },
+  xLabel: { fontSize: 9, color: "#6B7280" },
   emptyChart: {
     minHeight: 96,
     justifyContent: "center",
