@@ -75,12 +75,26 @@ export default function Layout() {
             />
 
             <Tabs.Screen
-                name="report"
+                name="foodLogs"
                 options={{
                     tabBarIcon: ({focused, color: iconColor, size}) => (
                         <TabIcon
                             focused={focused}
-                            name="bar-chart"
+                            name="nutrition"
+                            iconColor={iconColor}
+                            size={size}
+                        />
+                    ),
+                }}
+            />
+
+            <Tabs.Screen
+                name="scanner"
+                options={{
+                    tabBarIcon: ({focused, color: iconColor, size}) => (
+                        <TabIcon
+                            focused={focused}
+                            name="camera"
                             iconColor={iconColor}
                             size={size}
                         />
@@ -103,27 +117,12 @@ export default function Layout() {
             />
 
             <Tabs.Screen
-                name="foodLogs"
+                name="report"
                 options={{
                     tabBarIcon: ({focused, color: iconColor, size}) => (
                         <TabIcon
                             focused={focused}
-                            name="nutrition"
-                            iconColor={iconColor}
-                            size={size}
-                        />
-                    ),
-                }}
-            />
-
-
-            <Tabs.Screen
-                name="scanner"
-                options={{
-                    tabBarIcon: ({focused, color: iconColor, size}) => (
-                        <TabIcon
-                            focused={focused}
-                            name="camera"
+                            name="bar-chart"
                             iconColor={iconColor}
                             size={size}
                         />
