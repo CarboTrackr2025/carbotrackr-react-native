@@ -39,7 +39,11 @@ export default function SearchFoodScreen() {
                 const result = await searchFoods(q);
                 if (!mounted) return;
 
-                setItems(result.items);
+                // Deduplicate items by ID to ensure unique keys
+                const uniqueItems = Array.from(
+                    new Map(result.items.map(item => [item.id, item])).values()
+                );
+                setItems(uniqueItems);
             } catch (err: any) {
                 if (!mounted) return;
                 setErrorMsg(err?.message ?? "Failed to search foods");
