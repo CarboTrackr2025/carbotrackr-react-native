@@ -229,7 +229,7 @@ export default function SolidFoodScanner() {
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            <Modal visible={showImageSourceModal} transparent animationType="fade">
+            <Modal visible={showImageSourceModal} transparent animationType="fade" onRequestClose={() => setShowImageSourceModal(false)}>
                 <View style={styles.modalOverlay}>
                     <LinearGradient
                         colors={gradient.green as [string, string]}
@@ -239,67 +239,50 @@ export default function SolidFoodScanner() {
                     >
                         <View style={styles.modalCard}>
                             <Text style={styles.modalTitle}>Select Image Source</Text>
-                            <Pressable
-                                style={({ pressed }) => [
-                                    styles.sourceButton,
-                                    pressed && styles.sourceButtonPressed,
-                                ]}
+                            <Button
+                                title="Take Photo"
                                 onPress={() => {
                                     setShowImageSourceModal(false)
                                     takePhoto()
                                 }}
-                            >
-                                {({ pressed }) => (
-                                    <LinearGradient
-                                        colors={
-                                            pressed
-                                                ? [color["light-green"], color["light-green"]]
-                                                : (gradient.green as [string, string])
-                                        }
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={styles.sourceButtonGradient}
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.sourceButtonText,
-                                                pressed && styles.sourceButtonTextPressed,
-                                            ]}
-                                        >
-                                            📷 Take Photo
-                                        </Text>
-                                    </LinearGradient>
-                                )}
-                            </Pressable>
-                            <Pressable
-                                style={({ pressed }) => [
-                                    styles.sourceButton,
-                                    pressed && styles.sourceButtonPressed,
-                                ]}
+                                gradient={gradient.green as [string, string]}
+                            />
+                            <Button
+                                title="Pick from Gallery"
                                 onPress={() => {
                                     setShowImageSourceModal(false)
                                     pickFromGallery()
                                 }}
+                                gradient={gradient.green as [string, string]}
+                            />
+                            <Pressable
+                                style={({ pressed }) => [
+                                    styles.cancelButtonWrapper,
+                                ]}
+                                onPress={() => setShowImageSourceModal(false)}
                             >
                                 {({ pressed }) => (
                                     <LinearGradient
-                                        colors={
-                                            pressed
-                                                ? [color["light-green"], color["light-green"]]
-                                                : (gradient.green as [string, string])
-                                        }
+                                        colors={gradient.red as [string, string]}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 1 }}
-                                        style={styles.sourceButtonGradient}
+                                        style={styles.cancelButtonBorder}
                                     >
-                                        <Text
-                                            style={[
-                                                styles.sourceButtonText,
-                                                pressed && styles.sourceButtonTextPressed,
-                                            ]}
-                                        >
-                                            🖼️ Pick from Gallery
-                                        </Text>
+                                        <View style={[styles.cancelButtonInner, pressed && styles.cancelButtonInnerPressed]}>
+                                            {pressed ? (
+                                                <LinearGradient
+                                                    colors={gradient.red as [string, string]}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 1 }}
+                                                    style={styles.cancelButtonFill}
+                                                />
+                                            ) : (
+                                                <View style={[styles.cancelButtonFill, styles.cancelButtonDefaultFill]} />
+                                            )}
+                                            <Text style={[styles.cancelButtonText, pressed && styles.cancelButtonTextPressed]}>
+                                                Cancel
+                                            </Text>
+                                        </View>
                                     </LinearGradient>
                                 )}
                             </Pressable>
@@ -453,29 +436,43 @@ const styles = StyleSheet.create({
         color: "white",
         fontWeight: "600",
     },
-    sourceButton: {
+    cancelButtonWrapper: {
         width: "100%",
-        borderRadius: 10,
-        overflow: "hidden",
-        marginVertical: 8,
+        alignSelf: "stretch",
+        marginTop: 12,
     },
-    sourceButtonGradient: {
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 10,
-        alignItems: "center",
+    cancelButtonBorder: {
+        width: "100%",
+        height: 54,
+        borderRadius: 12,
+        padding: 2.5,
         justifyContent: "center",
+        overflow: "hidden",
     },
-    sourceButtonPressed: {
-        opacity: 0.8,
+    cancelButtonInner: {
+        flex: 1,
+        borderRadius: 9.5,
+        justifyContent: "center",
+        paddingHorizontal: 12,
+        overflow: "hidden",
     },
-    sourceButtonText: {
-        color: "white",
+    cancelButtonInnerPressed: {
+        backgroundColor: color["light-red"],
+    },
+    cancelButtonFill: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    cancelButtonDefaultFill: {
+        backgroundColor: color.white,
+    },
+    cancelButtonText: {
+        color: color["red"],
         fontWeight: "600",
         fontSize: 14,
+        textAlign: "center",
     },
-    sourceButtonTextPressed: {
-        color: color.green,
+    cancelButtonTextPressed: {
+        color: color.white,
     },
     ringWrap: {
         marginTop: 8,
