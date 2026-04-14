@@ -254,9 +254,11 @@ const styles = StyleSheet.create({
     },
     recommendationText: {
         marginTop: 6,
-        fontSize: 13,
+        fontSize: 12,
         lineHeight: 18,
         color: "#4A4A4A",
+        textAlign: "center",
+        fontStyle: "italic",
     },
     buttonGroup: {
         marginTop: 20,
