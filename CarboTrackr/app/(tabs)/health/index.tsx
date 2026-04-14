@@ -66,6 +66,24 @@ const toHHmm = (d: Date) => {
   return `${h}:${min}`;
 };
 
+const formatLabelMMMdd = (d: Date) => {
+  if (Number.isNaN(d.getTime())) return "";
+  return d
+    .toLocaleDateString("en-US", { month: "short", day: "2-digit" })
+    .replace(" ", "-");
+};
+
+const formatTimehhmm = (d: Date) => {
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
+
+const formatChartDateTime = (d: Date) =>
+  `${formatLabelMMMdd(d)} ${formatTimehhmm(d)}`;
+
 const startOfDay = (d: Date) =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
 const endOfDay = (d: Date) =>
@@ -297,7 +315,7 @@ export default function HealthIndexScreen() {
           new Date().toISOString();
 
         return {
-          label: toHHmm(new Date(measuredAt)),
+          label: formatChartDateTime(new Date(measuredAt)),
           value:
             Number((r as any).steps_count ?? (r as any).stepsCount ?? 0) || 0,
         };
@@ -312,7 +330,7 @@ export default function HealthIndexScreen() {
           new Date().toISOString();
 
         return {
-          label: toHHmm(new Date(measuredAt)),
+          label: formatChartDateTime(new Date(measuredAt)),
           value:
             Number((r as any).heart_rate_bpm ?? (r as any).heartRateBpm ?? 0) ||
             0,

@@ -12,8 +12,8 @@ type Props = {
   onLogin: (email: string, password: string) => void | Promise<void>;
   onForgotPassword: () => void;
   onSignUp: () => void;
-  onFacebook: () => void;
-  onGoogle: () => void;
+  // onFacebook: () => void;
+  // onGoogle: () => void;
   onFAQ: () => void;
 };
 
@@ -23,8 +23,8 @@ export default function LoginForm({
   onLogin,
   onForgotPassword,
   onSignUp,
-  onFacebook,
-  onGoogle,
+  // onFacebook,
+  // onGoogle,
   onFAQ,
 }: Props) {
   const [email, setEmail] = useState("");
@@ -100,14 +100,14 @@ export default function LoginForm({
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       {/* ── DIVIDER ── */}
-      <View style={styles.dividerRow}>
+      {/* <View style={styles.dividerRow}>
         <View style={styles.dividerLine} />
         <Text style={styles.dividerText}>Or log in using</Text>
         <View style={styles.dividerLine} />
-      </View>
+      </View> */}
 
       {/* ── SOCIAL BUTTONS ── */}
-      <View style={styles.socialRow}>
+      {/* <View style={styles.socialRow}>
         <TouchableOpacity style={styles.socialButton} onPress={onFacebook}>
           <Ionicons name="logo-facebook" size={20} color="#1877F2" />
           <Text style={styles.socialText}>Facebook</Text>
@@ -117,7 +117,7 @@ export default function LoginForm({
           <Ionicons name="logo-google" size={20} color="#EA4335" />
           <Text style={styles.socialText}>Google</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       {/* ── SIGN UP REDIRECT ── */}
       <TouchableOpacity style={styles.signUpRow} onPress={onSignUp}>

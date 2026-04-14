@@ -12,10 +12,10 @@ export type StepsPoint = {
 
 const PLOT_HEIGHT = 140;
 const VALUE_LABEL_HEIGHT = 18;
-const TIME_LABEL_HEIGHT = 24;
+const TIME_LABEL_HEIGHT = 34;
 const CHART_HEIGHT = VALUE_LABEL_HEIGHT + PLOT_HEIGHT + TIME_LABEL_HEIGHT;
 
-const BAR_WIDTH = 36;
+const BAR_WIDTH = 56;
 const BAR_RADIUS = 8;
 const GROUP_GAP = 14;
 
@@ -182,7 +182,12 @@ const styles = StyleSheet.create({
   },
 
   labelArea: { height: TIME_LABEL_HEIGHT, justifyContent: "center" },
-  xLabel: { fontSize: 10, color: "#6B7280", textAlign: "center" },
+  xLabel: {
+    fontSize: 9,
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 11,
+  },
 
   emptyChart: {
     minHeight: 96,

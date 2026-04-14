@@ -1,11 +1,19 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const streakKey = (userId: string) => `carbotrackr_streak_${userId}`;
+const goalStreakKey = (userId: string) => `carbotrackr_goal_streak_${userId}`;
 
 export type StreakData = {
-  currentStreak: number;   // consecutive days
-  totalDays: number;       // all-time login days
-  lastLoginDate: string;   // ISO date string YYYY-MM-DD
+  currentStreak: number; // consecutive days
+  totalDays: number; // all-time login days
+  lastLoginDate: string; // ISO date string YYYY-MM-DD
+  longestStreak: number;
+};
+
+export type GoalStreakData = {
+  currentStreak: number;
+  totalDays: number;
+  lastGoalDate: string;
   longestStreak: number;
 };
 
@@ -20,7 +28,9 @@ const diffInDays = (a: string, b: string) => {
   return Math.round((msB - msA) / (1000 * 60 * 60 * 24));
 };
 
-export const loadAndUpdateStreak = async (userId: string): Promise<StreakData> => {
+export const loadAndUpdateStreak = async (
+  userId: string,
+): Promise<StreakData> => {
   const today = todayStr();
   const KEY = streakKey(userId);
 
@@ -75,6 +85,87 @@ export const loadAndUpdateStreak = async (userId: string): Promise<StreakData> =
       longestStreak: 1,
     };
     return fallback;
+  }
+};
+
+export const loadAndUpdateCarbohydrateGoalStreak = async (
+  userId: string,
+  achievedGoal: boolean,
+): Promise<GoalStreakData> => {
+  const today = todayStr();
+  const KEY = goalStreakKey(userId);
+
+  try {
+    const raw = await AsyncStorage.getItem(KEY);
+
+    if (!raw) {
+      if (!achievedGoal) {
+        return {
+          currentStreak: 0,
+          totalDays: 0,
+          lastGoalDate: "",
+          longestStreak: 0,
+        };
+      }
+
+      const initial: GoalStreakData = {
+        currentStreak: 1,
+        totalDays: 1,
+        lastGoalDate: today,
+        longestStreak: 1,
+      };
+
+      await AsyncStorage.setItem(KEY, JSON.stringify(initial));
+      return initial;
+    }
+
+    const data: GoalStreakData = JSON.parse(raw);
+
+    if (!achievedGoal) {
+      if (data.lastGoalDate !== today) {
+        const reset: GoalStreakData = {
+          currentStreak: 0,
+          totalDays: data.totalDays,
+          lastGoalDate: today,
+          longestStreak: data.longestStreak,
+        };
+
+        await AsyncStorage.setItem(KEY, JSON.stringify(reset));
+        return reset;
+      }
+
+      return data;
+    }
+
+    if (data.lastGoalDate === today) {
+      return data;
+    }
+
+    const daysSinceLast = diffInDays(data.lastGoalDate, today);
+
+    let currentStreak: number;
+    if (daysSinceLast === 1) {
+      currentStreak = data.currentStreak + 1;
+    } else {
+      currentStreak = 1;
+    }
+
+    const updated: GoalStreakData = {
+      currentStreak,
+      totalDays: data.totalDays + 1,
+      lastGoalDate: today,
+      longestStreak: Math.max(data.longestStreak, currentStreak),
+    };
+
+    await AsyncStorage.setItem(KEY, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return {
+      currentStreak: 0,
+      totalDays: 0,
+      lastGoalDate: today,
+      longestStreak: 0,
+    };
   }
 };
 

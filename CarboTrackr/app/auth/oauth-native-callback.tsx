@@ -1,8 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import {
+  View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import { color } from "../../shared/constants/colors";
 import { api } from "../../shared/api";
 import { saveClerkSession } from "../../features/auth/auth.utils";
@@ -15,6 +21,7 @@ export default function OAuthNativeCallback() {
   const { isSignedIn, isLoaded: authLoaded, sessionId } = useAuth();
   const { user, isLoaded: userLoaded } = useUser();
   const hasNavigated = useRef(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Wait for both auth AND user to be fully loaded
@@ -38,6 +45,17 @@ export default function OAuthNativeCallback() {
     const userId = user.id;
     const email = user.primaryEmailAddress?.emailAddress ?? "";
 
+    if (!userId || !email) {
+      console.error("❌ [OAuth Callback] Missing required identity data:", {
+        userId: !!userId,
+        email: !!email,
+      });
+      setError(
+        "Your account information could not be resolved. Please try logging in again.",
+      );
+      return;
+    }
+
     console.log(
       "✅ [OAuth Callback] Session active. Persisting user in backend...",
     );
@@ -49,16 +67,29 @@ export default function OAuthNativeCallback() {
     let isNewUser = Date.now() - createdAt < 30_000;
 
     const persist = async () => {
-      // Always save the session to AsyncStorage
-      await saveClerkSession({ sessionId, userId });
-      console.log("💾 [OAuth Callback] Session saved to AsyncStorage");
-
-      // Persist user in backend (upsert — 409 = already exists, that's fine)
       try {
+        // Always save the session to AsyncStorage
+        await saveClerkSession({ sessionId, userId });
+        console.log("💾 [OAuth Callback] Session saved to AsyncStorage");
+
+        // Persist user in backend (upsert — 409 = already exists, that's fine)
         const response = await api.post("/auth/account", { userId, email });
         console.log("✅ [OAuth Callback] Backend account created/confirmed.");
         if (response.status === 201) {
           isNewUser = true; // explicitly new in our DB
+        }
+
+        hasNavigated.current = true;
+        if (isNewUser) {
+          console.log(
+            "🆕 [OAuth Callback] New user — navigating to profile setup.",
+          );
+          router.replace("/auth/setup-profile");
+        } else {
+          console.log(
+            "🔄 [OAuth Callback] Returning user — navigating to tabs.",
+          );
+          router.replace("/(tabs)");
         }
       } catch (err: any) {
         const status = err?.response?.status;
@@ -66,27 +97,21 @@ export default function OAuthNativeCallback() {
           console.warn(
             "⚠️ [OAuth Callback] Backend account already exists (409). Continuing.",
           );
-        } else {
-          console.error(
-            "❌ [OAuth Callback] Failed to persist backend account:",
-            err?.message,
-            "| status:",
-            status,
-            "| baseURL:",
-            api.defaults.baseURL,
-          );
-          // Non-fatal: continue navigation even if backend persist fails
+          hasNavigated.current = true;
+          router.replace("/(tabs)");
+          return;
         }
-      }
 
-      hasNavigated.current = true;
-      if (isNewUser) {
-        console.log(
-          "🆕 [OAuth Callback] New user — navigating to profile setup.",
+        console.warn(
+          "⚠️ [OAuth Callback] Backend persistence failed. Continuing with signed-in session:",
+          err?.message,
+          "| status:",
+          status,
+          "| baseURL:",
+          api.defaults.baseURL,
         );
-        router.replace("/auth/setup-profile");
-      } else {
-        console.log("🔄 [OAuth Callback] Returning user — navigating to tabs.");
+        hasNavigated.current = true;
+        setError(null);
         router.replace("/(tabs)");
       }
     };
@@ -96,7 +121,22 @@ export default function OAuthNativeCallback() {
 
   return (
     <View style={styles.center}>
-      <ActivityIndicator size="large" color={color.green} />
+      {!error ? (
+        <>
+          <ActivityIndicator size="large" color={color.green} />
+          <Text style={styles.loadingText}>Completing sign-in...</Text>
+        </>
+      ) : (
+        <>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => router.replace("/auth/login")}
+          >
+            <Text style={styles.retryButtonText}>Back to Login</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
@@ -107,5 +147,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: color.white,
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    marginTop: 12,
+    color: "#6B7280",
+    fontSize: 13,
+  },
+  errorText: {
+    marginBottom: 16,
+    paddingHorizontal: 8,
+    color: "#B91C1C",
+    textAlign: "center",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  retryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: color.green,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: color.white,
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

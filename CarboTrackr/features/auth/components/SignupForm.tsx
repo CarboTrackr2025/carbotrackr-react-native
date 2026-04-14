@@ -152,14 +152,14 @@ export default function SignupForm({
             />
 
             {/* ── DIVIDER ── */}
-            <View style={styles.dividerRow}>
+            {/* <View style={styles.dividerRow}>
                 <View style={styles.dividerLine} />
                 <Text style={styles.dividerText}>Or sign up using</Text>
                 <View style={styles.dividerLine} />
-            </View>
+            </View> */}
 
             {/* ── SOCIAL BUTTONS ── */}
-            <View style={styles.socialRow}>
+            {/* <View style={styles.socialRow}>
                 <TouchableOpacity style={styles.socialButton} onPress={onFacebook}>
                     <Ionicons name="logo-facebook" size={20} color="#1877F2" />
                     <Text style={styles.socialText}>Facebook</Text>
@@ -169,7 +169,7 @@ export default function SignupForm({
                     <Ionicons name="logo-google" size={20} color="#EA4335" />
                     <Text style={styles.socialText}>Google</Text>
                 </TouchableOpacity>
-            </View>
+            </View> */}
 
             {/* ── LOGIN REDIRECT ── */}
             <TouchableOpacity style={styles.loginRow} onPress={onLogin}>

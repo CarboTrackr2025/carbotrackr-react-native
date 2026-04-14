@@ -1,5 +1,6 @@
 import axios from "axios"
 import { API_BASE_URL } from "../../../shared/api"
+import { requestDashboardRefresh } from "../../../shared/utils/dashboard-refresh"
 
 export type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK"
 
@@ -73,6 +74,8 @@ export async function postFoodLogFromNutritionalLabelScanner(input: SaveScannedF
         throw new Error(String(res.data?.error ?? "Failed to save food log"))
     }
 
+    requestDashboardRefresh()
+
     return {
         food_log: res.data?.food_log ?? null,
         raw: res.data,
@@ -118,6 +121,8 @@ export async function postFoodLogFromSolidFoodScanner(input: SaveSolidFoodLogReq
     if (res.data?.ok !== true) {
         throw new Error(String(res.data?.error ?? "Failed to save food log"))
     }
+
+    requestDashboardRefresh()
 
     return {
         food_log: res.data?.food_log ?? null,
