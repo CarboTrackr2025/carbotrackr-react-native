@@ -64,6 +64,7 @@ export default function HeartRateChart({
                 data={chartData}
                 height={200}
                 width={Math.max(chartData.length * 100, 420)}
+                initialSpacing={32}
                 color={color.red}
                 thickness={2}
                 dataPointsRadius={4}
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+    marginBottom: 14,
     paddingHorizontal: 12,
     gap: 8,
   },
@@ -116,8 +117,13 @@ const styles = StyleSheet.create({
     borderRadius: 9.5,
     padding: 12,
   },
-  scrollContent: { paddingRight: 6, paddingBottom: 4 },
-  xLabel: { fontSize: 9, color: "#6B7280" },
+  scrollContent: { paddingRight: 6, paddingBottom: 8 },
+  xLabel: {
+    fontSize: 9,
+    color: "#6B7280",
+    marginTop: 6,
+    textAlign: "center",
+  },
   emptyChart: {
     minHeight: 96,
     justifyContent: "center",

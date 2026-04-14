@@ -51,7 +51,9 @@ export async function getDashboardCarbohydrateGoal(
     });
 
     return {
-      dailyCarbohydrateGoalG: Number(payload.data.daily_carbohydrate_goal_g ?? 0),
+      dailyCarbohydrateGoalG: Number(
+        payload.data.daily_carbohydrate_goal_g ?? 0,
+      ),
       currentCarbohydratesG: Number(payload.data.current_carbohydrates_g ?? 0),
       date: payload.data.date,
     };

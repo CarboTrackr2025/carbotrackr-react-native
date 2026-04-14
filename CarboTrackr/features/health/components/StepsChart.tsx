@@ -11,8 +11,8 @@ export type StepsPoint = {
 };
 
 const PLOT_HEIGHT = 140;
-const VALUE_LABEL_HEIGHT = 18;
-const TIME_LABEL_HEIGHT = 34;
+const VALUE_LABEL_HEIGHT = 26;
+const TIME_LABEL_HEIGHT = 40;
 const CHART_HEIGHT = VALUE_LABEL_HEIGHT + PLOT_HEIGHT + TIME_LABEL_HEIGHT;
 
 const BAR_WIDTH = 56;
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+    marginBottom: 14,
     paddingHorizontal: 12,
     gap: 8,
   },
@@ -166,6 +166,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     alignItems: "center",
     width: BAR_WIDTH + 6,
+    marginBottom: 4,
   },
   valueLabel: {
     fontSize: 9,
@@ -181,7 +182,11 @@ const styles = StyleSheet.create({
     backgroundColor: color.green,
   },
 
-  labelArea: { height: TIME_LABEL_HEIGHT, justifyContent: "center" },
+  labelArea: {
+    height: TIME_LABEL_HEIGHT,
+    justifyContent: "flex-start",
+    paddingTop: 4,
+  },
   xLabel: {
     fontSize: 9,
     color: "#6B7280",
