@@ -129,13 +129,13 @@ export default function LoginScreen() {
           return;
         }
 
-        console.error(
-          "❌ [Login Screen] Post-login persistence failed:",
+        console.warn(
+          "⚠️ [Login Screen] Post-login persistence failed. Continuing with signed-in session:",
           err?.message,
         );
-        setError(
-          "Login succeeded, but we could not finish syncing your account. Please try again.",
-        );
+        handledSessionIdRef.current = resolvedSessionId;
+        setError(null);
+        safeNavigateToTabs("post-login-persist-failed");
       })
       .finally(() => {
         isPersistingRef.current = false;
@@ -207,8 +207,6 @@ export default function LoginScreen() {
         onLogin={handleLogin}
         onForgotPassword={() => router.push("/auth/forgot-password")}
         onSignUp={() => router.push("/auth/signup")}
-        onFacebook={() => setError("OAuth is temporarily disabled.")}
-        onGoogle={() => setError("OAuth is temporarily disabled.")}
         onFAQ={() => router.push("/faqs")}
       />
     </SafeAreaView>

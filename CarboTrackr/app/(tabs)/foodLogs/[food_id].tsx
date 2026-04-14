@@ -21,6 +21,7 @@ import { formatPhilippinesTime } from "../../../shared/utils/formatters";
 import { createFoodLog } from "../../../features/foodLogs/api/post-food"
 import { useAuth } from "@clerk/clerk-expo";
 import { router } from "expo-router";
+import { requestDashboardRefresh } from "../../../shared/utils/dashboard-refresh";
 
 export default function FoodByServingScreen() {
     const { food_id, serving_id } = useLocalSearchParams<{
@@ -75,6 +76,7 @@ export default function FoodByServingScreen() {
             });
 
             setTimestamp(ts);
+            requestDashboardRefresh();
         } catch (e: any) {
             setError(e?.message ?? "Failed to save food log");
         } finally {

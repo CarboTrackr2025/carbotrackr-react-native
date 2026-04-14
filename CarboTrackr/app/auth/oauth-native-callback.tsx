@@ -102,17 +102,17 @@ export default function OAuthNativeCallback() {
           return;
         }
 
-        console.error(
-          "❌ [OAuth Callback] Failed to complete login persistence:",
+        console.warn(
+          "⚠️ [OAuth Callback] Backend persistence failed. Continuing with signed-in session:",
           err?.message,
           "| status:",
           status,
           "| baseURL:",
           api.defaults.baseURL,
         );
-        setError(
-          "Could not complete login setup. Please go back and try again.",
-        );
+        hasNavigated.current = true;
+        setError(null);
+        router.replace("/(tabs)");
       }
     };
 

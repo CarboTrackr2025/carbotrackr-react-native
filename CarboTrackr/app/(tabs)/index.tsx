@@ -1,6 +1,7 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, StyleSheet, Image, ActivityIndicator } from "react-native";
 import { Dimensions } from "react-native";
+import { DeviceEventEmitter } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@clerk/clerk-expo";
 import { useFocusEffect } from "@react-navigation/native";
@@ -15,6 +16,7 @@ import {
   type StreakData,
   type GoalStreakData,
 } from "../../shared/utils/streaks";
+import { DASHBOARD_REFRESH_EVENT } from "../../shared/utils/dashboard-refresh";
 import { getDashboardCarbohydrateGoal } from "../../features/dashboard/api/get-carbohydrate-goal";
 
 const { width } = Dimensions.get("window");
@@ -49,6 +51,16 @@ export default function Dashboard() {
   const [carbohydrateLoading, setCarbohydrateLoading] = useState(true);
 
   const remainingValue = Math.max(carbohydrateGoal - currentCarbohydrates, 0);
+  const hasValidGoal = carbohydrateGoal > 0;
+  const consumedForChart = hasValidGoal
+    ? Math.min(currentCarbohydrates, carbohydrateGoal)
+    : 0;
+  const remainingForChart = hasValidGoal
+    ? Math.max(carbohydrateGoal - consumedForChart, 0)
+    : 1;
+  const progressPct = hasValidGoal
+    ? Math.round((consumedForChart / carbohydrateGoal) * 100)
+    : 0;
 
   const fetchStreak = useCallback(async () => {
     if (!userId) return;
@@ -65,6 +77,7 @@ export default function Dashboard() {
     try {
       setCarbohydrateLoading(true);
       const result = await getDashboardCarbohydrateGoal(userId);
+
       setCarbohydrateGoal(result.dailyCarbohydrateGoalG);
       setCurrentCarbohydrates(result.currentCarbohydratesG);
 
@@ -76,7 +89,11 @@ export default function Dashboard() {
         achievedGoal,
       );
       setGoalStreak(goalStreakData);
-    } catch {
+    } catch (error) {
+      console.error("[Dashboard] fetchCarbohydrateGoal failed", {
+        userId,
+        error,
+      });
       setCarbohydrateGoal(0);
       setCurrentCarbohydrates(0);
       setGoalStreak(null);
@@ -92,6 +109,18 @@ export default function Dashboard() {
       fetchCarbohydrateGoal();
     }, [fetchCarbohydrateGoal, fetchStreak, userId]),
   );
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      DASHBOARD_REFRESH_EVENT,
+      () => {
+        if (!userId) return;
+        fetchCarbohydrateGoal();
+      },
+    );
+
+    return () => subscription.remove();
+  }, [fetchCarbohydrateGoal, userId]);
 
   const treeStage: TreeLevel =
     streak != null
@@ -114,16 +143,15 @@ export default function Dashboard() {
         ) : (
           <View style={styles.chartContainer}>
             <PieChart
+              key={`${carbohydrateGoal}-${currentCarbohydrates}`}
               data={[
                 {
-                  value: currentCarbohydrates,
+                  value: consumedForChart,
                   color: gradient.green[1],
-                  text: `${Math.round(
-                    (currentCarbohydrates / carbohydrateGoal) * 100,
-                  )}%`,
+                  text: `${progressPct}%`,
                 },
                 {
-                  value: remainingValue,
+                  value: remainingForChart,
                   color: "#E5E7EB",
                 },
               ]}

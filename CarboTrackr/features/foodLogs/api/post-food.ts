@@ -1,5 +1,6 @@
 import axios from "axios"
 import { API_BASE_URL } from "../../../shared/api"
+import { requestDashboardRefresh } from "../../../shared/utils/dashboard-refresh"
 
 export type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK"
 
@@ -28,6 +29,8 @@ export async function createFoodLog(input: CreateFoodLogRequest) {
     )
 
     const updatedAt = res.data?.food_log?.updated_at
+
+    requestDashboardRefresh()
 
     return updatedAt
 }
