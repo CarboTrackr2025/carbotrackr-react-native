@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import * as ImagePicker from "expo-image-picker"
+import { LinearGradient } from "expo-linear-gradient"
 
 import { postSolidFoodPhoto, type SolidFoodPredictionResult } from "../../../features/scanner/api/post-solid-food-photo"
 import { postFoodLogFromSolidFoodScanner } from "../../../features/scanner/api/post-food"
@@ -29,6 +30,8 @@ export default function SolidFoodScanner() {
     const [saving, setSaving] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
     const [savedTimestamp, setSavedTimestamp] = useState<string | null>(null)
+    const [showImageSourceModal, setShowImageSourceModal] = useState(false)
+    const [sourceButtonPressed, setSourceButtonPressed] = useState<string | null>(null)
 
     async function takePhoto() {
         try {
@@ -70,6 +73,46 @@ export default function SolidFoodScanner() {
         }
     }
 
+    async function pickFromGallery() {
+        try {
+            setErrorMsg(null)
+            setSaveError(null)
+            setResult(null)
+
+            const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
+            console.log("[SolidFoodScanner] gallery permission", perm)
+            if (!perm.granted) {
+                setErrorMsg("Gallery permission is needed to select a photo.")
+                return
+            }
+
+            const picked = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                quality: 0.3,
+                allowsEditing: false,
+            })
+
+            if (picked.canceled) return
+
+            const asset = picked.assets?.[0]
+            console.log("[SolidFoodScanner] picked asset from gallery", asset)
+            const uri = asset?.uri?.trim() ?? null
+            if (!uri) {
+                setErrorMsg("No image URI returned by gallery.")
+                return
+            }
+
+            console.log("[SolidFoodScanner] imageUri set", uri)
+            setImageUri(uri)
+            setImageName(asset?.fileName ?? null)
+            setImageType(asset?.mimeType ?? null)
+            setImageSize(asset?.fileSize ?? null)
+        } catch (e: any) {
+            console.log("[SolidFoodScanner] pickFromGallery error", e)
+            setErrorMsg(e?.message ?? "Failed to open gallery")
+        }
+    }
+
     async function analyze() {
         if (!imageUri) return
 
@@ -106,7 +149,7 @@ export default function SolidFoodScanner() {
     useEffect(() => {
         if (hasLaunchedRef.current) return
         hasLaunchedRef.current = true
-        takePhoto()
+        setShowImageSourceModal(true)
     }, [])
 
     useEffect(() => {
@@ -122,7 +165,7 @@ export default function SolidFoodScanner() {
         setResult(null)
         setErrorMsg(null)
         setSaveError(null)
-        await takePhoto()
+        setShowImageSourceModal(true)
     }
 
     const carbsG = result?.prediction?.total_carbohydrates_g ?? 0
@@ -186,6 +229,85 @@ export default function SolidFoodScanner() {
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
+            <Modal visible={showImageSourceModal} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <LinearGradient
+                        colors={gradient.green as [string, string]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.modalGradientBorder}
+                    >
+                        <View style={styles.modalCard}>
+                            <Text style={styles.modalTitle}>Select Image Source</Text>
+                            <Pressable
+                                style={({ pressed }) => [
+                                    styles.sourceButton,
+                                    pressed && styles.sourceButtonPressed,
+                                ]}
+                                onPress={() => {
+                                    setShowImageSourceModal(false)
+                                    takePhoto()
+                                }}
+                            >
+                                {({ pressed }) => (
+                                    <LinearGradient
+                                        colors={
+                                            pressed
+                                                ? [color["light-green"], color["light-green"]]
+                                                : (gradient.green as [string, string])
+                                        }
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={styles.sourceButtonGradient}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.sourceButtonText,
+                                                pressed && styles.sourceButtonTextPressed,
+                                            ]}
+                                        >
+                                            📷 Take Photo
+                                        </Text>
+                                    </LinearGradient>
+                                )}
+                            </Pressable>
+                            <Pressable
+                                style={({ pressed }) => [
+                                    styles.sourceButton,
+                                    pressed && styles.sourceButtonPressed,
+                                ]}
+                                onPress={() => {
+                                    setShowImageSourceModal(false)
+                                    pickFromGallery()
+                                }}
+                            >
+                                {({ pressed }) => (
+                                    <LinearGradient
+                                        colors={
+                                            pressed
+                                                ? [color["light-green"], color["light-green"]]
+                                                : (gradient.green as [string, string])
+                                        }
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={styles.sourceButtonGradient}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.sourceButtonText,
+                                                pressed && styles.sourceButtonTextPressed,
+                                            ]}
+                                        >
+                                            🖼️ Pick from Gallery
+                                        </Text>
+                                    </LinearGradient>
+                                )}
+                            </Pressable>
+                        </View>
+                    </LinearGradient>
+                </View>
+            </Modal>
+
             <Modal visible={loading} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalCard}>
@@ -302,6 +424,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 8,
     },
+    modalGradientBorder: {
+        width: "100%",
+        maxWidth: 360,
+        borderRadius: 14,
+        padding: 3,
+        overflow: "hidden",
+    },
     modalTitle: {
         fontSize: 16,
         fontWeight: "700",
@@ -323,6 +452,30 @@ const styles = StyleSheet.create({
     modalButtonText: {
         color: "white",
         fontWeight: "600",
+    },
+    sourceButton: {
+        width: "100%",
+        borderRadius: 10,
+        overflow: "hidden",
+        marginVertical: 8,
+    },
+    sourceButtonGradient: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    sourceButtonPressed: {
+        opacity: 0.8,
+    },
+    sourceButtonText: {
+        color: "white",
+        fontWeight: "600",
+        fontSize: 14,
+    },
+    sourceButtonTextPressed: {
+        color: color.green,
     },
     ringWrap: {
         marginTop: 8,
