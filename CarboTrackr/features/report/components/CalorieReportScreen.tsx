@@ -16,6 +16,7 @@ import { formatDateLabel } from "../report.utils"
 import type { CalorieDataPoint } from "../report.types"
 import { color } from "../../../shared/constants/colors"
 import { useRouter } from "expo-router"
+import { useFocusEffect } from "expo-router"
 
 export function CalorieReportScreen() {
     const { user } = useUser()
@@ -50,9 +51,15 @@ export function CalorieReportScreen() {
         }
     }, [accountId, startDate, endDate])
 
-    useEffect(() => {
-        loadData()
-    }, [loadData])
+    // useEffect(() => {
+    //     loadData()
+    // }, [loadData])
+
+    useFocusEffect(
+        useCallback(() => {
+            loadData()
+        }, [loadData])
+    )
 
     // Build stacked bar chart data
     // Each bar: green = actual consumed, red = remaining gap to goal
