@@ -28,28 +28,37 @@ export default function SignupScreen() {
     setSubmitting(true);
     setError(null);
 
-    const result = await signUpWithClerk(signUp, setActive, {
-      email,
-      password,
-    });
-    setSubmitting(false);
-
-    if (result.success) {
-      console.log(
-        "✅ [Signup Screen] Sign-up successful! Navigating to profile setup.",
-      );
-      router.replace("/auth/setup-profile");
-    } else if ("needsVerification" in result && result.needsVerification) {
-      console.log(
-        "📧 [Signup Screen] Email verification required, navigating to OTP.",
-      );
-      router.push({
-        pathname: "/auth/otp",
-        params: { flow: "signup", email: result.email },
+    try {
+      const result = await signUpWithClerk(signUp, setActive, {
+        email,
+        password,
       });
-    } else if ("message" in result) {
-      console.error("❌ [Signup Screen] Sign-up failed:", result.message);
-      setError(result.message);
+
+      if (result.success) {
+        console.log(
+          "✅ [Signup Screen] Sign-up successful! Navigating to profile setup.",
+        );
+        router.replace("/auth/setup-profile");
+      } else if ("needsVerification" in result && result.needsVerification) {
+        console.log(
+          "📧 [Signup Screen] Email verification required, navigating to OTP.",
+        );
+        router.push({
+          pathname: "/auth/otp",
+          params: { flow: "signup", email: result.email },
+        });
+      } else if ("message" in result) {
+        console.error("❌ [Signup Screen] Sign-up failed:", result.message);
+        setError(result.message);
+      }
+    } catch (err: any) {
+      console.error(
+        "❌ [Signup Screen] Unexpected sign-up error:",
+        err?.message,
+      );
+      setError(err?.message ?? "Sign-up failed. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 

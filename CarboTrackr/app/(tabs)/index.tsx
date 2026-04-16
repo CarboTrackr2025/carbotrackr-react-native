@@ -18,6 +18,7 @@ import {
 } from "../../shared/utils/streaks";
 import { DASHBOARD_REFRESH_EVENT } from "../../shared/utils/dashboard-refresh";
 import { getDashboardCarbohydrateGoal } from "../../features/dashboard/api/get-carbohydrate-goal";
+import { getFoodLogsByAccountId } from "../../features/foodLogs/api/get-food-logs-by-account-id";
 
 const { width } = Dimensions.get("window");
 
@@ -40,11 +41,28 @@ const stageLabels: Record<TreeLevel, string> = {
   "4": "Ancient Tree",
 };
 
+const toYMDLocal = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+const shiftDays = (d: Date, days: number) => {
+  const next = new Date(d);
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
+const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+const GOAL_EPSILON_G = 0.05;
+
 export default function Dashboard() {
   const { userId } = useAuth();
 
   const [streak, setStreak] = useState<StreakData | null>(null);
   const [goalStreak, setGoalStreak] = useState<GoalStreakData | null>(null);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [streakLoading, setStreakLoading] = useState(true);
   const [carbohydrateGoal, setCarbohydrateGoal] = useState(0);
   const [currentCarbohydrates, setCurrentCarbohydrates] = useState(0);
@@ -65,10 +83,18 @@ export default function Dashboard() {
   const fetchStreak = useCallback(async () => {
     if (!userId) return;
 
-    setStreakLoading(true);
-    const data = await loadAndUpdateStreak(userId);
-    setStreak(data);
-    setStreakLoading(false);
+    try {
+      setStreakLoading(true);
+      setDashboardError(null);
+      const data = await loadAndUpdateStreak(userId);
+      setStreak(data);
+    } catch (error) {
+      console.error("[Dashboard] fetchStreak failed", { userId, error });
+      setStreak(null);
+      setDashboardError("Could not load dashboard streak data.");
+    } finally {
+      setStreakLoading(false);
+    }
   }, [userId]);
 
   const fetchCarbohydrateGoal = useCallback(async () => {
@@ -76,14 +102,71 @@ export default function Dashboard() {
 
     try {
       setCarbohydrateLoading(true);
-      const result = await getDashboardCarbohydrateGoal(userId);
+      setDashboardError(null);
+      const now = new Date();
+      const today = toYMDLocal(now);
+      const prevDay = toYMDLocal(shiftDays(now, -1));
 
-      setCarbohydrateGoal(result.dailyCarbohydrateGoalG);
-      setCurrentCarbohydrates(result.currentCarbohydratesG);
+      // Default values if one of the endpoints fails.
+      let goalCarbohydrates = 0;
+      let currentCarbohydrates = 0;
+
+      try {
+        const result = await getDashboardCarbohydrateGoal(userId);
+        goalCarbohydrates = Number(result.dailyCarbohydrateGoalG ?? 0);
+        currentCarbohydrates = Number(result.currentCarbohydratesG ?? 0);
+      } catch (error) {
+        console.warn(
+          "[Dashboard] goal endpoint failed, using food-log fallback",
+          {
+            userId,
+            date: today,
+            error,
+          },
+        );
+      }
+
+      try {
+        const recentLogs = await getFoodLogsByAccountId(userId, prevDay, today);
+        const todayLogs = recentLogs.filter((item) => {
+          const stamp = item.created_at || item.updated_at;
+          if (!stamp) return true;
+          const parsed = new Date(stamp);
+          if (Number.isNaN(parsed.getTime())) return true;
+          return toYMDLocal(parsed) === today;
+        });
+
+        const foodLogCarbohydrates = round2(
+          todayLogs.reduce(
+            (total, item) => total + Number(item.carbohydrates_g ?? 0),
+            0,
+          ),
+        );
+
+        // Use whichever source has the higher tally to avoid missing FAT_SECRET_API logs.
+        currentCarbohydrates = Math.max(
+          currentCarbohydrates,
+          foodLogCarbohydrates,
+        );
+      } catch (error) {
+        console.warn(
+          "[Dashboard] food-log carbohydrate reconciliation skipped",
+          {
+            userId,
+            startDate: prevDay,
+            endDate: today,
+            error,
+          },
+        );
+      }
+
+      setCarbohydrateGoal(goalCarbohydrates);
+      setCurrentCarbohydrates(currentCarbohydrates);
 
       const achievedGoal =
-        result.dailyCarbohydrateGoalG > 0 &&
-        result.currentCarbohydratesG <= result.dailyCarbohydrateGoalG;
+        goalCarbohydrates > 0 &&
+        currentCarbohydrates > 0 &&
+        currentCarbohydrates + GOAL_EPSILON_G >= goalCarbohydrates;
       const goalStreakData = await loadAndUpdateCarbohydrateGoalStreak(
         userId,
         achievedGoal,
@@ -94,6 +177,7 @@ export default function Dashboard() {
         userId,
         error,
       });
+      setDashboardError("Could not load carbohydrate dashboard data.");
       setCarbohydrateGoal(0);
       setCurrentCarbohydrates(0);
       setGoalStreak(null);
@@ -105,8 +189,13 @@ export default function Dashboard() {
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
-      fetchStreak();
-      fetchCarbohydrateGoal();
+
+      void Promise.all([fetchStreak(), fetchCarbohydrateGoal()]).catch(
+        (error) => {
+          console.error("[Dashboard] focus refresh failed", { userId, error });
+          setDashboardError("Could not refresh dashboard.");
+        },
+      );
     }, [fetchCarbohydrateGoal, fetchStreak, userId]),
   );
 
@@ -123,8 +212,8 @@ export default function Dashboard() {
   }, [fetchCarbohydrateGoal, userId]);
 
   const treeStage: TreeLevel =
-    streak != null
-      ? (String(getTreeStageFromStreak(streak.currentStreak)) as TreeLevel)
+    goalStreak != null
+      ? (String(getTreeStageFromStreak(goalStreak.currentStreak)) as TreeLevel)
       : "0";
 
   return (
@@ -132,6 +221,9 @@ export default function Dashboard() {
       <View style={styles.container}>
         {/* ── Title ─────────────────────────────────────────────────────────── */}
         <Text style={styles.title}>Daily Carbohydrate</Text>
+        {!!dashboardError && (
+          <Text style={styles.errorText}>{dashboardError}</Text>
+        )}
 
         {/* ── Carbo reading ─────────────────────────────────────────────────── */}
         {carbohydrateLoading ? (
@@ -259,7 +351,7 @@ export default function Dashboard() {
               {/* Progress hint */}
               {treeStage !== "4" && (
                 <Text style={styles.progressHint}>
-                  {getNextMilestone(streak?.currentStreak ?? 0)}
+                  {getNextMilestone(goalStreak?.currentStreak ?? 0)}
                 </Text>
               )}
             </View>
@@ -303,6 +395,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: color["green"],
     letterSpacing: 0.4,
+    textAlign: "center",
+  },
+
+  errorText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#B91C1C",
     textAlign: "center",
   },
 

@@ -40,10 +40,10 @@ export const loadAndUpdateStreak = async (
     if (!raw) {
       // First ever open for this account
       const initial: StreakData = {
-        currentStreak: 1,
+        currentStreak: 0,
         totalDays: 1,
         lastLoginDate: today,
-        longestStreak: 1,
+        longestStreak: 0,
       };
       await AsyncStorage.setItem(KEY, JSON.stringify(initial));
       return initial;
@@ -64,7 +64,7 @@ export const loadAndUpdateStreak = async (
       currentStreak = data.currentStreak + 1;
     } else {
       // Streak broken
-      currentStreak = 1;
+      currentStreak = 0;
     }
 
     const updated: StreakData = {
@@ -79,10 +79,10 @@ export const loadAndUpdateStreak = async (
   } catch {
     // Fallback on error
     const fallback: StreakData = {
-      currentStreak: 1,
-      totalDays: 1,
+      currentStreak: 0,
+      totalDays: 0,
       lastLoginDate: today,
-      longestStreak: 1,
+      longestStreak: 0,
     };
     return fallback;
   }
@@ -122,11 +122,23 @@ export const loadAndUpdateCarbohydrateGoalStreak = async (
     const data: GoalStreakData = JSON.parse(raw);
 
     if (!achievedGoal) {
-      if (data.lastGoalDate !== today) {
+      if (data.lastGoalDate === today) {
+        // Keep today's earned streak once already achieved.
+        return data;
+      }
+
+      if (!data.lastGoalDate) {
+        return data;
+      }
+
+      const daysSinceLast = diffInDays(data.lastGoalDate, today);
+
+      // Reset only after at least one fully missed day, not while today is still in progress.
+      if (daysSinceLast > 1 && data.currentStreak !== 0) {
         const reset: GoalStreakData = {
           currentStreak: 0,
           totalDays: data.totalDays,
-          lastGoalDate: today,
+          lastGoalDate: data.lastGoalDate,
           longestStreak: data.longestStreak,
         };
 
@@ -138,10 +150,25 @@ export const loadAndUpdateCarbohydrateGoalStreak = async (
     }
 
     if (data.lastGoalDate === today) {
-      return data;
+      if (data.currentStreak > 0) {
+        return data;
+      }
+
+      // Recovery path: allow same-day promotion from zero when goal is hit later.
+      const recovered: GoalStreakData = {
+        currentStreak: 1,
+        totalDays: data.totalDays + 1,
+        lastGoalDate: today,
+        longestStreak: Math.max(data.longestStreak, 1),
+      };
+
+      await AsyncStorage.setItem(KEY, JSON.stringify(recovered));
+      return recovered;
     }
 
-    const daysSinceLast = diffInDays(data.lastGoalDate, today);
+    const daysSinceLast = data.lastGoalDate
+      ? diffInDays(data.lastGoalDate, today)
+      : Number.POSITIVE_INFINITY;
 
     let currentStreak: number;
     if (daysSinceLast === 1) {

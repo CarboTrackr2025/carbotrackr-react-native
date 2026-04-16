@@ -120,6 +120,7 @@ export default function HealthIndexScreen() {
   const [watchDataLoading, setWatchDataLoading] = useState(false);
   const [watchDataError, setWatchDataError] = useState<string | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const [stepsPoints, setStepsPoints] = useState<StepsPoint[]>([]);
   const [heartRatePoints, setHeartRatePoints] = useState<HeartRatePoint[]>([]);
@@ -371,6 +372,7 @@ export default function HealthIndexScreen() {
 
     try {
       setSyncLoading(true);
+      setSyncError(null);
       await ensureHealthConnectReady();
 
       const permissionResult = await requestHealthDataPermissions();
@@ -488,6 +490,7 @@ export default function HealthIndexScreen() {
         ? `HTTP ${httpStatus}: ${JSON.stringify(httpBody)}`
         : (err?.message ?? "Unknown error");
       syncLog(`ERROR: ${detail}`);
+      setSyncError(detail);
       console.error("[WatchSync] Full error:", httpBody ?? err?.message, err);
       Alert.alert("Sync failed", detail);
     } finally {
@@ -506,17 +509,26 @@ export default function HealthIndexScreen() {
 
   // Load blood pressure + glucose data on mount and date change
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      await Promise.all([fetchMeasurements(), fetchGlucoseMeasurements()]);
-      setLoading(false);
+    void (async () => {
+      try {
+        setLoading(true);
+        await Promise.all([fetchMeasurements(), fetchGlucoseMeasurements()]);
+      } catch (error) {
+        console.error("[Health] initial load failed", error);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [fetchMeasurements, fetchGlucoseMeasurements, userId]);
 
   // Reload BP/glucose when screen is focused
   useFocusEffect(
     useCallback(() => {
-      Promise.all([fetchMeasurements(), fetchGlucoseMeasurements()]);
+      void Promise.all([fetchMeasurements(), fetchGlucoseMeasurements()]).catch(
+        (error) => {
+          console.error("[Health] focus refresh failed", error);
+        },
+      );
     }, [fetchMeasurements, fetchGlucoseMeasurements, userId]),
   );
 
@@ -528,12 +540,17 @@ export default function HealthIndexScreen() {
   }, [activeSection, startDate, endDate, fetchWatchData, userId]);
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await Promise.all([fetchMeasurements(), fetchGlucoseMeasurements()]);
-    if (activeSection === "watch") {
-      await fetchWatchData();
+    try {
+      setRefreshing(true);
+      await Promise.all([fetchMeasurements(), fetchGlucoseMeasurements()]);
+      if (activeSection === "watch") {
+        await fetchWatchData();
+      }
+    } catch (error) {
+      console.error("[Health] pull-to-refresh failed", error);
+    } finally {
+      setRefreshing(false);
     }
-    setRefreshing(false);
   }, [
     fetchMeasurements,
     fetchGlucoseMeasurements,
@@ -639,6 +656,9 @@ export default function HealthIndexScreen() {
                   />
                 </View>
               </View>
+              {!!syncError && (
+                <Text style={styles.syncErrorText}>{syncError}</Text>
+              )}
             </>
           )}
 
@@ -716,6 +736,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   loadingText: { color: "#6B7280", fontSize: 12 },
+  syncErrorText: { marginTop: 8, fontSize: 12, color: "#B91C1C" },
 
   buttonRow: {
     flexDirection: "row",

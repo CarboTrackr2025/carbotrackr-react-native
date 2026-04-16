@@ -19,9 +19,9 @@ export type DashboardCarbohydrateGoal = {
 };
 
 const toYMDUtc = (d: Date) => {
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
 
@@ -29,6 +29,12 @@ export async function getDashboardCarbohydrateGoal(
   accountId: string,
   date: string = toYMDUtc(new Date()),
 ): Promise<DashboardCarbohydrateGoal> {
+  const fallback: DashboardCarbohydrateGoal = {
+    dailyCarbohydrateGoalG: 0,
+    currentCarbohydratesG: 0,
+    date,
+  };
+
   try {
     const url = `${API_BASE_URL}/health/${accountId}/carbohydrates/goal`;
     const res = await axios.get<CarbohydrateGoalApiResponse>(url, {
@@ -59,12 +65,34 @@ export async function getDashboardCarbohydrateGoal(
     };
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const responseMessage = String(error.response?.data?.message ?? "");
+
+      if (
+        status === 404 &&
+        /no profile found for this account/i.test(responseMessage)
+      ) {
+        console.warn(
+          "[Dashboard API] No profile yet, using zero dashboard values",
+          {
+            accountId,
+            requestDate: date,
+            status,
+            responseBody: error.response?.data,
+            url: error.config?.url,
+            method: error.config?.method,
+          },
+        );
+
+        return fallback;
+      }
+
       console.error("[Dashboard API] Request failed", {
         accountId,
         requestDate: date,
         url: error.config?.url,
         method: error.config?.method,
-        status: error.response?.status,
+        status,
         responseBody: error.response?.data,
         message: error.message,
       });

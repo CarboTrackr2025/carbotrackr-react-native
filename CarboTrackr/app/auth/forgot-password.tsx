@@ -22,18 +22,27 @@ export default function ForgotPasswordScreen() {
     setSubmitting(true);
     setError(null);
 
-    const result = await requestPasswordReset(signIn, email);
-    setSubmitting(false);
+    try {
+      const result = await requestPasswordReset(signIn, email);
 
-    if (result.success) {
-      console.log("✅ [ForgotPassword] OTP sent, navigating to OTP screen");
-      router.push({ pathname: "/auth/otp", params: { flow: "reset", email } });
-    } else {
-      console.error(
-        "❌ [ForgotPassword] Reset request failed:",
-        result.message,
-      );
-      setError(result.message);
+      if (result.success) {
+        console.log("✅ [ForgotPassword] OTP sent, navigating to OTP screen");
+        router.push({
+          pathname: "/auth/otp",
+          params: { flow: "reset", email },
+        });
+      } else {
+        console.error(
+          "❌ [ForgotPassword] Reset request failed:",
+          result.message,
+        );
+        setError(result.message);
+      }
+    } catch (err: any) {
+      console.error("❌ [ForgotPassword] Unexpected error:", err?.message);
+      setError(err?.message ?? "Could not send reset code. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
