@@ -114,8 +114,9 @@ export function CarbohydrateReportScreen() {
                 <View style={styles.chartWrapper}>
                     <BarChart
                         stackData={barData}
-                        barWidth={28}
-                        spacing={16}
+                        barWidth={12}
+                        spacing={22}
+                        barBorderRadius={5}
                         roundedTop
                         hideRules
                         xAxisLabelTextStyle={styles.axisLabel}
