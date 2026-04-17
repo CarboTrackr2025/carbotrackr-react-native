@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, Image } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { color, gradient } from "../../../shared/constants/colors";
 import { GradientTextInput } from "../../../shared/components/GradientTextInput";
 import { Button } from "../../../shared/components/Button";
+import { ErrorBanner } from "../../../shared/components/ErrorBanner";
 
 type Props = {
   submitting?: boolean;
@@ -97,7 +97,7 @@ export default function LoginForm({
         />
       </View>
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      <ErrorBanner message={error} />
 
       {/* ── DIVIDER ── */}
       {/* <View style={styles.dividerRow}>
@@ -245,12 +245,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: color.black,
   },
-  errorText: {
-    color: color["red"],
-    fontSize: 12,
-    marginTop: 8,
-    textAlign: "center",
-  },
+
 
   // Sign up
   signUpRow: {

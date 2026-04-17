@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { color, gradient } from "../../../shared/constants/colors";
 import { GradientTextInput } from "../../../shared/components/GradientTextInput";
 import { Button } from "../../../shared/components/Button";
+import { ErrorBanner } from "../../../shared/components/ErrorBanner";
 
 type Props = {
   submitting?: boolean;
@@ -131,11 +132,7 @@ export default function SignupForm({
       </View>
 
       {/* ── VALIDATION / API ERROR ── */}
-      {validationError ? (
-        <Text style={styles.errorText}>{validationError}</Text>
-      ) : error ? (
-        <Text style={styles.errorText}>{error}</Text>
-      ) : null}
+      <ErrorBanner message={validationError ?? error} />
 
       {/* ── SIGN UP BUTTON ── */}
       <View style={styles.buttonWrapper}>
@@ -263,12 +260,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: color.black,
   },
-  errorText: {
-    color: color["red"],
-    fontSize: 12,
-    marginTop: 8,
-    textAlign: "center",
-  },
+
   buttonWrapper: {
     marginTop: 20,
     marginBottom: 8,

@@ -20,7 +20,7 @@ export default function SignupScreen() {
     console.log("📱 [Signup Screen] Sign-up button pressed for:", email);
 
     if (!isLoaded || !signUp || !setActive) {
-      console.error("❌ [Signup Screen] Clerk useSignUp not ready");
+      console.log("❌ [Signup Screen] Clerk useSignUp not ready");
       setError("Authentication service is not ready. Please try again.");
       return;
     }
@@ -48,11 +48,11 @@ export default function SignupScreen() {
           params: { flow: "signup", email: result.email },
         });
       } else if ("message" in result) {
-        console.error("❌ [Signup Screen] Sign-up failed:", result.message);
+        console.log("❌ [Signup Screen] Sign-up failed:", result.message);
         setError(result.message);
       }
     } catch (err: any) {
-      console.error(
+      console.log(
         "❌ [Signup Screen] Unexpected sign-up error:",
         err?.message,
       );
