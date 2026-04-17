@@ -14,7 +14,7 @@ export default function Index() {
             <View style={styles.screenWrapper}>
                 {selected === "option1" ? <CalorieReportScreen /> : <CarbohydrateReportScreen />}
             </View>
-            <View style={styles.toggleWrapper} />
+            <View style={styles.toggleWrapper}>
                 <ToggleButton
                     option1="Calories"
                     option2="Carbohydrates"
