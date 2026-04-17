@@ -1,6 +1,34 @@
 import { api } from "../../../shared/api";
 import { saveClerkSession } from "../auth.utils";
 
+// Maps raw Clerk / system errors to friendly, human-readable messages.
+function friendlyAuthError(error: any): string {
+  const code: string = error?.errors?.[0]?.code ?? "";
+  const raw: string =
+    error?.errors?.[0]?.longMessage ??
+    error?.errors?.[0]?.message ??
+    error?.message ??
+    "";
+
+  // Clerk-specific codes
+  if (code === "form_password_pwned") return "That password has appeared in a data breach. Please choose a different one to keep your account safe.";
+  if (code === "form_identifier_not_found") return "We couldn't find an account with that email. Double-check it or sign up for a new account.";
+  if (code === "form_password_incorrect") return "That password doesn't match. Give it another try or reset it if you've forgotten it.";
+  if (code === "form_identifier_exists") return "An account with that email already exists. Try logging in instead.";
+  if (code === "session_exists") return "You're already signed in. Redirecting you now…";
+  if (code === "too_many_requests") return "Too many attempts — please wait a moment before trying again.";
+  if (code === "form_code_incorrect") return "That code doesn't look right. Please check your email and try again.";
+  if (code === "verification_expired") return "That verification code has expired. Request a new one and try again.";
+  if (code === "form_password_length_too_short") return "Your password needs to be at least 8 characters long.";
+  if (code === "form_password_no_uppercase") return "Your password needs at least one uppercase letter.";
+  if (code === "form_password_no_digit") return "Your password needs at least one number.";
+
+  // Fallbacks for human-readable raw messages
+  if (raw && raw.length > 0 && raw.length < 200) return raw;
+
+  return "Something went wrong. Please try again in a moment.";
+}
+
 type LoginPayload = {
   email: string;
   password: string;
@@ -59,22 +87,11 @@ export async function signUpWithClerk(
     }
 
     console.warn("⚠️ [Clerk SignUp] Unexpected status:", signUpAttempt.status);
-    return {
-      success: false,
-      message: `Sign-up could not be completed (status: ${signUpAttempt.status}).`,
-    };
+    return { success: false, message: "We couldn't complete your sign-up right now. Please try again." };
   } catch (error: any) {
     console.error("❌ [Clerk SignUp] Error during sign-up:", error);
-    console.error(
-      "   Error details:",
-      JSON.stringify(error?.errors || error, null, 2),
-    );
-    const message =
-      error?.errors?.[0]?.longMessage ??
-      error?.errors?.[0]?.message ??
-      error?.message ??
-      "Sign-up failed. Please try again.";
-    return { success: false, message };
+    console.error("   Error details:", JSON.stringify(error?.errors || error, null, 2));
+    return { success: false, message: friendlyAuthError(error) };
   }
 }
 
@@ -98,18 +115,10 @@ export async function verifySignUpEmail(
       return await _activateAndPersist(result, setActive, email);
     }
 
-    return {
-      success: false,
-      message: "Verification failed. Please check the code and try again.",
-    };
+    return { success: false, message: "Verification failed. Please check the code and try again." };
   } catch (error: any) {
     console.error("❌ [Clerk SignUp] Verification error:", error);
-    const message =
-      error?.errors?.[0]?.longMessage ??
-      error?.errors?.[0]?.message ??
-      error?.message ??
-      "Email verification failed.";
-    return { success: false, message };
+    return { success: false, message: friendlyAuthError(error) };
   }
 }
 
@@ -219,26 +228,11 @@ export async function loginWithClerk(
       };
     }
 
-    console.warn(
-      "⚠️ [Clerk Login] Additional verification required. Status:",
-      signInAttempt.status,
-    );
-    return {
-      success: false,
-      message: "Sign-in requires additional verification.",
-    };
+    return { success: false, message: "Sign-in requires additional verification. Please check your email." };
   } catch (error: any) {
     console.error("❌ [Clerk Login] Error during sign-in:", error);
-    console.error(
-      "   Error details:",
-      JSON.stringify(error?.errors || error, null, 2),
-    );
-    const message =
-      error?.errors?.[0]?.longMessage ??
-      error?.errors?.[0]?.message ??
-      error?.message ??
-      "Login failed. Please check your credentials.";
-    return { success: false, message };
+    console.error("   Error details:", JSON.stringify(error?.errors || error, null, 2));
+    return { success: false, message: friendlyAuthError(error) };
   }
 }
 
