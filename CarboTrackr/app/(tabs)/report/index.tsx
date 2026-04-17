@@ -11,15 +11,17 @@ export default function Index() {
     const [selected, setSelected] = useState<"option1" | "option2">("option1");
     return (
         <View style={styles.container}>
-            <View style={{marginBottom: 20}}>
-            {selected === "option1" ? <CalorieReportScreen /> : <CarbohydrateReportScreen />}
+            <View style={styles.screenWrapper}>
+                {selected === "option1" ? <CalorieReportScreen /> : <CarbohydrateReportScreen />}
             </View>
-            <ToggleButton
-                option1="Calories"
-                option2="Carbohydrates"
-                selectedOption={selected}
-                onToggle={setSelected}
-            />
+            <View style={styles.toggleWrapper} />
+                <ToggleButton
+                    option1="Calories"
+                    option2="Carbohydrates"
+                    selectedOption={selected}
+                    onToggle={setSelected}
+                />
+            </View>
         </View>
     );
 }
@@ -28,9 +30,17 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#fff",
-        alignItems: "center",
-        justifyContent: "center",
-        paddingHorizontal: 30,
-        paddingVertical: 250,
+    },    
+    screenWrapper: {
+        flex: 1,
+    },
+    toggleWrapper: {
+        // alignItems: "center",
+        // justifyContent: "center",
+        paddingHorizontal: 24,
+        paddingBottom: 16,
+        paddingTop: 8,
+        backgroundColor: "#fff",
+        // paddingVertical: 250,
     },
 });
