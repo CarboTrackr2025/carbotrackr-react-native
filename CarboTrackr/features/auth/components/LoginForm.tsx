@@ -97,12 +97,7 @@ export default function LoginForm({
         />
       </View>
 
-      {error ? (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorIcon}>🚫</Text>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       {/* ── DIVIDER ── */}
       {/* <View style={styles.dividerRow}>
@@ -250,27 +245,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: color.black,
   },
-  // Error banner
-  errorBanner: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "#FEF2F2",
-    borderWidth: 1,
-    borderColor: "#FCA5A5",
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 10,
-    gap: 8,
-  },
-  errorIcon: {
-    fontSize: 16,
-    marginTop: 1,
-  },
   errorText: {
-    flex: 1,
-    color: "#991B1B",
-    fontSize: 13,
-    lineHeight: 18,
+    color: color["red"],
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: "center",
   },
 
   // Sign up

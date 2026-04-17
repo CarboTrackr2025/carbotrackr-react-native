@@ -33,7 +33,7 @@ export default function LoginScreen() {
         navErr?.message,
       );
       setError(
-        "You're signed in, but we hit a snag opening the app. Give it another try!",
+        "You are signed in, but we could not open the app. Please try again.",
       );
       return false;
     }
@@ -91,7 +91,7 @@ export default function LoginScreen() {
         );
         handledSessionIdRef.current = null;
         setError(
-          "You're already signed in — give us a second to redirect you!",
+          "You are already signed in, but we could not redirect you. Please try again.",
         );
       }
       return;
@@ -104,7 +104,7 @@ export default function LoginScreen() {
     if (!email) {
       isPersistingRef.current = false;
       setError(
-        "Hang tight — we're still loading your account details. Try again in a moment.",
+        "Login succeeded, but we could not resolve your email yet. Please wait a moment and try again.",
       );
       return;
     }
@@ -156,7 +156,7 @@ export default function LoginScreen() {
       console.error(
         "❌ [Login Screen] Clerk signIn or setActive not available",
       );
-      setError("Authentication isn't ready yet — please wait a second and try again.");
+      setError("Clerk is not initialized.");
       return;
     }
 

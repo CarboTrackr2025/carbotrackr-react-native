@@ -6,10 +6,10 @@ import {
     ScrollView,
     ActivityIndicator,
     Switch,
-    useWindowDimensions,
 } from "react-native"
 import { BarChart } from "react-native-gifted-charts"
 import { useUser } from "@clerk/clerk-expo"
+import { Header } from "../../../shared/components/Header"
 import DateRangePicker from "../../../shared/components/DateRangePicker"
 import { fetchCarbohydrateReport } from "../api/report.api"
 import { formatDateLabel } from "../report.utils"
@@ -20,8 +20,6 @@ import { useRouter } from "expo-router"
 export function CarbohydrateReportScreen() {
     const { user } = useUser()
     const router = useRouter()
-    const { width } = useWindowDimensions()
-    const chartWidth = width - 48
 
     const today = new Date()
     const weekAgo = new Date()
@@ -83,9 +81,11 @@ export function CarbohydrateReportScreen() {
             contentContainerStyle={styles.container}
             nestedScrollEnabled
         >
+            {/* ── HEADER ── */}
+            <Header onFAQ={() => router.push("/faqs")} />
+
             {/* ── HEADLINE ── */}
-            <Text style={styles.heading}>Carbohydrate Consumption</Text>
-            <Text style={styles.subheading}>Track your daily intake vs. goal</Text>
+            <Text style={styles.heading}>Carbohydrate Consumption Graph</Text>
 
             {/* ── DATE RANGE PICKER ── */}
             <DateRangePicker
@@ -105,25 +105,17 @@ export function CarbohydrateReportScreen() {
                     style={styles.loader}
                 />
             ) : error ? (
-                <View style={styles.messageBox}>
-                    <Text style={styles.messageIcon}>⚠️</Text>
-                    <Text style={styles.errorText}>Couldn't load your carbohydrate data right now. Try refreshing or check your connection.</Text>
-                </View>
+                <Text style={styles.errorText}>{error}</Text>
             ) : data.length === 0 ? (
-                <View style={styles.messageBox}>
-                    <Text style={styles.messageIcon}>📭</Text>
-                    <Text style={styles.emptyText}>
-                        No carbohydrate entries logged for this period. Start logging meals to see your progress!
-                    </Text>
-                </View>
+                <Text style={styles.emptyText}>
+                    No carbohydrate data found for this date range.
+                </Text>
             ) : (
                 <View style={styles.chartWrapper}>
                     <BarChart
                         stackData={barData}
-                        width={chartWidth - 40}
                         barWidth={28}
-                        spacing={Math.max(8, (chartWidth - 40 - barData.length * 28) / Math.max(barData.length - 1, 1))}
-                        barBorderRadius={6}
+                        spacing={16}
                         roundedTop
                         hideRules
                         xAxisLabelTextStyle={styles.axisLabel}
@@ -180,51 +172,37 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     heading: {
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: "700",
         color: color.black,
-        marginBottom: 4,
-    },
-    subheading: {
-        fontSize: 13,
-        color: "#6B7280",
+        textAlign: "center",
         marginBottom: 20,
     },
     chartWrapper: {
         marginTop: 12,
-        marginBottom: 20,
+        marginBottom: 16,
         alignItems: "center",
-        width: "100%",
     },
     loader: {
-        marginTop: 60,
-    },
-    messageBox: {
-        alignItems: "center",
-        paddingVertical: 40,
-        paddingHorizontal: 16,
-        gap: 10,
-    },
-    messageIcon: {
-        fontSize: 36,
+        marginTop: 40,
     },
     errorText: {
-        color: "#B91C1C",
-        fontSize: 14,
+        color: color.red,
+        fontSize: 13,
         textAlign: "center",
-        lineHeight: 20,
+        marginTop: 20,
     },
     emptyText: {
         color: "#6B7280",
-        fontSize: 14,
+        fontSize: 13,
         textAlign: "center",
-        lineHeight: 20,
+        marginTop: 20,
     },
     legendRow: {
         flexDirection: "row",
         justifyContent: "center",
         gap: 20,
-        marginBottom: 20,
+        marginBottom: 16,
     },
     legendItem: {
         flexDirection: "row",
@@ -242,19 +220,16 @@ const styles = StyleSheet.create({
     },
     checkboxRow: {
         flexDirection: "row",
-        alignItems: "flex-start",
+        alignItems: "center",
         gap: 10,
         marginTop: 8,
         paddingHorizontal: 4,
-        backgroundColor: "#F9FAFB",
-        borderRadius: 12,
-        padding: 12,
     },
     checkboxLabel: {
         flex: 1,
-        fontSize: 13,
+        fontSize: 12,
         color: "#6B7280",
-        lineHeight: 20,
+        lineHeight: 18,
     },
     axisLabel: {
         fontSize: 10,

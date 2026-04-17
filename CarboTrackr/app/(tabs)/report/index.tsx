@@ -1,5 +1,7 @@
-import { StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {  StyleSheet, Text, View } from "react-native";
+import { router} from "expo-router";
+import { Button } from "../../../shared/components/Button";
+import {gradient} from "../../../shared/constants/colors";
 import { ToggleButton } from "../../../shared/components/ToggleButton";
 import { useState } from "react";
 import { CarbohydrateReportScreen } from "../../../features/report/components/CarbohydrateReportScreen";
@@ -8,39 +10,27 @@ import { CalorieReportScreen } from "../../../features/report/components/Calorie
 export default function Index() {
     const [selected, setSelected] = useState<"option1" | "option2">("option1");
     return (
-        <SafeAreaView style={styles.safe}>
-            {/* ── REPORT CONTENT ── */}
-            <View style={styles.content}>
-                {selected === "option1" ? <CalorieReportScreen /> : <CarbohydrateReportScreen />}
+        <View style={styles.container}>
+            <View style={{marginBottom: 20}}>
+            {selected === "option1" ? <CalorieReportScreen /> : <CarbohydrateReportScreen />}
             </View>
-
-            {/* ── TAB TOGGLE ── */}
-            <View style={styles.toggleWrapper}>
-                <ToggleButton
-                    option1="Calories"
-                    option2="Carbohydrates"
-                    selectedOption={selected}
-                    onToggle={setSelected}
-                />
-            </View>
-        </SafeAreaView>
+            <ToggleButton
+                option1="Calories"
+                option2="Carbohydrates"
+                selectedOption={selected}
+                onToggle={setSelected}
+            />
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    safe: {
+    container: {
         flex: 1,
         backgroundColor: "#fff",
-    },
-    toggleWrapper: {
-        paddingHorizontal: 24,
-        paddingTop: 12,
-        paddingBottom: 16,
-        borderTopWidth: 1,
-        borderTopColor: "#E5E7EB",
-        backgroundColor: "#fff",
-    },
-    content: {
-        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 30,
+        paddingVertical: 250,
     },
 });
