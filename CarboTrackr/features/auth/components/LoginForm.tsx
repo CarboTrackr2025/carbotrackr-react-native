@@ -30,9 +30,23 @@ export default function LoginForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const canSubmit =
     email.trim().length > 0 && password.length > 0 && !submitting;
+
+  const handleLogin = () => {
+    if (!email.trim()) {
+      setValidationError("Please enter your email and password.");
+      return;
+    }
+    if (!password) {
+      setValidationError("Please enter your email and password.");
+      return;
+    }
+    setValidationError(null);
+    onLogin(email, password);
+  };
 
   return (
     <View style={styles.container}>
@@ -91,13 +105,15 @@ export default function LoginForm({
       <View style={styles.loginButtonWrapper}>
         <Button
           title={submitting ? "Logging in..." : "Login"}
-          onPress={() => onLogin(email, password)}
+          onPress={handleLogin}
           gradient={gradient.green as [string, string]}
           disabled={!canSubmit}
         />
       </View>
 
-      <ErrorBanner message={error} />
+      {/* ── ERROR DISPLAY ── */}
+      {validationError && <ErrorBanner message={validationError} />}
+      {error && <ErrorBanner message={error} />}
 
       {/* ── DIVIDER ── */}
       {/* <View style={styles.dividerRow}>
