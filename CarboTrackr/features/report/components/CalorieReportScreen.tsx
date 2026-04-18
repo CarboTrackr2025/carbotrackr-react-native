@@ -14,10 +14,13 @@ import DateRangePicker from "../../../shared/components/DateRangePicker"
 import { fetchCalorieReport } from "../api/report.api"
 import { formatDateLabel } from "../report.utils"
 import type { CalorieDataPoint } from "../report.types"
-import { color } from "../../../shared/constants/colors"
+import { color, gradient } from "../../../shared/constants/colors"
 import { useRouter } from "expo-router"
 import { useFocusEffect } from "expo-router"
+import { LinearGradient } from "expo-linear-gradient"
 
+const CARD_BORDER_WIDTH = 2.5
+const CARD_RADIUS = 12
 export function CalorieReportScreen() {
     const { user } = useUser()
     const router = useRouter()
@@ -121,23 +124,32 @@ export function CalorieReportScreen() {
                     No calorie data found for this date range.
                 </Text>
             ) : (
-                <View style={styles.chartWrapper}>
-                    <BarChart
-                        stackData={barData}
-                        barWidth={12}
-                        spacing={22}
-                        barBorderRadius={5}
-                        roundedTop
-                        hideRules
-                        xAxisLabelTextStyle={styles.axisLabel}
-                        yAxisTextStyle={styles.axisLabel}
-                        noOfSections={4}
-                        yAxisThickness={0}
-                        xAxisThickness={1}
-                        xAxisColor="#E5E7EB"
-                        isAnimated
-                    />
-                </View>
+                <LinearGradient
+                    colors={gradient.green as [string, string]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cardBorder}
+                >
+                    <View style={styles.card}>
+                        <View style={styles.chartWrapper}>
+                            <BarChart
+                                stackData={barData}
+                                barWidth={12}
+                                spacing={22}
+                                barBorderRadius={5}
+                                roundedTop
+                                hideRules
+                                xAxisLabelTextStyle={styles.axisLabel}
+                                yAxisTextStyle={styles.axisLabel}
+                                noOfSections={4}
+                                yAxisThickness={0}
+                                xAxisThickness={1}
+                                xAxisColor="#E5E7EB"
+                                isAnimated
+                            />
+                        </View>
+                    </View>
+                </LinearGradient>
             )}
 
             {/* ── LEGEND ── */}
@@ -193,6 +205,18 @@ const styles = StyleSheet.create({
         marginTop: 12,
         marginBottom: 16,
         alignItems: "center",
+    },
+    cardBorder: {
+        borderRadius: CARD_RADIUS,
+        padding: CARD_BORDER_WIDTH,
+        overflow: "hidden",
+        marginTop: 12,
+        marginBottom: 16,
+    },
+    card: {
+        backgroundColor: color.white,
+        borderRadius: CARD_RADIUS - CARD_BORDER_WIDTH,
+        padding: 8,
     },
     loader: {
         marginTop: 40,
