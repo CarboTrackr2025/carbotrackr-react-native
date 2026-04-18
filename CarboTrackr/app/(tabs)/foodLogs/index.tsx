@@ -3,6 +3,8 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    Modal,
+    Pressable,
     RefreshControl,
     StyleSheet,
     Text,
@@ -10,6 +12,7 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 
 import DateRangePicker from "../../../shared/components/DateRangePicker";
 import { Button } from "../../../shared/components/Button";
@@ -34,6 +37,9 @@ export default function FoodLogsIndexScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState("");
     const [logs, setLogs] = useState<FoodLogForUI[]>([]);
+    const [deleteTarget, setDeleteTarget] = useState<FoodLogForUI | null>(null);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [deleteSubmitting, setDeleteSubmitting] = useState(false);
     const { userId } = useAuth();
 
     const [startDate, setStartDate] = useState(new Date());
@@ -76,44 +82,106 @@ export default function FoodLogsIndexScreen() {
         setRefreshing(false);
     }, [fetchLogs]);
 
-    const onDelete = useCallback(
-        (item: FoodLogForUI) => {
+    const closeDeleteModal = useCallback(() => {
+        if (deleteSubmitting) return;
+        setDeleteModalVisible(false);
+        setDeleteTarget(null);
+    }, [deleteSubmitting]);
+
+    const confirmDelete = useCallback(async () => {
+        if (!deleteTarget) return;
+
+        try {
+            setDeleteSubmitting(true);
+            await deleteFoodLog(deleteTarget.id);
+            setDeleteModalVisible(false);
+            setDeleteTarget(null);
+            await fetchLogs();
+            Alert.alert("Deleted", "Food log deleted successfully.");
+        } catch (err: any) {
             Alert.alert(
-                "Delete food log",
-                `Are you sure you want to delete "${item.food_name}"?`,
-                [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: async () => {
-                            try {
-                                await deleteFoodLog(item.id);
-                                await fetchLogs(); // refresh from server
-                                Alert.alert("Deleted", "Food log deleted successfully.");
-                            } catch (err: any) {
-                                Alert.alert(
-                                    "Delete failed",
-                                    err?.message ?? "Food log could not be deleted. Please try again."
-                                );
-                            }
-                        },
-                    },
-                ]
+                "Delete failed",
+                err?.message ?? "Food log could not be deleted. Please try again."
             );
-        },
-        [fetchLogs]
-    );
+        } finally {
+            setDeleteSubmitting(false);
+        }
+    }, [deleteTarget, fetchLogs]);
+
+    const onDelete = useCallback((item: FoodLogForUI) => {
+        setDeleteTarget(item);
+        setDeleteModalVisible(true);
+    }, []);
 
     return (
         <View style={styles.screen}>
+            <Modal
+                visible={deleteModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={closeDeleteModal}
+            >
+                <View style={styles.modalOverlay}>
+                    <LinearGradient
+                        colors={gradient.green as [string, string]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.modalGradientCard}
+                    >
+                        <View style={styles.modalCard}>
+                            <Text style={styles.modalTitle}>Delete food log?</Text>
+                            <Text style={styles.modalBody}>
+                                {`Are you sure you want to delete "${deleteTarget?.food_name ?? "this food log"}"?`}
+                            </Text>
+
+                            <View style={styles.modalActions}>
+                                <LinearGradient
+                                    colors={gradient.green as [string, string]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={[styles.modalButton, styles.cancelGradientBorder]}
+                                >
+                                    <Pressable
+                                        style={styles.cancelButton}
+                                        onPress={closeDeleteModal}
+                                        disabled={deleteSubmitting}
+                                    >
+                                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                                    </Pressable>
+                                </LinearGradient>
+
+                                <Pressable
+                                    style={styles.modalButton}
+                                    onPress={confirmDelete}
+                                    disabled={deleteSubmitting}
+                                >
+                                    <LinearGradient
+                                        colors={gradient.red as [string, string]}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={styles.modalButtonGradient}
+                                    >
+                                        <Text style={styles.modalButtonText}>
+                                            {deleteSubmitting ? "Deleting..." : "Delete"}
+                                        </Text>
+                                    </LinearGradient>
+                                </Pressable>
+                            </View>
+                        </View>
+                    </LinearGradient>
+                </View>
+            </Modal>
+
             <FlatList
                 data={!loading && !error ? logs : []}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <FoodLogCard item={item} onPress={() => {}} onDelete={onDelete} />
                 )}
-                contentContainerStyle={styles.content}
+                contentContainerStyle={[
+                    styles.content,
+                    !loading && !error && logs.length === 0 && styles.contentWhenEmpty,
+                ]}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                 ListHeaderComponent={
                     <View>
@@ -160,13 +228,16 @@ export default function FoodLogsIndexScreen() {
                             </View>
                         )}
 
-                        {!loading && !error && logs.length === 0 && (
-                            <View style={styles.emptyBox}>
-                                <Text style={styles.emptyTitle}>No food logs found</Text>
-                                <Text style={styles.emptySub}>Try a wider date range, or add an entry.</Text>
-                            </View>
-                        )}
                     </View>
+                }
+                ListEmptyComponent={
+                    !loading && !error ? (
+                        <View style={styles.noDataWrap}>
+                            <Text style={styles.noDataText}>
+                                No food logs found. Try a wide range, or search food to add an entry.
+                            </Text>
+                        </View>
+                    ) : null
                 }
             />
 
@@ -184,6 +255,7 @@ export default function FoodLogsIndexScreen() {
 const styles = StyleSheet.create({
     screen: { flex: 1, backgroundColor: color.white },
     content: { padding: 12, paddingBottom: 110 },
+    contentWhenEmpty: { flexGrow: 1 },
 
     headerRow: { marginBottom: 10 },
     headerTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
@@ -196,9 +268,6 @@ const styles = StyleSheet.create({
 
     loadingBox: {
         minHeight: 180,
-        borderWidth: 1,
-        borderColor: "#E5E7EB",
-        borderRadius: 12,
         alignItems: "center",
         justifyContent: "center",
         gap: 10,
@@ -217,6 +286,93 @@ const styles = StyleSheet.create({
     },
     emptyTitle: { fontSize: 14, fontWeight: "700", color: "#111827", marginBottom: 4 },
     emptySub: { fontSize: 12, color: "#6B7280" },
+
+    noDataWrap: {
+        flex: 1,
+        minHeight: 220,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 16,
+    },
+    noDataText: {
+        fontSize: 14,
+        color: "#6B7280",
+        textAlign: "center",
+    },
+
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.45)",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+    },
+    modalGradientCard: {
+        width: "100%",
+        maxWidth: 360,
+        borderRadius: 16,
+        padding: 4,
+        overflow: "hidden",
+    },
+    modalCard: {
+        width: "100%",
+        backgroundColor: color.white,
+        borderRadius: 12,
+        padding: 20,
+        alignItems: "center",
+        gap: 8,
+    },
+    modalTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: color.black,
+        textAlign: "center",
+    },
+    modalBody: {
+        fontSize: 14,
+        color: "#444",
+        textAlign: "center",
+        lineHeight: 20,
+    },
+    modalActions: {
+        marginTop: 8,
+        width: "100%",
+        flexDirection: "row",
+        gap: 10,
+    },
+    modalButton: {
+        flex: 1,
+        borderRadius: 10,
+        overflow: "hidden",
+    },
+    modalButtonGradient: {
+        width: "100%",
+        paddingVertical: 10,
+        paddingHorizontal: 18,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    modalButtonText: {
+        color: color.white,
+        fontWeight: "600",
+    },
+    cancelGradientBorder: {
+        padding: 2,
+    },
+    cancelButton: {
+        flex: 1,
+        backgroundColor: color.white,
+        borderRadius: 8,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 8,
+        paddingHorizontal: 18,
+    },
+    cancelButtonText: {
+        color: "#374151",
+        fontWeight: "600",
+    },
 
     stickyButtonWrap: {
         position: "absolute",

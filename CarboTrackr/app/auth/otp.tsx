@@ -34,20 +34,29 @@ export default function OTPScreen() {
       setSubmitting(true);
       setError(null);
 
-      const result = await verifyPasswordResetOTP(signIn, otp);
-      setSubmitting(false);
+      try {
+        const result = await verifyPasswordResetOTP(signIn, otp);
 
-      if (result.success) {
-        console.log(
-          "✅ [OTP] OTP verified, navigating to change-password (reset flow)",
+        if (result.success) {
+          console.log(
+            "✅ [OTP] OTP verified, navigating to change-password (reset flow)",
+          );
+          router.replace({
+            pathname: "/auth/change-password",
+            params: { flow: "reset" },
+          });
+        } else {
+          console.error("❌ [OTP] OTP verification failed:", result.message);
+          setError(result.message);
+        }
+      } catch (err: any) {
+        console.error(
+          "❌ [OTP] Unexpected reset-flow verify error:",
+          err?.message,
         );
-        router.replace({
-          pathname: "/auth/change-password",
-          params: { flow: "reset" },
-        });
-      } else {
-        console.error("❌ [OTP] OTP verification failed:", result.message);
-        setError(result.message);
+        setError(err?.message ?? "OTP verification failed. Please try again.");
+      } finally {
+        setSubmitting(false);
       }
       return;
     }
@@ -61,20 +70,31 @@ export default function OTPScreen() {
       setSubmitting(true);
       setError(null);
 
-      const result = await verifySignUpEmail(
-        signUp,
-        setActive,
-        otp,
-        email ?? "",
-      );
-      setSubmitting(false);
+      try {
+        const result = await verifySignUpEmail(
+          signUp,
+          setActive,
+          otp,
+          email ?? "",
+        );
 
-      if (result.success) {
-        console.log("✅ [OTP] Email verified, navigating to profile setup.");
-        router.replace("/auth/setup-profile");
-      } else if ("message" in result) {
-        console.error("❌ [OTP] Email verification failed:", result.message);
-        setError(result.message);
+        if (result.success) {
+          console.log("✅ [OTP] Email verified, navigating to profile setup.");
+          router.replace("/auth/setup-profile");
+        } else if ("message" in result) {
+          console.error("❌ [OTP] Email verification failed:", result.message);
+          setError(result.message);
+        }
+      } catch (err: any) {
+        console.error(
+          "❌ [OTP] Unexpected signup-flow verify error:",
+          err?.message,
+        );
+        setError(
+          err?.message ?? "Email verification failed. Please try again.",
+        );
+      } finally {
+        setSubmitting(false);
       }
       return;
     }
@@ -83,16 +103,25 @@ export default function OTPScreen() {
   };
 
   const handleResend = async () => {
-    if (isResetFlow && signIn && email) {
-      console.log("🔄 [OTP] Resending password reset OTP to:", email);
-      await requestPasswordReset(signIn, email);
-    } else if (isSignupFlow && signUp) {
-      console.log("🔄 [OTP] Resending sign-up verification OTP.");
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-    } else {
-      console.log(
-        "ℹ️ [OTP] Resend requested but no reset flow or email available.",
-      );
+    try {
+      setError(null);
+
+      if (isResetFlow && signIn && email) {
+        console.log("🔄 [OTP] Resending password reset OTP to:", email);
+        await requestPasswordReset(signIn, email);
+      } else if (isSignupFlow && signUp) {
+        console.log("🔄 [OTP] Resending sign-up verification OTP.");
+        await signUp.prepareEmailAddressVerification({
+          strategy: "email_code",
+        });
+      } else {
+        console.log(
+          "ℹ️ [OTP] Resend requested but no reset flow or email available.",
+        );
+      }
+    } catch (err: any) {
+      console.error("❌ [OTP] Resend failed:", err?.message);
+      setError(err?.message ?? "Could not resend OTP. Please try again.");
     }
   };
 

@@ -3,10 +3,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "@clerk/clerk-expo";
-import { Button } from "../../../shared/components/Button";
+import { ButtonVersion2 } from "../../../shared/components/ButtonVersion2";
 import { gradient } from "../../../shared/constants/colors";
 import { clearClerkTokenCache } from "../../../features/auth/auth.utils";
-import {ButtonVersion2} from "../../../shared/components/ButtonVersion2";
 
 export default function IndexScreen() {
   const { signOut } = useAuth();
@@ -38,14 +37,13 @@ export default function IndexScreen() {
             iconName="help-circle-outline"
             onPress={() => router.push("/faqs")}
           />
+          <ButtonVersion2
+            label="Log Out"
+            iconName="log-out"
+            gradientColors={gradient.red as [string, string]}
+            onPress={handleLogout}
+          />
         </View>
-      </View>
-      <View style={styles.logoutContainer}>
-        <Button
-          title="Log Out"
-          gradient={gradient.red as [string, string]}
-          onPress={handleLogout}
-        />
       </View>
       <StatusBar style="auto" />
     </SafeAreaView>

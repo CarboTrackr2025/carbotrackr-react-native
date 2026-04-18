@@ -9,14 +9,19 @@ import {
 } from "react-native"
 import { BarChart } from "react-native-gifted-charts"
 import { useUser } from "@clerk/clerk-expo"
-import { Header } from "../../../shared/components/Header"
 import DateRangePicker from "../../../shared/components/DateRangePicker"
 import { fetchCalorieReport } from "../api/report.api"
-import { formatDateLabel } from "../report.utils"
+import { formatDateLabel, formatTimeLabel } from "../report.utils"
 import type { CalorieDataPoint } from "../report.types"
-import { color } from "../../../shared/constants/colors"
+import { color, gradient } from "../../../shared/constants/colors"
 import { useRouter } from "expo-router"
+import { useFocusEffect } from "expo-router"
+import { LinearGradient } from "expo-linear-gradient"
+import { getWatchMetrics } from "../../health/api/get-watch-data"
+import type { WatchMetric } from "../../health/api/post-watch-data"
 
+const CARD_BORDER_WIDTH = 2.5
+const CARD_RADIUS = 12
 export function CalorieReportScreen() {
     const { user } = useUser()
     const router = useRouter()
@@ -32,6 +37,8 @@ export function CalorieReportScreen() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [showAdjusted, setShowAdjusted] = useState(false)
+    const [latestWatchMetric, setLatestWatchMetric] = useState<WatchMetric | null>(null)
+    const [watchLoading, setWatchLoading] = useState(false)
 
     const accountId = user?.id ?? ""
 
@@ -50,31 +57,75 @@ export function CalorieReportScreen() {
         }
     }, [accountId, startDate, endDate])
 
-    useEffect(() => {
-        loadData()
-    }, [loadData])
+    const loadWatchMetric = useCallback(async () => {
+        if (!accountId) return
+        setWatchLoading(true)
+        try {
+            const result = await getWatchMetrics({
+                profile_id: accountId,
+                account_id: accountId,
+                limit: 50,
+            })
+            const rows = result.rows
+            if (rows && rows.length > 0) {
+                // Pick the entry with the most recent measured_at
+                const sorted = [...rows].sort(
+                    (a, b) =>
+                        new Date(b.measured_at).getTime() -
+                        new Date(a.measured_at).getTime()
+                )
+                setLatestWatchMetric(sorted[0])
+            } else {
+                setLatestWatchMetric(null)
+            }
+        } catch {
+            setLatestWatchMetric(null)
+        } finally {
+            setWatchLoading(false)
+        }
+    }, [accountId])
+
+    useFocusEffect(
+        useCallback(() => {
+            loadData()
+            loadWatchMetric()
+        }, [loadData, loadWatchMetric])
+    )
 
     // Build stacked bar chart data
-    // Each bar: green = actual consumed, red = remaining gap to goal
+    // Each bar: green = actual consumed after deducting burned, blue = burned calories, red = remaining gap
+    const calsBurned = showAdjusted && latestWatchMetric
+        ? Math.max(latestWatchMetric.calories_burned_kcal, 0)
+        : 0
+
     const barData = data.map((item) => {
-        const actual = item.calorie_actual_kcal
+        const rawActual = item.calorie_actual_kcal
         const goal = item.calorie_goal_kcal
-        const gap = Math.max(goal - actual, 0)
-        const label = formatDateLabel(item.created_at)
+        // Net actual after deducting burned (floor at 0)
+        const netActual = showAdjusted
+            ? Math.max(rawActual - calsBurned, 0)
+            : rawActual
+        const burned = showAdjusted ? Math.min(calsBurned, rawActual) : 0
+        const gap = Math.max(goal - netActual - burned, 0)
+        const dateLabel = formatDateLabel(item.created_at)
+        const timeLabel = formatTimeLabel(item.created_at)
 
         return {
             stacks: [
                 {
-                    value: actual,
+                    value: netActual,
                     color: color.green,
                     marginBottom: 2,
                 },
+                ...(showAdjusted
+                    ? [{ value: burned, color: "#60A5FA", marginBottom: 2 }]
+                    : []),
                 {
                     value: gap,
                     color: color["light-red"],
                 },
             ],
-            label,
+            label: `${dateLabel} ${timeLabel}`,
         }
     })
 
@@ -84,8 +135,6 @@ export function CalorieReportScreen() {
             contentContainerStyle={styles.container}
             nestedScrollEnabled
         >
-            {/* ── HEADER ── */}
-            <Header onFAQ={() => router.push("/faqs")} />
 
             {/* ── HEADLINE ── */}
             <Text style={styles.heading}>Calorie Consumption Graph</Text>
@@ -114,23 +163,32 @@ export function CalorieReportScreen() {
                     No calorie data found for this date range.
                 </Text>
             ) : (
-                <View style={styles.chartWrapper}>
-                    <BarChart
-                        stackData={barData}
-                        barWidth={12}
-                        spacing={22}
-                        barBorderRadius={5}
-                        roundedTop
-                        hideRules
-                        xAxisLabelTextStyle={styles.axisLabel}
-                        yAxisTextStyle={styles.axisLabel}
-                        noOfSections={4}
-                        yAxisThickness={0}
-                        xAxisThickness={1}
-                        xAxisColor="#E5E7EB"
-                        isAnimated
-                    />
-                </View>
+                <LinearGradient
+                    colors={gradient.green as [string, string]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cardBorder}
+                >
+                    <View style={styles.card}>
+                        <View style={styles.chartWrapper}>
+                            <BarChart
+                                stackData={barData}
+                                barWidth={30}
+                                spacing={42}
+                                barBorderRadius={5}
+                                roundedTop
+                                hideRules
+                                xAxisLabelTextStyle={styles.axisLabel}
+                                yAxisTextStyle={styles.axisLabel}
+                                noOfSections={4}
+                                yAxisThickness={0}
+                                xAxisThickness={1}
+                                xAxisColor="#E5E7EB"
+                                isAnimated
+                            />
+                        </View>
+                    </View>
+                </LinearGradient>
             )}
 
             {/* ── LEGEND ── */}
@@ -138,8 +196,14 @@ export function CalorieReportScreen() {
                 <View style={styles.legendRow}>
                     <View style={styles.legendItem}>
                         <View style={[styles.legendDot, { backgroundColor: color.green }]} />
-                        <Text style={styles.legendText}>Actual Consumed</Text>
+                        <Text style={styles.legendText}>Net Consumed</Text>
                     </View>
+                    {showAdjusted && (
+                        <View style={styles.legendItem}>
+                            <View style={[styles.legendDot, { backgroundColor: "#60A5FA" }]} />
+                            <Text style={styles.legendText}>Burned</Text>
+                        </View>
+                    )}
                     <View style={styles.legendItem}>
                         <View style={[styles.legendDot, { backgroundColor: color["light-red"] }]} />
                         <Text style={styles.legendText}>Remaining to Goal</Text>
@@ -159,9 +223,18 @@ export function CalorieReportScreen() {
                     thumbColor={showAdjusted ? color.green : "#9CA3AF"}
                 />
                 <Text style={styles.checkboxLabel}>
-                    Show graph with actual calories consumed and daily calories burned from walking
+                    Account for calories burned (based on latest watch sync)
                 </Text>
             </View>
+            {showAdjusted && (
+                <Text style={styles.watchNote}>
+                    {watchLoading
+                        ? "Loading watch data…"
+                        : latestWatchMetric
+                        ? `Latest sync: ${latestWatchMetric.calories_burned_kcal.toFixed(0)} kcal burned ≈ ${(latestWatchMetric.calories_burned_kcal / 9).toFixed(1)} g fat (${new Date(latestWatchMetric.measured_at).toLocaleDateString()})`
+                        : "No watch sync data found. Please sync your watch first."}
+                </Text>
+            )}
         </ScrollView>
     )
 }
@@ -180,12 +253,25 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: color.black,
         textAlign: "center",
+        marginTop: 20,
         marginBottom: 20,
     },
     chartWrapper: {
         marginTop: 12,
         marginBottom: 16,
         alignItems: "center",
+    },
+    cardBorder: {
+        borderRadius: CARD_RADIUS,
+        padding: CARD_BORDER_WIDTH,
+        overflow: "hidden",
+        marginTop: 12,
+        marginBottom: 16,
+    },
+    card: {
+        backgroundColor: color.white,
+        borderRadius: CARD_RADIUS - CARD_BORDER_WIDTH,
+        padding: 8,
     },
     loader: {
         marginTop: 40,
@@ -238,5 +324,12 @@ const styles = StyleSheet.create({
     axisLabel: {
         fontSize: 10,
         color: "#6B7280",
+    },
+    watchNote: {
+        fontSize: 11,
+        color: "#6B7280",
+        textAlign: "center",
+        marginTop: 6,
+        fontStyle: "italic",
     },
 })

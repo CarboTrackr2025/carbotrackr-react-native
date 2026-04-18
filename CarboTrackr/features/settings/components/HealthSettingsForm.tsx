@@ -13,6 +13,7 @@ import {
     parseTimeOfDayToDate,
 } from "../../../shared/utils/formatters"
 import type { HealthSettingsData as ApiHealthSettingsData } from "../api/get-health-settings"
+import { getDailyCarbohydrateGrams } from "../settings.utils"
 
 type DiagnosedWith = NonNullable<ApiHealthSettingsData["diagnosed_with"]>
 
@@ -30,6 +31,7 @@ type Props = {
     initialValues: HealthSettingsData
     onSave: (values: SaveHealthSettingsInput) => Promise<void>
     saving: boolean
+    recommendedDailyCalories?: number | null
     /** Label for the optional skip button shown during onboarding. */
     skipLabel?: string
     /** Called when the user taps the skip button. */
@@ -40,6 +42,7 @@ export default function HealthSettingsForm({
                                                initialValues,
                                                onSave,
                                                saving,
+                                               recommendedDailyCalories = null,
                                                skipLabel,
                                                onSkip,
                                            }: Props) {
@@ -79,6 +82,12 @@ export default function HealthSettingsForm({
         () => (reminderTimeValue ? formatPhilippinesTimeOfDay(reminderTimeValue) : ""),
         [reminderTimeValue]
     )
+
+    const recommendedCarbohydrate = useMemo(() => {
+        if (recommendedDailyCalories == null || !diagnosedWith) return null
+
+        return getDailyCarbohydrateGrams(recommendedDailyCalories, diagnosedWith)
+    }, [recommendedDailyCalories, diagnosedWith])
 
     const diagnosedOptions = [
         { label: "Type 2 Diabetes", value: "TYPE_2_DIABETES" },
@@ -147,6 +156,11 @@ export default function HealthSettingsForm({
                     keyboardType="numeric"
                     iconName="pencil"
                 />
+                {recommendedDailyCalories != null && (
+                    <Text style={styles.recommendationText}>
+                        {`Your recommended calorie intake is ${recommendedDailyCalories} which is based on your age, height, and weight. You can adjust it if needed.`}
+                    </Text>
+                )}
             </View>
 
             <View style={styles.fieldGroup}>
@@ -158,6 +172,11 @@ export default function HealthSettingsForm({
                     keyboardType="numeric"
                     iconName="pencil"
                 />
+                {recommendedCarbohydrate != null && (
+                    <Text style={styles.recommendationText}>
+                        {`Your recommended carbohydrate is ${recommendedCarbohydrate} which is based on your diagnosis, age, height, and weight. You can adjust it if needed.`}
+                    </Text>
+                )}
             </View>
 
             <View style={styles.fieldGroup}>
@@ -232,6 +251,14 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: color.black,
         marginBottom: 6,
+    },
+    recommendationText: {
+        marginTop: 6,
+        fontSize: 12,
+        lineHeight: 18,
+        color: "#4A4A4A",
+        textAlign: "center",
+        fontStyle: "italic",
     },
     buttonGroup: {
         marginTop: 20,

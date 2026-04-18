@@ -7,7 +7,6 @@ import { ButtonVersion2 } from "../../../shared/components/ButtonVersion2";
 export default function IndexScreen() {
     return (
         <SafeAreaView style={styles.container}>
-            <Text style={styles.title}>Scanners</Text>
             <View style={styles.outerContainer}>
                 <View style={styles.stylesRow}>
                     <ButtonVersion2
@@ -21,6 +20,9 @@ export default function IndexScreen() {
                         onPress={() => router.push("/(tabs)/scanner/solid-food-scanner")}
                     />
                 </View>
+                <Text style={styles.disclaimer}>
+                    Disclaimer: The accuracy of the Nutritional Info Scanner and Solid Food Scanner may not be 100% accurate. Please verify results with reliable nutritional sources or measured it with a food laboratory services.
+                </Text>
             </View>
             <StatusBar style="auto" />
         </SafeAreaView>
@@ -34,11 +36,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-    title: {
-        fontSize: 22,
-        fontWeight: "700",
-        marginBottom: 16,
-    },
     outerContainer: {
         flex: 1,
         gap: 20,
@@ -48,5 +45,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         gap: 20,
         justifyContent: "flex-start",
+    },
+    disclaimer: {
+        fontSize: 12,
+        color: "#999999",
+        textAlign: "center",
+        paddingHorizontal: 12,
     },
 });

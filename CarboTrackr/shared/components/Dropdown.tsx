@@ -80,30 +80,38 @@ export function Dropdown({
             {/* Modal for Dropdown Items */}
             <Modal visible={visible} transparent animationType="fade">
                 <Pressable style={styles.overlay} onPress={() => setVisible(false)}>
-                    <View style={styles.modalContent}>
-                        <FlatList
-                            data={[
-                                ...options,
-                            ]}
-                            keyExtractor={(item, index) => item.value?.toString() || index.toString()}
-                            contentContainerStyle={styles.listContainer}
-                            renderItem={({ item }) => (
-                                <Pressable
-                                    style={styles.optionItem}
-                                    onPress={() => handleSelect(item.value)}
-                                >
-                                    <Text style={[
-                                        styles.optionText,
-                                        item.value === selectedValue && { color: "#000000", fontWeight: "700" }
-                                    ]}>
-                                        {item.label}
-                                    </Text>
-                                    {item.value === selectedValue && (
-                                        <Ionicons name="checkmark" size={18} color={"#000000"}/>                                    )}
-                                </Pressable>
-                            )}
-                        />
-                    </View>
+                    <LinearGradient
+                        colors={gradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.modalBorder}
+                    >
+                        <View style={styles.modalContent}>
+                            <FlatList
+                                data={[
+                                    ...options,
+                                ]}
+                                keyExtractor={(item, index) => item.value?.toString() || index.toString()}
+                                contentContainerStyle={styles.listContainer}
+                                renderItem={({ item }) => (
+                                    <Pressable
+                                        style={styles.optionItem}
+                                        onPress={() => handleSelect(item.value)}
+                                    >
+                                        <Text style={[
+                                            styles.optionText,
+                                            item.value === selectedValue && { color: "#000000", fontWeight: "700" }
+                                        ]}>
+                                            {item.label}
+                                        </Text>
+                                        {item.value === selectedValue && (
+                                            <Ionicons name="checkmark" size={18} color={"#000000"}/>
+                                        )}
+                                    </Pressable>
+                                )}
+                            />
+                        </View>
+                    </LinearGradient>
                 </Pressable>
             </Modal>
         </View>
@@ -156,16 +164,21 @@ const styles = StyleSheet.create({
     },
     overlay: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.4)", // Darkened background
+        backgroundColor: "rgba(0,0,0,0.4)",
         justifyContent: "center",
         alignItems: "center",
         padding: 20,
     },
+    modalBorder: {
+        width: "100%",
+        borderRadius: RADIUS,
+        padding: BORDER_W,
+        maxHeight: SCREEN_HEIGHT * 0.4,
+    },
     modalContent: {
         width: "100%",
-        maxHeight: SCREEN_HEIGHT * 0.4,
         backgroundColor: color.white,
-        borderRadius: RADIUS,
+        borderRadius: RADIUS - BORDER_W,
         overflow: "hidden",
         elevation: 5,
         shadowColor: "#000",
@@ -174,7 +187,7 @@ const styles = StyleSheet.create({
         shadowRadius: 3.84,
     },
     listContainer: {
-        paddingVertical: 10,
+        paddingVertical: 0,
     },
     optionItem: {
         flexDirection: "row",

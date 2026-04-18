@@ -2,16 +2,22 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  Pressable,
+  Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { color } from "../../../shared/constants/colors";
+import { LinearGradient } from "expo-linear-gradient";
+import { color, gradient } from "../../../shared/constants/colors";
 import { submitContactInquiry } from "../api/post-contact";
+import { GradientTextInput } from "../../../shared/components/GradientTextInput";
+
+const BORDER_W = 2.5;
+const RADIUS = 12;
 
 export default function ContactScreen() {
   const router = useRouter();
@@ -20,7 +26,7 @@ export default function ContactScreen() {
   const [emailAddress, setEmailAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
 
   const handleSubmit = async () => {
     if (!subject.trim() || !message.trim() || !emailAddress.trim()) {
@@ -37,7 +43,7 @@ export default function ContactScreen() {
         message: message.trim(),
         email_address: emailAddress.trim(),
       });
-      setSuccess(true);
+      setSuccessModalVisible(true);
       setSubject("");
       setMessage("");
       setEmailAddress("");
@@ -53,6 +59,37 @@ export default function ContactScreen() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <Modal visible={successModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <LinearGradient
+            colors={gradient.green as [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.modalGradientCard}
+          >
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Success</Text>
+              <Text style={styles.modalBody}>
+                Your inquiry has been submitted. We will get back to you soon.
+              </Text>
+              <Pressable
+                style={styles.modalButton}
+                onPress={() => setSuccessModalVisible(false)}
+              >
+                <LinearGradient
+                  colors={gradient.green as [string, string]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.modalButtonGradient}
+                >
+                  <Text style={styles.modalButtonText}>OK</Text>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </LinearGradient>
+        </View>
+      </Modal>
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -76,63 +113,75 @@ export default function ContactScreen() {
 
         {/* Subject */}
         <Text style={styles.label}>Subject</Text>
-        <TextInput
-          style={styles.input}
+        <GradientTextInput
+          containerStyle={styles.input}
           value={subject}
           onChangeText={setSubject}
           placeholder="Enter subject"
-          placeholderTextColor="#aaa"
+          placeholderTextColor="#9CA3AF"
+          iconName="create"
           maxLength={500}
         />
 
         {/* Email */}
         <Text style={styles.label}>Email Address</Text>
-        <TextInput
-          style={styles.input}
+        <GradientTextInput
+          containerStyle={styles.input}
           value={emailAddress}
           onChangeText={setEmailAddress}
           placeholder="Enter your email"
-          placeholderTextColor="#aaa"
+          placeholderTextColor="#9CA3AF"
           keyboardType="email-address"
           autoCapitalize="none"
+          iconName="mail"
         />
 
         {/* Message */}
         <Text style={styles.label}>Inquiry / Complaint</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
+        <GradientTextInput
+          containerStyle={[styles.input, styles.textArea]}
+          inputInnerStyle={styles.messageInputInner}
           value={message}
           onChangeText={setMessage}
           placeholder="Describe your concern..."
-          placeholderTextColor="#aaa"
+          placeholderTextColor="#9CA3AF"
           multiline
           numberOfLines={5}
-          textAlignVertical="top"
+          iconName="chatbox-ellipses"
         />
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        {success && (
-          <Text style={styles.successText}>
-            Your inquiry has been submitted. We will get back to you soon.
-          </Text>
-        )}
-
-        <TouchableOpacity
-          style={[
-            styles.submitButton,
-            isLoading && styles.submitButtonDisabled,
-          ]}
+        <Pressable
           onPress={handleSubmit}
           disabled={isLoading}
-          activeOpacity={0.8}
+          style={styles.submitPressable}
         >
-          {isLoading ? (
-            <ActivityIndicator color={color.white} />
-          ) : (
-            <Text style={styles.submitText}>Submit</Text>
-          )}
-        </TouchableOpacity>
+          {({ pressed }) => {
+            return (
+              <LinearGradient
+                colors={gradient.green as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.submitButtonBorder}
+              >
+                <View
+                  style={[
+                    styles.submitButtonInner,
+                    pressed && styles.submitButtonActive,
+                    isLoading && styles.submitButtonDisabled,
+                  ]}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color={color.green} />
+                  ) : (
+                    <Text style={styles.submitText}>Submit</Text>
+                  )}
+                </View>
+              </LinearGradient>
+            );
+          }}
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -178,32 +227,37 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1.5,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: color.black,
     marginBottom: 20,
-    backgroundColor: "#fafafa",
   },
   textArea: {
-    height: 120,
-    paddingTop: 12,
+    minHeight: 128,
   },
-  submitButton: {
-    backgroundColor: color.green,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
+  messageInputInner: {
+    alignItems: "flex-start",
+    paddingTop: 14,
+  },
+  submitPressable: {
     marginTop: 8,
+  },
+  submitButtonBorder: {
+    borderRadius: RADIUS,
+    padding: BORDER_W,
+  },
+  submitButtonInner: {
+    borderRadius: RADIUS - BORDER_W,
+    minHeight: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: color.white,
+  },
+  submitButtonActive: {
+    backgroundColor: color["light-green-2"],
   },
   submitButtonDisabled: {
     opacity: 0.6,
   },
   submitText: {
-    color: color.white,
+    color: color.green,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -212,10 +266,54 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 12,
   },
-  successText: {
-    color: color.green,
-    fontSize: 13,
-    marginBottom: 12,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalGradientCard: {
+    width: "100%",
+    maxWidth: 360,
+    borderRadius: 16,
+    padding: 4,
+    overflow: "hidden",
+  },
+  modalCard: {
+    width: "100%",
+    backgroundColor: color.white,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: "center",
+    gap: 8,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: color.black,
     textAlign: "center",
+  },
+  modalBody: {
+    fontSize: 14,
+    color: "#444",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  modalButton: {
+    marginTop: 8,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  modalButtonGradient: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalButtonText: {
+    color: color.white,
+    fontWeight: "600",
   },
 });

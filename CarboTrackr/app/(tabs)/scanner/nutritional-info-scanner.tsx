@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator } from "react-native"
 import * as ImagePicker from "expo-image-picker"
+import { LinearGradient } from "expo-linear-gradient"
 
 import { postLabelMacrosOnly, type LabelMacrosResult } from "../../../features/scanner/api/post-nutritional-label-photo"
 import { postFoodLogFromNutritionalLabelScanner } from "../../../features/scanner/api/post-food"
@@ -29,9 +30,10 @@ export default function NutritionalInfoScanner() {
     const [saving, setSaving] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
     const [savedTimestamp, setSavedTimestamp] = useState<string | null>(null)
+    const [showImageSourceModal, setShowImageSourceModal] = useState(false)
 
     const recordedTimestamp = useMemo(() => new Date().toISOString(), [])
-    const recordedText = savedTimestamp ? formatPhilippinesTime(savedTimestamp) : "-”"
+    const recordedText = savedTimestamp ? formatPhilippinesTime(savedTimestamp) : "-"
 
     const servings = Number(servingsText) || 1
 
@@ -73,6 +75,38 @@ export default function NutritionalInfoScanner() {
         }
     }
 
+    async function pickFromGallery() {
+        try {
+            setErrorMsg(null)
+            setSaveError(null)
+            setResult(null)
+
+            const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
+            if (!perm.granted) {
+                setErrorMsg("Gallery permission is needed to select a photo.")
+                return
+            }
+
+            const picked = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                quality: 1,
+                allowsEditing: false,
+            })
+
+            if (picked.canceled) return
+
+            const uri = picked.assets?.[0]?.uri ?? null
+            if (!uri) {
+                setErrorMsg("No image URI returned by gallery.")
+                return
+            }
+
+            setImageUri(uri)
+        } catch (e: any) {
+            setErrorMsg(e?.message ?? "Failed to open gallery")
+        }
+    }
+
     async function analyze() {
         if (!imageUri) return
 
@@ -94,7 +128,7 @@ export default function NutritionalInfoScanner() {
     useEffect(() => {
         if (hasLaunchedRef.current) return
         hasLaunchedRef.current = true
-        takePhoto()
+        setShowImageSourceModal(true)
     }, [])
 
     useEffect(() => {
@@ -107,7 +141,7 @@ export default function NutritionalInfoScanner() {
         setResult(null)
         setErrorMsg(null)
         setSaveError(null)
-        await takePhoto()
+        setShowImageSourceModal(true)
     }
 
     const carbsG = result?.macros_per_serving?.carbs_g ?? 0
@@ -194,6 +228,68 @@ export default function NutritionalInfoScanner() {
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
+            <Modal visible={showImageSourceModal} transparent animationType="fade" onRequestClose={() => setShowImageSourceModal(false)}>
+                <View style={styles.modalOverlay}>
+                    <LinearGradient
+                        colors={gradient.green as [string, string]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.modalGradientBorder}
+                    >
+                        <View style={styles.modalCard}>
+                            <Text style={styles.modalTitle}>Select Image Source</Text>
+                            <Button
+                                title="Take Photo"
+                                onPress={() => {
+                                    setShowImageSourceModal(false)
+                                    takePhoto()
+                                }}
+                                gradient={gradient.green as [string, string]}
+                            />
+                            <Button
+                                title="Pick from Gallery"
+                                onPress={() => {
+                                    setShowImageSourceModal(false)
+                                    pickFromGallery()
+                                }}
+                                gradient={gradient.green as [string, string]}
+                            />
+                            <Pressable
+                                style={({ pressed }) => [
+                                    styles.cancelButtonWrapper,
+                                ]}
+                                onPress={() => setShowImageSourceModal(false)}
+                            >
+                                {({ pressed }) => (
+                                    <LinearGradient
+                                        colors={gradient.red as [string, string]}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={styles.cancelButtonBorder}
+                                    >
+                                        <View style={[styles.cancelButtonInner, pressed && styles.cancelButtonInnerPressed]}>
+                                            {pressed ? (
+                                                <LinearGradient
+                                                    colors={gradient.red as [string, string]}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 1 }}
+                                                    style={styles.cancelButtonFill}
+                                                />
+                                            ) : (
+                                                <View style={[styles.cancelButtonFill, styles.cancelButtonDefaultFill]} />
+                                            )}
+                                            <Text style={[styles.cancelButtonText, pressed && styles.cancelButtonTextPressed]}>
+                                                Cancel
+                                            </Text>
+                                        </View>
+                                    </LinearGradient>
+                                )}
+                            </Pressable>
+                        </View>
+                    </LinearGradient>
+                </View>
+            </Modal>
+
             <Modal visible={loading} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalCard}>
@@ -318,6 +414,51 @@ const styles = StyleSheet.create({
     modalButtonText: {
         color: "white",
         fontWeight: "600",
+    },
+    cancelButtonWrapper: {
+        width: "100%",
+        alignSelf: "stretch",
+        marginTop: 12,
+    },
+    cancelButtonBorder: {
+        width: "100%",
+        height: 54,
+        borderRadius: 12,
+        padding: 2.5,
+        justifyContent: "center",
+        overflow: "hidden",
+    },
+    cancelButtonInner: {
+        flex: 1,
+        borderRadius: 9.5,
+        justifyContent: "center",
+        paddingHorizontal: 12,
+        overflow: "hidden",
+    },
+    cancelButtonInnerPressed: {
+        backgroundColor: color["light-red"],
+    },
+    cancelButtonFill: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    cancelButtonDefaultFill: {
+        backgroundColor: color.white,
+    },
+    cancelButtonText: {
+        color: color["red"],
+        fontWeight: "600",
+        fontSize: 14,
+        textAlign: "center",
+    },
+    cancelButtonTextPressed: {
+        color: color.white,
+    },
+    modalGradientBorder: {
+        width: "100%",
+        maxWidth: 360,
+        borderRadius: 14,
+        padding: 3,
+        overflow: "hidden",
     },
     ringWrap: {
         marginTop: 8,

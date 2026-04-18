@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { color, gradient } from "../../../shared/constants/colors";
+import { Ionicons } from "@expo/vector-icons";
 
 type BpMeasurement = {
   id: string;
@@ -26,17 +27,35 @@ const PLOT_HEIGHT = 140;
 const LABEL_HEIGHT = 42;
 const CHART_HEIGHT = PLOT_HEIGHT + LABEL_HEIGHT;
 
-const Y_MIN = 20;
-const Y_MAX = 200;
-const Y_TICKS = [200, 160, 120, 80, 40, 20];
+const Y_AXIS_SECTIONS = 5;
+const Y_AXIS_MIN_FLOOR = 40;
+const Y_AXIS_MAX_CEILING = 240;
+const Y_AXIS_MIN_SPAN = 40;
+const Y_AXIS_PADDING_RATIO = 0.15;
+const Y_AXIS_ROUND_TO = 10;
+const NICE_STEP_CANDIDATES = [5, 10, 20, 25, 50];
 
-const GROUP_WIDTH = 64;
+const GROUP_WIDTH = 70;
 const GROUP_GAP = 14;
 const GROUP_PITCH = GROUP_WIDTH + GROUP_GAP;
-const Y_AXIS_WIDTH = 26;
+const Y_AXIS_WIDTH = 34;
 const CARD_BORDER_WIDTH = 2.5;
 const CARD_RADIUS = 12;
 const EMPTY_STATE_HEIGHT = 96;
+
+const roundDownTo = (value: number, step: number) =>
+  Math.floor(value / step) * step;
+const roundUpTo = (value: number, step: number) =>
+  Math.ceil(value / step) * step;
+
+const pickNiceStep = (roughStep: number) => {
+  const positiveStep = Math.max(1, roughStep);
+  const fromCandidates = NICE_STEP_CANDIDATES.find(
+    (step) => positiveStep <= step,
+  );
+  if (fromCandidates) return fromCandidates;
+  return roundUpTo(positiveStep, Y_AXIS_ROUND_TO);
+};
 
 const formatLabelMMMdd = (iso: string) => {
   const d = new Date(iso);
@@ -87,6 +106,57 @@ const LegendItem = ({ color: bg, label }: { color: string; label: string }) => (
   </View>
 );
 
+const computeYAxisDomain = (values: number[]) => {
+  if (values.length === 0) {
+    const step = Y_AXIS_MIN_SPAN / Y_AXIS_SECTIONS;
+    const min = Y_AXIS_MIN_FLOOR;
+    const max = min + step * Y_AXIS_SECTIONS;
+    const ticks = Array.from({ length: Y_AXIS_SECTIONS + 1 }, (_, i) => min + step * i).reverse();
+
+    return { min, max, step, ticks };
+  }
+
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const span = Math.max(1, rawMax - rawMin);
+  const padding = Math.max(4, Math.round(span * Y_AXIS_PADDING_RATIO));
+
+  let desiredMin = Math.max(Y_AXIS_MIN_FLOOR, rawMin - padding);
+  let desiredMax = Math.min(Y_AXIS_MAX_CEILING, rawMax + padding);
+
+  if (desiredMax - desiredMin < Y_AXIS_MIN_SPAN) {
+    const center = (desiredMin + desiredMax) / 2;
+    desiredMin = Math.max(Y_AXIS_MIN_FLOOR, center - Y_AXIS_MIN_SPAN / 2);
+    desiredMax = Math.min(Y_AXIS_MAX_CEILING, center + Y_AXIS_MIN_SPAN / 2);
+  }
+
+  const step = pickNiceStep((desiredMax - desiredMin) / Y_AXIS_SECTIONS);
+
+  let min = roundDownTo(desiredMin, step);
+  min = Math.max(Y_AXIS_MIN_FLOOR, min);
+
+  let max = min + step * Y_AXIS_SECTIONS;
+
+  if (max < desiredMax) {
+    max = roundUpTo(desiredMax, step);
+    min = Math.max(Y_AXIS_MIN_FLOOR, max - step * Y_AXIS_SECTIONS);
+  }
+
+  if (min > desiredMin) {
+    min = Math.max(Y_AXIS_MIN_FLOOR, min - step);
+    max = min + step * Y_AXIS_SECTIONS;
+  }
+
+  if (max > Y_AXIS_MAX_CEILING) {
+    max = Y_AXIS_MAX_CEILING;
+    min = Math.max(Y_AXIS_MIN_FLOOR, max - step * Y_AXIS_SECTIONS);
+  }
+
+  const ticks = Array.from({ length: Y_AXIS_SECTIONS + 1 }, (_, i) => min + step * i).reverse();
+
+  return { min, max, step, ticks };
+};
+
 export default function BloodPressureChart({ measurements }: Props) {
   const source = measurements ?? [];
   // Start collapsed so new users see 'See more' first
@@ -106,8 +176,18 @@ export default function BloodPressureChart({ measurements }: Props) {
       );
   }, [source]);
 
+  const yAxisDomain = useMemo(() => {
+    const values = sorted.flatMap((measurement) => [
+      measurement.systolic_mmHg,
+      measurement.diastolic_mmHg,
+    ]);
+    return computeYAxisDomain(values);
+  }, [sorted]);
+
   const toHeight = (value: number) => {
-    const ratio = clamp01((value - Y_MIN) / (Y_MAX - Y_MIN));
+    const ratio = clamp01(
+      (value - yAxisDomain.min) / (yAxisDomain.max - yAxisDomain.min),
+    );
     return Math.max(3, Math.round(ratio * PLOT_HEIGHT));
   };
 
@@ -124,7 +204,11 @@ export default function BloodPressureChart({ measurements }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Blood Pressure</Text>
+      <View style={styles.titleContainer}>
+        <Ionicons name="pulse" size={20} color="#111827" />
+        <Text style={styles.title}>Blood Pressure</Text>
+        <View style={{ width: 20 }} />
+      </View>
 
       <LinearGradient
         colors={gradient.green as [string, string]}
@@ -138,7 +222,7 @@ export default function BloodPressureChart({ measurements }: Props) {
               <View style={styles.chartRow}>
                 <View style={styles.yAxis}>
                   <View style={styles.yAxisPlot}>
-                    {Y_TICKS.map((tick) => (
+                    {yAxisDomain.ticks.map((tick) => (
                       <View
                         key={tick}
                         style={[styles.yAxisTick, { bottom: toHeight(tick) - 8 }]}
@@ -160,7 +244,7 @@ export default function BloodPressureChart({ measurements }: Props) {
                 >
                   <View style={styles.chart}>
                     <View style={styles.gridArea}>
-                      {Y_TICKS.map((tick) => (
+                      {yAxisDomain.ticks.map((tick) => (
                         <View
                           key={tick}
                           style={[styles.gridLine, { bottom: toHeight(tick) }]}
@@ -219,7 +303,7 @@ export default function BloodPressureChart({ measurements }: Props) {
               </View>
             ) : (
               <View style={styles.emptyChart}>
-                <Text style={styles.noDataText}>No data available</Text>
+                <Text style={styles.noDataText}>No recorded blood pressure available. Try a wider range, or add an entry.</Text>
               </View>
             )}
           </View>
@@ -265,8 +349,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 10,
     color: "#111827",
+  },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    gap: 8,
   },
   cardBorder: {
     borderRadius: CARD_RADIUS,
@@ -376,7 +467,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   legend: {
-    marginTop: 10,
+    marginTop: 2,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
@@ -384,6 +475,7 @@ const styles = StyleSheet.create({
   },
   legendToggle: {
     marginTop: 8,
+    marginBottom: -4,
     alignSelf: "center",
     paddingVertical: 4,
     paddingHorizontal: 8,

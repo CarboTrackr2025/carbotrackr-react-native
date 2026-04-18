@@ -33,13 +33,19 @@ export default function ChangePasswordScreen() {
     setSubmitting(true);
     setError(null);
 
-    const result = await resetPasswordWithClerk(signIn, newPassword);
-    setSubmitting(false);
+    try {
+      const result = await resetPasswordWithClerk(signIn, newPassword);
 
-    if (result.success) {
-      setShowToast(true);
-    } else {
-      setError(result.message);
+      if (result.success) {
+        setShowToast(true);
+      } else {
+        setError(result.message);
+      }
+    } catch (err: any) {
+      console.error("❌ [ChangePassword] Reset flow failed:", err?.message);
+      setError(err?.message ?? "Could not reset password. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -56,17 +62,26 @@ export default function ChangePasswordScreen() {
     setSubmitting(true);
     setError(null);
 
-    const result = await changePasswordWithClerk(
-      user,
-      newPassword,
-      currentPassword,
-    );
-    setSubmitting(false);
+    try {
+      const result = await changePasswordWithClerk(
+        user,
+        newPassword,
+        currentPassword,
+      );
 
-    if (result.success) {
-      setShowToast(true);
-    } else {
-      setError(result.message);
+      if (result.success) {
+        setShowToast(true);
+      } else {
+        setError(result.message);
+      }
+    } catch (err: any) {
+      console.error(
+        "❌ [ChangePassword] Authenticated flow failed:",
+        err?.message,
+      );
+      setError(err?.message ?? "Could not change password. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -94,9 +109,17 @@ export default function ChangePasswordScreen() {
           type="success"
           duration={600}
           onHide={async () => {
-            setShowToast(false);
-            await signOut();
-            router.replace("/auth/login");
+            try {
+              setShowToast(false);
+              await signOut();
+              router.replace("/auth/login");
+            } catch (err: any) {
+              console.error(
+                "❌ [ChangePassword] signOut after success failed:",
+                err?.message,
+              );
+              router.replace("/auth/login");
+            }
           }}
         />
       </View>

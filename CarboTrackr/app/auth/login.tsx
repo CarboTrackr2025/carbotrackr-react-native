@@ -2,9 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useSignIn, useOAuth, useUser } from "@clerk/clerk-expo";
+import { useSignIn, useUser, useAuth } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
-import * as AuthSession from "expo-auth-session";
 import LoginForm from "../../features/auth/components/LoginForm";
 import { loginWithClerk } from "../../features/auth/api/auth.api";
 import { saveClerkSession } from "../../features/auth/auth.utils";
@@ -16,72 +15,145 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn, setActive } = useSignIn();
+  const { sessionId } = useAuth();
   const { user } = useUser();
   const pendingSessionId = useRef<string | null>(null);
-  const { startOAuthFlow: startGoogleOAuth } = useOAuth({
-    strategy: "oauth_google",
-  });
-  const { startOAuthFlow: startFacebookOAuth } = useOAuth({
-    strategy: "oauth_facebook",
-  });
+  const isPersistingRef = useRef(false);
+  const handledSessionIdRef = useRef<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Once Clerk updates user after login, save the session with the real userId
+  const safeNavigateToTabs = (context: string) => {
+    try {
+      router.replace("/(tabs)");
+      return true;
+    } catch (navErr: any) {
+      console.log(
+        `❌ [Login Screen] Navigation to tabs failed (${context}):`,
+        navErr?.message,
+      );
+      setError(
+        "You are signed in, but we could not open the app. Please try again.",
+      );
+      return false;
+    }
+  };
+
+  const resolveUserEmail = () => {
+    return (
+      user?.primaryEmailAddress?.emailAddress ??
+      user?.emailAddresses?.[0]?.emailAddress ??
+      ""
+    );
+  };
+
+  const persistAccountAndNavigate = async (
+    resolvedSessionId: string,
+    userId: string,
+    email: string,
+    forceSetup = false,
+  ) => {
+    await saveClerkSession({ sessionId: resolvedSessionId, userId });
+    console.log("💾 [Login Screen] Session saved to AsyncStorage");
+
+    const response = await api.post("/auth/account", {
+      userId,
+      email,
+    });
+
+    if (forceSetup || response.status === 201) {
+      router.replace("/auth/setup-profile");
+      return;
+    }
+
+    router.replace("/(tabs)");
+  };
+
+  // Handle both fresh logins and users who are already signed in but still on this screen.
   useEffect(() => {
-    if (user?.id && pendingSessionId.current) {
-      const sessionId = pendingSessionId.current;
-      pendingSessionId.current = null;
-      console.log("💾 [Login Screen] useUser resolved userId:", user.id);
-      saveClerkSession({ sessionId, userId: user.id }).then(async () => {
-        console.log("💾 [Login Screen] Session saved to AsyncStorage");
+    if (!user?.id) return;
 
-        // Ensure backend account exists when logging in.
-        // This covers the case where a user has a Clerk account but no backend DB account/profile.
-        try {
-          const email = user.primaryEmailAddress?.emailAddress ?? "";
-          console.log("🌐 [Login Screen] Checking/persisting backend user:", {
-            userId: user.id,
-            email,
-          });
-          const response = await api.post("/auth/account", {
-            userId: user.id,
-            email,
-          });
+    const resolvedSessionId = pendingSessionId.current ?? sessionId ?? null;
+    if (!resolvedSessionId) return;
+    if (handledSessionIdRef.current === resolvedSessionId) return;
+    if (isPersistingRef.current) return;
 
-          // If the backend returns 201 Created (or similar), it means the user was just added to the DB
-          if (response.status === 201) {
-            console.log(
-              "🆕 [Login Screen] Backend account was just created. Navigating to profile setup.",
-            );
-            router.replace("/auth/setup-profile");
-            return;
-          }
-        } catch (backendErr: any) {
-          if (backendErr?.response?.status === 409) {
-            console.log(
-              "✅ [Login Screen] Backend account already exists (409).",
-            );
-          } else {
-            console.error(
-              "❌ [Login Screen] Failed to persist backend account:",
-              backendErr?.message,
-            );
-          }
+    // Already signed-in user visiting login page: redirect immediately.
+    // No need to block this path on backend account upsert.
+    if (!pendingSessionId.current) {
+      try {
+        handledSessionIdRef.current = resolvedSessionId;
+        safeNavigateToTabs("already-signed-in");
+      } catch (err: any) {
+        console.log(
+          "❌ [Login Screen] Already-signed-in redirect failed:",
+          err?.message,
+        );
+        handledSessionIdRef.current = null;
+        setError(
+          "You are already signed in, but we could not redirect you. Please try again.",
+        );
+      }
+      return;
+    }
+
+    isPersistingRef.current = true;
+    pendingSessionId.current = null;
+
+    const email = resolveUserEmail();
+    if (!email) {
+      isPersistingRef.current = false;
+      setError(
+        "Login succeeded, but we could not resolve your email yet. Please wait a moment and try again.",
+      );
+      return;
+    }
+
+    console.log("🌐 [Login Screen] Checking/persisting backend user:", {
+      userId: user.id,
+      email,
+    });
+
+    persistAccountAndNavigate(resolvedSessionId, user.id, email)
+      .then(() => {
+        handledSessionIdRef.current = resolvedSessionId;
+      })
+      .catch((err: any) => {
+        const status = err?.response?.status;
+        if (status === 409) {
+          console.log(
+            "✅ [Login Screen] Backend account already exists (409).",
+          );
+          handledSessionIdRef.current = resolvedSessionId;
+          safeNavigateToTabs("post-login-409");
+          return;
         }
 
-        // If account already existed, just go to tabs
-        router.replace("/(tabs)");
+        console.log(
+          "⚠️ [Login Screen] Post-login persistence failed. Continuing with signed-in session:",
+          err?.message,
+        );
+        handledSessionIdRef.current = resolvedSessionId;
+        setError(null);
+        safeNavigateToTabs("post-login-persist-failed");
+      })
+      .finally(() => {
+        isPersistingRef.current = false;
       });
-    }
-  }, [user?.id]);
+  }, [
+    user?.id,
+    user?.primaryEmailAddress?.emailAddress,
+    user?.emailAddresses,
+    sessionId,
+    router,
+  ]);
 
   const handleLogin = async (email: string, password: string) => {
     console.log("📱 [Login Screen] Login button pressed");
     console.log("   Email:", email);
 
     if (!signIn || !setActive) {
-      console.error(
+      console.log(
         "❌ [Login Screen] Clerk signIn or setActive not available",
       );
       setError("Clerk is not initialized.");
@@ -91,126 +163,41 @@ export default function LoginScreen() {
     setSubmitting(true);
     setError(null);
 
-    const result = await loginWithClerk(signIn, setActive, { email, password });
-    setSubmitting(false);
-
-    if (result.success) {
-      console.log(
-        "✅ [Login Screen] Login successful, waiting for user context...",
-      );
-      pendingSessionId.current = result.sessionId;
-      // Navigation will happen in the useEffect above once user.id is available
-    } else {
-      console.error("❌ [Login Screen] Login failed:", result.message);
-      setError(result.message);
-    }
-  };
-
-  const handleOAuth = async (provider: "oauth_google" | "oauth_facebook") => {
-    console.log("📱 [Login Screen] OAuth button pressed:", provider);
-
-    setSubmitting(true);
-    setError(null);
-
     try {
-      const startOAuthFlow =
-        provider === "oauth_google" ? startGoogleOAuth : startFacebookOAuth;
-      const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: "carbotrackr",
-        path: "auth/oauth-native-callback",
+      const result = await loginWithClerk(signIn, setActive, {
+        email,
+        password,
       });
-      console.log("🔗 [Login Screen] OAuth redirectUrl:", redirectUrl);
-      const {
-        createdSessionId,
-        setActive: oAuthSetActive,
-        signUp: oAuthSignUp,
-        signIn: oAuthSignIn,
-      } = await startOAuthFlow({ redirectUrl });
 
-      if (createdSessionId && oAuthSetActive) {
-        await oAuthSetActive({ session: createdSessionId });
+      if (result.success) {
         console.log(
-          "✅ [Login Screen] OAuth login successful, persisting to backend...",
+          "✅ [Login Screen] Login successful, waiting for user context...",
         );
-
-        // Resolve userId — new signups have it on signUp, returning users on signIn
-        // Fall back to the Clerk user object which is populated after setActive
-        const userId =
-          oAuthSignUp?.createdUserId ??
-          (oAuthSignIn as any)?.createdUserId ??
-          user?.id ??
-          null;
-        const email =
-          oAuthSignUp?.emailAddress ??
-          (oAuthSignIn as any)?.identifier ??
-          user?.primaryEmailAddress?.emailAddress ??
-          null;
-        // A brand-new OAuth user will have createdUserId on oAuthSignUp
-        let isNewUser = !!oAuthSignUp?.createdUserId;
-
-        // Always save the session locally
-        if (userId) {
-          await saveClerkSession({ sessionId: createdSessionId, userId });
-          console.log("💾 [Login Screen] Session saved to AsyncStorage");
-        }
-
-        if (userId && email) {
-          console.log("🌐 [Login Screen] Persisting OAuth user:", {
-            userId,
-            email,
-          });
-          try {
-            const response = await api.post("/auth/account", { userId, email });
-            console.log("✅ [Login Screen] Backend account created/confirmed.");
-            if (response.status === 201) {
-              isNewUser = true; // The backend just created the account, so treat as new user
-            }
-          } catch (backendErr: any) {
-            if (backendErr?.response?.status === 409) {
-              console.warn(
-                "⚠️ [Login Screen] Backend account already exists (409). Continuing.",
-              );
-            } else {
-              console.error(
-                "❌ [Login Screen] Failed to persist backend account:",
-                backendErr?.message,
-              );
-            }
-          }
-        } else {
-          console.log(
-            "ℹ️ [Login Screen] userId/email not yet available — oauth-native-callback will handle backend persist.",
-          );
-        }
-
-        if (isNewUser) {
-          console.log(
-            "🆕 [Login Screen] New OAuth user — navigating to profile setup.",
-          );
-          router.replace("/auth/setup-profile");
-        } else {
-          console.log(
-            "🔄 [Login Screen] Returning OAuth user — navigating to tabs.",
-          );
-          router.replace("/(tabs)");
-        }
+        pendingSessionId.current = result.sessionId;
+        // Navigation will happen in the useEffect above once user.id is available
       } else {
-        console.log(
-          "✅ [Login Screen] OAuth flow initiated (will complete via callback)",
-        );
+        console.log("❌ [Login Screen] Login failed:", result.message);
+        setError(result.message);
       }
     } catch (err: any) {
-      console.error("❌ [Login Screen] OAuth failed:", err);
-      const message =
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        "OAuth sign-in failed.";
-      setError(message);
+      console.log("❌ [Login Screen] Unexpected login error:", err?.message);
+      setError(err?.message ?? "Login failed. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
+
+  // OAuth temporarily disabled
+  // const handleOAuth = async (provider: "oauth_google" | "oauth_facebook") => {
+  //   console.log("📱 [Login Screen] OAuth button pressed:", provider);
+  //   setSubmitting(true);
+  //   setError(null);
+  //   try {
+  //     // OAuth flow intentionally disabled for now.
+  //   } finally {
+  //     setSubmitting(false);
+  //   }
+  // };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -220,8 +207,6 @@ export default function LoginScreen() {
         onLogin={handleLogin}
         onForgotPassword={() => router.push("/auth/forgot-password")}
         onSignUp={() => router.push("/auth/signup")}
-        onFacebook={() => handleOAuth("oauth_facebook")}
-        onGoogle={() => handleOAuth("oauth_google")}
         onFAQ={() => router.push("/faqs")}
       />
     </SafeAreaView>
