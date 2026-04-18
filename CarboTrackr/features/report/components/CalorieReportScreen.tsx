@@ -12,7 +12,7 @@ import { useUser } from "@clerk/clerk-expo"
 import { Header } from "../../../shared/components/Header"
 import DateRangePicker from "../../../shared/components/DateRangePicker"
 import { fetchCalorieReport } from "../api/report.api"
-import { formatDateLabel } from "../report.utils"
+import { formatDateLabel, formatTimeLabel } from "../report.utils"
 import type { CalorieDataPoint } from "../report.types"
 import { color, gradient } from "../../../shared/constants/colors"
 import { useRouter } from "expo-router"
@@ -70,7 +70,8 @@ export function CalorieReportScreen() {
         const actual = item.calorie_actual_kcal
         const goal = item.calorie_goal_kcal
         const gap = Math.max(goal - actual, 0)
-        const label = formatDateLabel(item.created_at)
+        const dateLabel = formatDateLabel(item.created_at)
+        const timeLabel = formatTimeLabel(item.created_at)
 
         return {
             stacks: [
@@ -84,7 +85,7 @@ export function CalorieReportScreen() {
                     color: color["light-red"],
                 },
             ],
-            label,
+            label: `${dateLabel} ${timeLabel}`,
         }
     })
 
@@ -134,8 +135,8 @@ export function CalorieReportScreen() {
                         <View style={styles.chartWrapper}>
                             <BarChart
                                 stackData={barData}
-                                barWidth={12}
-                                spacing={22}
+                                barWidth={30}
+                                spacing={40}
                                 barBorderRadius={5}
                                 roundedTop
                                 hideRules
