@@ -126,7 +126,7 @@ export function CarbohydrateReportScreen() {
                             <BarChart
                                 stackData={barData}
                                 barWidth={30}
-                                spacing={40}
+                                spacing={42}
                                 barBorderRadius={5}
                                 roundedTop
                                 hideRules
