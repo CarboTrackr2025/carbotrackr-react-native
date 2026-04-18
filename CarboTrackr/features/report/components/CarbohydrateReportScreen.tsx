@@ -9,7 +9,6 @@ import {
 } from "react-native"
 import { BarChart } from "react-native-gifted-charts"
 import { useUser } from "@clerk/clerk-expo"
-import { Header } from "../../../shared/components/Header"
 import DateRangePicker from "../../../shared/components/DateRangePicker"
 import { fetchCarbohydrateReport } from "../api/report.api"
 import { formatDateLabel, formatTimeLabel } from "../report.utils"
@@ -85,8 +84,6 @@ export function CarbohydrateReportScreen() {
             contentContainerStyle={styles.container}
             nestedScrollEnabled
         >
-            {/* ── HEADER ── */}
-            <Header onFAQ={() => router.push("/faqs")} />
 
             {/* ── HEADLINE ── */}
             <Text style={styles.heading}>Carbohydrate Consumption Graph</Text>
@@ -190,6 +187,7 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: color.black,
         textAlign: "center",
+        marginTop: 20,
         marginBottom: 20,
     },
     chartWrapper: {
