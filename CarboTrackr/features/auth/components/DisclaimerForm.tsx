@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  Animated,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,22 +14,47 @@ import { color, gradient } from "../../../shared/constants/colors";
 type Props = {
   onAgree: () => void;
   onFAQ: () => void;
+  onBack: () => void;
 };
 
-export default function DisclaimerForm({ onAgree, onFAQ }: Props) {
+export default function DisclaimerForm({ onAgree, onFAQ, onBack }: Props) {
   const [checkedMedical, setCheckedMedical] = useState(false);
   const [checkedTerms, setCheckedTerms] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+  const fadeAnim = useState(new Animated.Value(0))[0];
 
   const bothChecked = checkedMedical && checkedTerms;
 
+  const handleBack = () => {
+    setRedirecting(true);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    setTimeout(() => {
+      onBack();
+    }, 2500);
+  };
+
+  useEffect(() => {
+    return () => {
+      setRedirecting(false);
+    };
+  }, []);
+
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={styles.root}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
       {/* ── HEADER ── */}
       <View style={styles.header}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={color.black} />
+        </TouchableOpacity>
         <Text style={styles.headerBrand}>CarboTrackr</Text>
         <TouchableOpacity onPress={onFAQ} style={styles.faqButton}>
           <Ionicons name="help-circle-outline" size={28} color={color.black} />
@@ -114,11 +140,30 @@ export default function DisclaimerForm({ onAgree, onFAQ }: Props) {
           </View>
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+
+      {/* ── REDIRECTING OVERLAY ── */}
+      {redirecting && (
+        <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+          <View style={styles.overlayCard}>
+            <Ionicons name="heart-outline" size={40} color={color.green} style={{ marginBottom: 12 }} />
+            <Text style={styles.overlayTitle}>We understand. 💚</Text>
+            <Text style={styles.overlayMessage}>
+              Thank you for considering CarboTrackr. We're redirecting you back
+              to the login page. You may also close the application at any time.
+            </Text>
+          </View>
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: color.white,
+  },
   scroll: {
     flex: 1,
     backgroundColor: color.white,
@@ -133,6 +178,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 32,
     marginTop: 16,
+  },
+  backButton: {
+    padding: 4,
   },
   headerBrand: {
     fontSize: 20,
@@ -228,5 +276,37 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: "#9CA3AF",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  overlayCard: {
+    alignItems: "center",
+    backgroundColor: color.white,
+    borderRadius: 20,
+    padding: 32,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+    width: "100%",
+  },
+  overlayTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: color.black,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  overlayMessage: {
+    fontSize: 15,
+    color: "#555",
+    lineHeight: 22,
+    textAlign: "center",
   },
 });
