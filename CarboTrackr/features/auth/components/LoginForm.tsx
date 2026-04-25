@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, Image } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { color, gradient } from "../../../shared/constants/colors";
 import { GradientTextInput } from "../../../shared/components/GradientTextInput";
 import { Button } from "../../../shared/components/Button";
+import { ErrorBanner } from "../../../shared/components/ErrorBanner";
 
 type Props = {
   submitting?: boolean;
@@ -30,9 +30,23 @@ export default function LoginForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const canSubmit =
     email.trim().length > 0 && password.length > 0 && !submitting;
+
+  const handleLogin = () => {
+    if (!email.trim()) {
+      setValidationError("Please enter your email and password.");
+      return;
+    }
+    if (!password) {
+      setValidationError("Please enter your email and password.");
+      return;
+    }
+    setValidationError(null);
+    onLogin(email, password);
+  };
 
   return (
     <View style={styles.container}>
@@ -91,13 +105,15 @@ export default function LoginForm({
       <View style={styles.loginButtonWrapper}>
         <Button
           title={submitting ? "Logging in..." : "Login"}
-          onPress={() => onLogin(email, password)}
+          onPress={handleLogin}
           gradient={gradient.green as [string, string]}
           disabled={!canSubmit}
         />
       </View>
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {/* ── ERROR DISPLAY ── */}
+      {validationError && <ErrorBanner message={validationError} />}
+      {error && <ErrorBanner message={error} />}
 
       {/* ── DIVIDER ── */}
       {/* <View style={styles.dividerRow}>
@@ -245,12 +261,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: color.black,
   },
-  errorText: {
-    color: color["red"],
-    fontSize: 12,
-    marginTop: 8,
-    textAlign: "center",
-  },
+
 
   // Sign up
   signUpRow: {

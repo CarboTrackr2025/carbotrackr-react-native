@@ -1,6 +1,48 @@
 import { api } from "../../../shared/api";
 import { saveClerkSession } from "../auth.utils";
 
+/**
+ * Converts raw Clerk error strings into friendly, human-readable messages.
+ */
+function friendlyError(raw: string): string {
+  const lower = raw.toLowerCase();
+
+  // ── Identity / account ────────────────────────────────────────────
+  if (lower.includes("identifier") && lower.includes("not found"))
+    return "We couldn't find an account with that email. Double-check it or create a new account.";
+  if (lower.includes("that identifier") || lower.includes("email address is taken") || lower.includes("already exists"))
+    return "That email is already registered. Try logging in instead, or use a different email.";
+  if (lower.includes("invalid identifier") || lower.includes("is invalid"))
+    return "That doesn't look like a valid email address. Please check and try again.";
+
+  // ── Password ───────────────────────────────────────────────────────
+  if (lower.includes("password is incorrect") || lower.includes("invalid password"))
+    return "Incorrect password. Please try again, or use 'Forgot your password?' to reset it.";
+  if (lower.includes("password") && lower.includes("too short"))
+    return "Your password must be at least 8 characters long.";
+  if (lower.includes("password") && lower.includes("too common"))
+    return "That password is too common. Please choose a more unique one.";
+  if (lower.includes("password") && (lower.includes("pwned") || lower.includes("compromised")))
+    return "That password has appeared in known data breaches. Please choose a different one.";
+
+  // ── OTP / verification ────────────────────────────────────────────
+  if (lower.includes("code is incorrect") || lower.includes("incorrect code"))
+    return "That code doesn't match. Please check your email and try again.";
+  if (lower.includes("code has expired") || lower.includes("expired"))
+    return "That code has expired. Please request a new one.";
+  if (lower.includes("too many attempts") || lower.includes("rate limit"))
+    return "Too many attempts. Please wait a moment before trying again.";
+
+  // ── Session / network ─────────────────────────────────────────────
+  if (lower.includes("network") || lower.includes("fetch"))
+    return "Couldn't connect to the server. Please check your internet connection and try again.";
+  if (lower.includes("session") && lower.includes("not found"))
+    return "Your session has expired. Please log in again.";
+
+  // Fallback — return the raw message but capitalised cleanly
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
 type LoginPayload = {
   email: string;
   password: string;
@@ -58,14 +100,14 @@ export async function signUpWithClerk(
       return { success: false, needsVerification: true, email: payload.email };
     }
 
-    console.warn("⚠️ [Clerk SignUp] Unexpected status:", signUpAttempt.status);
+    console.log("⚠️ [Clerk SignUp] Unexpected status:", signUpAttempt.status);
     return {
       success: false,
       message: `Sign-up could not be completed (status: ${signUpAttempt.status}).`,
     };
   } catch (error: any) {
-    console.error("❌ [Clerk SignUp] Error during sign-up:", error);
-    console.error(
+    console.log("❌ [Clerk SignUp] Error during sign-up:", error);
+    console.log(
       "   Error details:",
       JSON.stringify(error?.errors || error, null, 2),
     );
@@ -103,7 +145,7 @@ export async function verifySignUpEmail(
       message: "Verification failed. Please check the code and try again.",
     };
   } catch (error: any) {
-    console.error("❌ [Clerk SignUp] Verification error:", error);
+    console.log("❌ [Clerk SignUp] Verification error:", error);
     const message =
       error?.errors?.[0]?.longMessage ??
       error?.errors?.[0]?.message ??
@@ -151,19 +193,19 @@ async function _activateAndPersist(
   } catch (backendErr: any) {
     const status = backendErr?.response?.status;
     const isAxiosError = backendErr?.isAxiosError ?? false;
-    console.error("❌ [Clerk SignUp] Failed to persist backend account:");
-    console.error("   isAxiosError:", isAxiosError);
-    console.error("   HTTP status:", status);
-    console.error("   message:", backendErr?.message);
-    console.error("   code:", backendErr?.code);
-    console.error(
+    console.log("❌ [Clerk SignUp] Failed to persist backend account:");
+    console.log("   isAxiosError:", isAxiosError);
+    console.log("   HTTP status:", status);
+    console.log("   message:", backendErr?.message);
+    console.log("   code:", backendErr?.code);
+    console.log(
       "   response data:",
       JSON.stringify(backendErr?.response?.data),
     );
-    console.error("   baseURL:", api.defaults.baseURL);
+    console.log("   baseURL:", api.defaults.baseURL);
 
     if (status === 409) {
-      console.warn(
+      console.log(
         "⚠️ [Clerk SignUp] Backend account already exists (409). Continuing.",
       );
     }
@@ -219,7 +261,7 @@ export async function loginWithClerk(
       };
     }
 
-    console.warn(
+    console.log(
       "⚠️ [Clerk Login] Additional verification required. Status:",
       signInAttempt.status,
     );
@@ -228,8 +270,8 @@ export async function loginWithClerk(
       message: "Sign-in requires additional verification.",
     };
   } catch (error: any) {
-    console.error("❌ [Clerk Login] Error during sign-in:", error);
-    console.error(
+    console.log("❌ [Clerk Login] Error during sign-in:", error);
+    console.log(
       "   Error details:",
       JSON.stringify(error?.errors || error, null, 2),
     );
@@ -273,8 +315,8 @@ export async function loginWithOAuth(
     // will be handled in the OAuth callback or by Clerk's useAuth hook
     return { success: true, userId: "" };
   } catch (error: any) {
-    console.error(`❌ [OAuth] ${provider} error:`, error);
-    console.error(
+    console.log(`❌ [OAuth] ${provider} error:`, error);
+    console.log(
       "   Error details:",
       JSON.stringify(error?.errors || error, null, 2),
     );
@@ -313,8 +355,8 @@ export async function changePasswordWithClerk(
     console.log("✅ [Clerk ChangePassword] Password updated successfully!");
     return { success: true };
   } catch (error: any) {
-    console.error("❌ [Clerk ChangePassword] Error:", error);
-    console.error(
+    console.log("❌ [Clerk ChangePassword] Error:", error);
+    console.log(
       "   Error details:",
       JSON.stringify(error?.errors || error, null, 2),
     );
@@ -363,8 +405,8 @@ export async function requestPasswordReset(
     console.log("✅ [Clerk ForgotPassword] Reset email sent!");
     return { success: true };
   } catch (error: any) {
-    console.error("❌ [Clerk ForgotPassword] Error requesting reset:", error);
-    console.error(
+    console.log("❌ [Clerk ForgotPassword] Error requesting reset:", error);
+    console.log(
       "   Error details:",
       JSON.stringify(error?.errors || error, null, 2),
     );
@@ -405,7 +447,7 @@ export async function verifyPasswordResetOTP(
       return { success: true };
     }
 
-    console.warn(
+    console.log(
       "⚠️ [Clerk ForgotPassword] Unexpected status after OTP:",
       result.status,
     );
@@ -414,8 +456,8 @@ export async function verifyPasswordResetOTP(
       message: "OTP verification failed. Please try again.",
     };
   } catch (error: any) {
-    console.error("❌ [Clerk ForgotPassword] OTP verification error:", error);
-    console.error(
+    console.log("❌ [Clerk ForgotPassword] OTP verification error:", error);
+    console.log(
       "   Error details:",
       JSON.stringify(error?.errors || error, null, 2),
     );
@@ -456,8 +498,8 @@ export async function resetPasswordWithClerk(
       message: "Password reset could not be completed.",
     };
   } catch (error: any) {
-    console.error("❌ [Clerk ForgotPassword] Reset error:", error);
-    console.error(
+    console.log("❌ [Clerk ForgotPassword] Reset error:", error);
+    console.log(
       "   Error details:",
       JSON.stringify(error?.errors || error, null, 2),
     );

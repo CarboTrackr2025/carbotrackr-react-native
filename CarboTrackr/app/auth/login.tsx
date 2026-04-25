@@ -28,7 +28,7 @@ export default function LoginScreen() {
       router.replace("/(tabs)");
       return true;
     } catch (navErr: any) {
-      console.error(
+      console.log(
         `❌ [Login Screen] Navigation to tabs failed (${context}):`,
         navErr?.message,
       );
@@ -85,7 +85,7 @@ export default function LoginScreen() {
         handledSessionIdRef.current = resolvedSessionId;
         safeNavigateToTabs("already-signed-in");
       } catch (err: any) {
-        console.error(
+        console.log(
           "❌ [Login Screen] Already-signed-in redirect failed:",
           err?.message,
         );
@@ -129,7 +129,7 @@ export default function LoginScreen() {
           return;
         }
 
-        console.warn(
+        console.log(
           "⚠️ [Login Screen] Post-login persistence failed. Continuing with signed-in session:",
           err?.message,
         );
@@ -153,7 +153,7 @@ export default function LoginScreen() {
     console.log("   Email:", email);
 
     if (!signIn || !setActive) {
-      console.error(
+      console.log(
         "❌ [Login Screen] Clerk signIn or setActive not available",
       );
       setError("Clerk is not initialized.");
@@ -176,11 +176,11 @@ export default function LoginScreen() {
         pendingSessionId.current = result.sessionId;
         // Navigation will happen in the useEffect above once user.id is available
       } else {
-        console.error("❌ [Login Screen] Login failed:", result.message);
+        console.log("❌ [Login Screen] Login failed:", result.message);
         setError(result.message);
       }
     } catch (err: any) {
-      console.error("❌ [Login Screen] Unexpected login error:", err?.message);
+      console.log("❌ [Login Screen] Unexpected login error:", err?.message);
       setError(err?.message ?? "Login failed. Please try again.");
     } finally {
       setSubmitting(false);
