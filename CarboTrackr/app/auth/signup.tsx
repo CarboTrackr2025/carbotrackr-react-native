@@ -36,9 +36,9 @@ export default function SignupScreen() {
 
       if (result.success) {
         console.log(
-          "✅ [Signup Screen] Sign-up successful! Navigating to profile setup.",
+          "✅ [Signup Screen] Sign-up successful! Navigating to disclaimer.",
         );
-        router.replace("/auth/setup-profile");
+        router.replace("/auth/disclaimer");
       } else if ("needsVerification" in result && result.needsVerification) {
         console.log(
           "📧 [Signup Screen] Email verification required, navigating to OTP.",

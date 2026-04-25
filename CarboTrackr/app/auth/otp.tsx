@@ -79,8 +79,8 @@ export default function OTPScreen() {
         );
 
         if (result.success) {
-          console.log("✅ [OTP] Email verified, navigating to profile setup.");
-          router.replace("/auth/setup-profile");
+          console.log("✅ [OTP] Email verified, navigating to disclaimer.");
+          router.replace("/auth/disclaimer");
         } else if ("message" in result) {
           console.error("❌ [OTP] Email verification failed:", result.message);
           setError(result.message);
